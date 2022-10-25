@@ -194,7 +194,7 @@ class Train:
                             seed=self.seed, kernel=kernel, p_model=self.p_model)
         model.to(self.device)
 
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+        optimizer = Adam(model.parameters())
 
         epoch_start = 0
         epoch_end = 0
@@ -206,17 +206,13 @@ class Train:
             total_loss = 0
             for batch_id in range(n_batches_train):
 
-                if self.p_model:
-                    output = model(self.train.enc[batch_id], self.train.dec[batch_id])
-                    loss = self.criterion(output, self.train.y_true[batch_id])
-                else:
-                    output = model(self.train.enc[batch_id], self.train.dec[batch_id])
-                    loss = self.criterion(output, self.train.y_true[batch_id])
+                output = model(self.train.enc[batch_id], self.train.dec[batch_id])
+                loss = self.criterion(output, self.train.y_true[batch_id])
                 total_loss += loss.item()
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step_and_update_lr()
+                optimizer.step()
 
             print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
 
@@ -224,13 +220,9 @@ class Train:
             test_loss = 0
             for j in range(n_batches_valid):
 
-                if self.p_model:
-                    outputs = model(self.valid.enc[j], self.valid.dec[j])
-                    loss = self.criterion(outputs, self.valid.y_true[j])
-                else:
-                    outputs = model(self.valid.enc[j], self.valid.dec[j])
-                    loss = self.criterion(outputs, self.valid.y_true[j])
+                outputs = model(self.valid.enc[j], self.valid.dec[j])
 
+                loss = self.criterion(outputs, self.valid.y_true[j])
                 test_loss += loss.item()
 
             print("val loss: {:.4f}".format(test_loss))
@@ -327,7 +319,7 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--p_model", type=str, default="True")
+    parser.add_argument("--p_model", type=str, default="False")
 
     args = parser.parse_args()
 
