@@ -322,15 +322,16 @@ class Transformer(nn.Module):
 
     def forward(self, enc_inputs, dec_inputs):
 
-        enc_outputs = self.enc_embedding(enc_inputs)
-
-        enc_outputs, enc_self_attns = self.encoder(enc_outputs)
+        enc_inputs = self.enc_embedding(enc_inputs)
+        dec_inputs = self.dec_embedding(dec_inputs)
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
+        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_outputs)
 
         if self.p_model:
 
-            outputs, mu, sigma = self.process(enc_outputs)
+            outputs, mu, sigma = self.process(dec_outputs)
         else:
-            outputs = enc_outputs
+            outputs = dec_outputs
 
         outputs = self.projection(outputs[:, -self.pred_len:, :])
 
