@@ -279,6 +279,8 @@ class process_model(nn.Module):
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+        mu = torch.flatten(mu, start_dim=1)
+        sigma = torch.flatten(sigma, start_dim=1)
         return y, mu, sigma
 
 
@@ -336,7 +338,7 @@ class Transformer(nn.Module):
         outputs = self.projection(outputs[:, -self.pred_len:, :])
 
         if self.p_model:
-            return outputs, mu[:, -self.pred_len:, :], sigma[:, -self.pred_len:, :]
+            return outputs, mu, sigma
 
         else:
             return outputs

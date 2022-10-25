@@ -207,9 +207,9 @@ class Train:
             for batch_id in range(n_batches_train):
 
                 if self.p_model:
-                    output, mu, sigma = model(self.train.enc[batch_id], self.train.dec[batch_id])
-                    kld_loss = -0.5 * torch.mean(1 + sigma - mu ** 2 - sigma.exp())
-                    loss = self.criterion(output, self.train.y_true[batch_id]) + 0.005 * kld_loss
+                    output, mu, log_var = model(self.train.enc[batch_id], self.train.dec[batch_id])
+                    kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    loss = self.criterion(output, self.train.y_true[batch_id]) + 0.0001 * kld_loss
                 else:
                     output = model(self.train.enc[batch_id], self.train.dec[batch_id])
                     loss = self.criterion(output, self.train.y_true[batch_id])
@@ -226,9 +226,9 @@ class Train:
             for j in range(n_batches_valid):
 
                 if self.p_model:
-                    outputs, mu, sigma = model(self.valid.enc[j], self.valid.dec[j])
-                    kld_loss = -0.5 * torch.mean(1 + sigma - mu ** 2 - sigma.exp())
-                    loss = self.criterion(outputs, self.valid.y_true[j]) + 0.005 * kld_loss
+                    outputs, mu, log_var = model(self.valid.enc[j], self.valid.dec[j])
+                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    loss = self.criterion(outputs, self.valid.y_true[j]) + 1e-4 * kld_loss
                 else:
                     outputs = model(self.valid.enc[j], self.valid.dec[j])
                     loss = self.criterion(outputs, self.valid.y_true[j])
@@ -329,7 +329,7 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--p_model", type=str, default="False")
+    parser.add_argument("--p_model", type=str, default="True")
 
     args = parser.parse_args()
 
