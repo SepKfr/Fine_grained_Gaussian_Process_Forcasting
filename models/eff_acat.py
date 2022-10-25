@@ -332,6 +332,7 @@ class Transformer(nn.Module):
         if self.p_model:
 
             outputs, mu, sigma = self.process(dec_outputs)
+            outputs = dec_outputs + outputs
         else:
             outputs = dec_outputs
 
