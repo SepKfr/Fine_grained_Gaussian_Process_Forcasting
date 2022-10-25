@@ -279,9 +279,7 @@ class process_model(nn.Module):
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
-        mu = torch.flatten(mu, start_dim=1)
-        sigma = torch.flatten(sigma, start_dim=1)
-        return y, mu, sigma
+        return y
 
 
 class Transformer(nn.Module):
@@ -324,22 +322,20 @@ class Transformer(nn.Module):
 
     def forward(self, enc_inputs, dec_inputs):
 
-        enc_inputs = self.enc_embedding(enc_inputs)
-        dec_inputs = self.dec_embedding(dec_inputs)
-        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
-        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_outputs)
-
         if self.p_model:
 
-            outputs, mu, sigma = self.process(dec_outputs)
-            outputs = dec_outputs + outputs
+            enc_outputs = self.enc_embedding(enc_inputs)
+            y = self.process(enc_outputs)
+            enc_outputs = y + enc_outputs
+            dec_outputs = self.dec_embedding(dec_inputs)
+            y = self.process(dec_outputs)
+            dec_outputs = y + dec_outputs
         else:
-            outputs = dec_outputs
+            enc_outputs = self.enc_embedding(enc_inputs)
+            dec_outputs = self.dec_embedding(dec_inputs)
 
-        outputs = self.projection(outputs[:, -self.pred_len:, :])
+        enc_outputs, enc_self_attns = self.encoder(enc_outputs)
+        dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(enc_outputs, dec_outputs)
+        outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
 
-        if self.p_model:
-            return outputs, mu, sigma
-
-        else:
-            return outputs
+        return outputs
