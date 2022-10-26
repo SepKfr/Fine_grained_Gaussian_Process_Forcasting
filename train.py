@@ -194,7 +194,7 @@ class Train:
                             seed=self.seed, kernel=kernel, p_model=self.p_model)
         model.to(self.device)
 
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+        optimizer = Adam(model.parameters())
 
         epoch_start = 0
         epoch_end = 0
@@ -212,7 +212,7 @@ class Train:
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step_and_update_lr()
+                optimizer.step()
 
             print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
 
@@ -319,7 +319,7 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--p_model", type=str, default="False")
+    parser.add_argument("--p_model", type=str, default="True")
 
     args = parser.parse_args()
 

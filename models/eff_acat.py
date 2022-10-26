@@ -327,15 +327,15 @@ class Transformer(nn.Module):
             enc_outputs = self.enc_embedding(enc_inputs)
             y = self.process(enc_outputs)
             enc_outputs = y + enc_outputs
-            #dec_outputs = self.dec_embedding(dec_inputs)
-            #y = self.process(dec_outputs)
-            #dec_outputs = y + dec_outputs
+            dec_outputs = self.dec_embedding(dec_inputs)
+            y = self.process(dec_outputs)
+            dec_outputs = y + dec_outputs
         else:
             enc_outputs = self.enc_embedding(enc_inputs)
-            #dec_outputs = self.dec_embedding(dec_inputs)
+            dec_outputs = self.dec_embedding(dec_inputs)
 
         enc_outputs, enc_self_attns = self.encoder(enc_outputs)
-        #dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(enc_outputs, dec_outputs)
-        outputs = self.projection(enc_outputs[:, -self.pred_len:, :])
+        dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(enc_outputs, dec_outputs)
+        outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
 
         return outputs
