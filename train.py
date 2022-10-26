@@ -209,7 +209,7 @@ class Train:
                 if self.p_model:
                     output, mu, log_var = model(self.train.enc[batch_id], self.train.dec[batch_id])
                     kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(output, self.train.y_true[batch_id]) + 1e-3 * kld_loss
+                    loss = self.criterion(output, self.train.y_true[batch_id]) + 0.005 * kld_loss
                 else:
                     output = model(self.train.enc[batch_id], self.train.dec[batch_id])
                     loss = self.criterion(output, self.train.y_true[batch_id])
@@ -229,7 +229,7 @@ class Train:
                 if self.p_model:
                     outputs, mu, log_var = model(self.valid.enc[j], self.valid.dec[j])
                     kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(outputs, self.valid.y_true[j]) + 1e-3 * kld_loss
+                    loss = self.criterion(outputs, self.valid.y_true[j]) + 0.005 * kld_loss
                 else:
                     outputs = model(self.valid.enc[j], self.valid.dec[j])
                     loss = self.criterion(outputs, self.valid.y_true[j])
@@ -269,7 +269,7 @@ class Train:
         for j in range(n_batches_test):
 
             if self.p_model:
-                output, _ = self.best_model(self.test.enc[j], self.test.dec[j])
+                output, _, _ = self.best_model(self.test.enc[j], self.test.dec[j])
             else:
                 output = self.best_model(self.test.enc[j], self.test.dec[j])
 
