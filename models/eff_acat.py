@@ -265,12 +265,11 @@ class process_model(nn.Module):
                                      nn.ELU(),
                                      nn.Sigmoid()).to(device)
 
-        self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.BatchNorm1d(d),
+        self.decoder = nn.Sequential(nn.Conv1d(in_channels=1, out_channels=1, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(1),
                                      nn.ELU(),
                                      nn.Sigmoid()).to(device)
-        self.musig = nn.Linear(d, 2*d, device=device)
+        self.musig = nn.Linear(d, 2, device=device)
         self.d = d
         self.device = device
 
@@ -278,10 +277,10 @@ class process_model(nn.Module):
 
         x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
         musig = self.musig(x)
-        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+        mu, sigma = musig[:, :, :1], musig[:, :, -1:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
-        return y
+        return y, mu, sigma
 
 
 class Transformer(nn.Module):
@@ -324,20 +323,19 @@ class Transformer(nn.Module):
 
     def forward(self, enc_inputs, dec_inputs):
 
-        if self.p_model:
-
-            enc_outputs = self.enc_embedding(enc_inputs)
-            y = self.process(enc_outputs)
-            enc_outputs = y + enc_outputs
-            dec_outputs = self.dec_embedding(dec_inputs)
-            y = self.process(dec_outputs)
-            dec_outputs = y + dec_outputs
-        else:
-            enc_outputs = self.enc_embedding(enc_inputs)
-            dec_outputs = self.dec_embedding(dec_inputs)
+        enc_outputs = self.enc_embedding(enc_inputs)
+        dec_outputs = self.dec_embedding(dec_inputs)
 
         enc_outputs, enc_self_attns = self.encoder(enc_outputs)
         dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(enc_outputs, dec_outputs)
-        outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
 
-        return outputs
+        if self.p_model:
+
+            y, mu, sigma = self.process(dec_outputs)
+            outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
+            outputs += y[:, -self.pred_len:, :]
+            return outputs, mu[:, -self.pred_len:, :], sigma[:, -self.pred_len:, :]
+        else:
+
+            outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
+            return outputs
