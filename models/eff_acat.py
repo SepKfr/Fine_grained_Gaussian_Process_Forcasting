@@ -259,17 +259,16 @@ class process_model(nn.Module):
     def __init__(self, d, device):
         super(process_model, self).__init__()
 
-        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
                                      nn.BatchNorm1d(d),
                                      nn.ELU(),
                                      nn.Sigmoid()).to(device)
 
-        self.decoder = nn.Sequential(nn.Conv1d(in_channels=1, out_channels=1, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.BatchNorm1d(1),
+        self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(d),
                                      nn.ELU(),
                                      nn.Sigmoid()).to(device)
-        self.musig = nn.Linear(d, 2, device=device)
+        self.musig = nn.Linear(d, 2*d, device=device)
         self.d = d
         self.device = device
 
@@ -277,9 +276,11 @@ class process_model(nn.Module):
 
         x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
         musig = self.musig(x)
-        mu, sigma = musig[:, :, :1], musig[:, :, -1:]
+        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+        mu = torch.flatten(mu, start_dim=1)
+        sigma = torch.flatten(mu, start_dim=1)
         return y, mu, sigma
 
 
@@ -332,9 +333,10 @@ class Transformer(nn.Module):
         if self.p_model:
 
             y, mu, sigma = self.process(dec_outputs)
-            outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
-            outputs += y[:, -self.pred_len:, :]
-            return outputs, mu[:, -self.pred_len:, :], sigma[:, -self.pred_len:, :]
+            outputs = y + dec_outputs
+            outputs = self.projection(outputs[:, -self.pred_len:, :])
+            return outputs, mu, sigma
+
         else:
 
             outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
