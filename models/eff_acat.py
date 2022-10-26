@@ -262,11 +262,13 @@ class process_model(nn.Module):
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
                                      nn.BatchNorm1d(d),
+                                     nn.ELU(),
                                      nn.Sigmoid()).to(device)
 
         self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
                                      nn.BatchNorm1d(d),
+                                     nn.ELU(),
                                      nn.Sigmoid()).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
         self.d = d
