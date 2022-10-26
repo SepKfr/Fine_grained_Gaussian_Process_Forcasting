@@ -194,7 +194,7 @@ class Train:
                             seed=self.seed, kernel=kernel, p_model=self.p_model)
         model.to(self.device)
 
-        optimizer = Adam(model.parameters())
+        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         epoch_start = 0
         epoch_end = 0
@@ -212,7 +212,7 @@ class Train:
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                optimizer.step_and_update_lr()
 
             print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
 
