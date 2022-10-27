@@ -194,7 +194,7 @@ class Train:
                             seed=self.seed, kernel=kernel, p_model=self.p_model)
         model.to(self.device)
 
-        optimizer = Adam(model.parameters())
+        optimizer = Adam(model.parameters(), lr=1e-4)
 
         epoch_start = 0
         epoch_end = 0
