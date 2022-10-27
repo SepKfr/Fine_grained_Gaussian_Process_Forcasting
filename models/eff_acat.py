@@ -256,28 +256,29 @@ class Decoder(nn.Module):
 
 
 class process_model(nn.Module):
-    def __init__(self, d, device, d_k, n_heads, attn_type, seed):
+    def __init__(self, d, device):
         super(process_model, self).__init__()
 
-        self.encoder = MultiHeadAttention(d_model=d, d_k=d_k,
-                        d_v=d_k, n_heads=n_heads, device=device,
-                        attn_type=attn_type, kernel=1, seed=seed)
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(d),
+                                     nn.ELU()).to(device)
 
-        self.decoder = MultiHeadAttention(d_model=d, d_k=d_k,
-                        d_v=d_k, n_heads=n_heads, device=device,
-                        attn_type=attn_type, kernel=1, seed=seed)
-
+        self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(d),
+                                     nn.ELU()).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
         self.d = d
         self.device = device
 
     def forward(self, x):
 
-        x, _ = self.encoder(x, x, x, None)
+        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
         musig = self.musig(x)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
-        y, _ = self.decoder(z, z, z, None)
+        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
         mu = torch.flatten(mu, start_dim=1)
         sigma = torch.flatten(mu, start_dim=1)
         return y, mu, sigma
@@ -311,7 +312,7 @@ class Transformer(nn.Module):
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.projection = nn.Linear(d_model, 1, bias=False)
-        self.process = process_model(d_model, device, d_k, n_heads, attn_type, seed)
+        self.process = process_model(d_model, device)
         self.attn_type = attn_type
         self.pred_len = pred_len
         self.device = device
