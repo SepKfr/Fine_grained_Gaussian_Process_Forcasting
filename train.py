@@ -80,6 +80,7 @@ class Train:
         self.p_model = True if args.p_model == "True" else False
         self.num_epochs = self.params['num_epochs']
         self.name = args.name
+        self.best_val = 1e10
         self.pr = args.pr
         self.param_history = []
         self.erros = dict()
@@ -88,6 +89,7 @@ class Train:
         self.train, self.valid, self.test = self.split_data()
         self.run_optuna(args)
         self.evaluate()
+
 
     def define_model(self, d_model, n_heads,
                      stack_size, kernel, src_input_size,
@@ -120,17 +122,9 @@ class Train:
         train, valid, test = batch_sampled_data(data, self.pr, max_samples, self.params['total_time_steps'],
                                                 self.params['num_encoder_steps'], self.pred_len,
                                                 self.params["column_definition"],
-                                                self.device)
+                                                self.batch_size)
 
-        trn_batching = batching(self.batch_size, train.enc, train.dec, train.y_true, train.y_id)
-        valid_batching = batching(self.batch_size, valid.enc, valid.dec, valid.y_true, valid.y_id)
-        test_batching = batching(self.batch_size, test.enc, test.dec, test.y_true, test.y_id)
-
-        trn = ModelData(trn_batching[0], trn_batching[1], trn_batching[2], trn_batching[3], self.device)
-        valid = ModelData(valid_batching[0], valid_batching[1], valid_batching[2], valid_batching[3], self.device)
-        test = ModelData(test_batching[0], test_batching[1], test_batching[2].squeeze(-1), test_batching[3], self.device)
-
-        return trn, valid, test
+        return train, valid, test
 
     def run_optuna(self, args):
 
@@ -158,11 +152,10 @@ class Train:
 
     def objective(self, trial):
 
-        val_loss = 1e10
-        src_input_size = self.train.enc.shape[3]
-        tgt_input_size = self.train.dec.shape[3]
-        n_batches_train = self.train.enc.shape[0]
-        n_batches_valid = self.valid.enc.shape[0]
+        train_enc, train_dec, _ = next(iter(self.train))
+
+        src_input_size = train_enc.shape[2]
+        tgt_input_size = train_dec.shape[2]
 
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
@@ -199,20 +192,21 @@ class Train:
         epoch_start = 0
         epoch_end = 0
 
-        val_inner_loss = 1e10
+        val_loss = 1e10
 
         for epoch in range(epoch_start, self.num_epochs, 1):
 
             total_loss = 0
-            for batch_id in range(n_batches_train):
+            model.train()
+            for train_enc, train_dec, train_y in self.train:
 
                 if self.p_model:
-                    output, mu, log_var = model(self.train.enc[batch_id], self.train.dec[batch_id])
+                    output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
                     kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(output, self.train.y_true[batch_id]) + 0.005 * kld_loss
+                    loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kld_loss
                 else:
-                    output = model(self.train.enc[batch_id], self.train.dec[batch_id])
-                    loss = self.criterion(output, self.train.y_true[batch_id])
+                    output = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = self.criterion(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -224,24 +218,24 @@ class Train:
 
             model.eval()
             test_loss = 0
-            for j in range(n_batches_valid):
+            for valid_enc, valid_dec, valid_y in self.valid:
 
                 if self.p_model:
-                    outputs, mu, log_var = model(self.valid.enc[j], self.valid.dec[j])
+                    outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(outputs, self.valid.y_true[j]) + 0.005 * kld_loss
+                    loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kld_loss
                 else:
-                    outputs = model(self.valid.enc[j], self.valid.dec[j])
-                    loss = self.criterion(outputs, self.valid.y_true[j])
+                    outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = self.criterion(outputs, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
             print("val loss: {:.4f}".format(test_loss))
 
-            if test_loss < val_inner_loss:
-                val_inner_loss = test_loss
-                if val_inner_loss < val_loss:
-                    val_loss = val_inner_loss
+            if test_loss < val_loss:
+                val_loss = test_loss
+                if val_loss < self.best_val:
+                    self.best_val = val_loss
                     self.best_model = model
                     torch.save({'model_state_dict': self.best_model.state_dict()},
                                os.path.join(self.model_path, "{}_{}".format(self.name, self.seed)))
@@ -264,16 +258,20 @@ class Train:
 
         self.best_model.eval()
         predictions = np.zeros((self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2]))
-        n_batches_test = self.test.enc.shape[0]
+        test_y_tot = np.zeros((self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2]))
 
-        for j in range(n_batches_test):
+        j = 0
+
+        for test_enc, test_dec, test_y in self.test:
 
             if self.p_model:
-                output, _, _ = self.best_model(self.test.enc[j], self.test.dec[j])
+                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
-                output = self.best_model(self.test.enc[j], self.test.dec[j])
+                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
+            j += 1
             '''output_map = inverse_output(output, self.test.y_true[j], self.test.y_id[j])
             p = self.formatter.format_predictions(output_map["predictions"])
             if p is not None:

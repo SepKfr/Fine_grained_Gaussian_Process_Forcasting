@@ -20,6 +20,8 @@ import numpy as np
 from Utils import utils, base
 import pandas as pd
 import random
+from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset
 
 InputTypes = base.InputTypes
 
@@ -125,7 +127,9 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
     return sampled_data
 
 
-def batch_sampled_data(data, train_percent, max_samples, time_steps, num_encoder_steps, pred_len, column_definition, device):
+def batch_sampled_data(data, train_percent, max_samples, time_steps,
+                       num_encoder_steps, pred_len,
+                       column_definition, batch_size):
     """Samples segments into a compatible format.
     Args:
       seed:
@@ -160,18 +164,21 @@ def batch_sampled_data(data, train_percent, max_samples, time_steps, num_encoder
     sample_valid = sample_train_val_test(valid, valid_max, time_steps, num_encoder_steps, pred_len, column_definition)
     sample_test = sample_train_val_test(test, valid_max, time_steps, num_encoder_steps, pred_len, column_definition)
 
-    train_data = ModelData(torch.from_numpy(sample_train['enc_inputs']),
-                            torch.from_numpy(sample_train['dec_inputs']),
-                            torch.from_numpy(sample_train['outputs']),
-                            sample_train['identifier'], device)
-    valid_data = ModelData(torch.from_numpy(sample_valid['enc_inputs']),
-                           torch.from_numpy(sample_valid['dec_inputs']),
-                           torch.from_numpy(sample_valid['outputs']),
-                           sample_valid['identifier'], device)
-    test_data = ModelData(torch.from_numpy(sample_test['enc_inputs']),
-                           torch.from_numpy(sample_test['dec_inputs']),
-                           torch.from_numpy(sample_test['outputs']),
-                           sample_test['identifier'], device)
+    train_data = TensorDataset(torch.FloatTensor(sample_train['enc_inputs']),
+                               torch.FloatTensor(sample_train['dec_inputs']),
+                               torch.FloatTensor(sample_train['outputs']))
+
+    valid_data = TensorDataset(torch.FloatTensor(sample_valid['enc_inputs']),
+                               torch.FloatTensor(sample_valid['dec_inputs']),
+                               torch.FloatTensor(sample_valid['outputs']))
+
+    test_data = TensorDataset(torch.FloatTensor(sample_test['enc_inputs']),
+                              torch.FloatTensor(sample_test['dec_inputs']),
+                              torch.FloatTensor(sample_test['outputs']))
+
+    train_data = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
+    valid_data = torch.utils.data.DataLoader(valid_data, batch_size=batch_size)
+    test_data = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
 
     return train_data, valid_data, test_data
 
