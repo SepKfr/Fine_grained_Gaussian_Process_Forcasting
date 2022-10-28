@@ -167,8 +167,8 @@ class Train:
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
-        d_model = trial.suggest_categorical("d_model", [16, 32])
-        w_steps = trial.suggest_categorical("w_steps", [4000])
+        d_model = trial.suggest_categorical("d_model", [32])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 2000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
