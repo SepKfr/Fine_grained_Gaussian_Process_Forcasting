@@ -257,8 +257,12 @@ class Train:
             ]]
 
         self.best_model.eval()
-        predictions = np.zeros((self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2]))
-        test_y_tot = np.zeros((self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2]))
+
+        _, _, test_y = next(iter(self.test))
+        total_b = len(list(iter(self.test)))
+
+        predictions = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
 
         j = 0
 
@@ -288,7 +292,7 @@ class Train:
                 targets_all[j, :targets.shape[0], :] = targets'''
 
         predictions = torch.from_numpy(predictions)
-        test_y = self.test.y_true.cpu()
+        test_y = torch.from_numpy(test_y_tot)
         normaliser = test_y.abs().mean()
 
         test_loss = self.criterion(predictions, test_y).item()
