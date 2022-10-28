@@ -271,6 +271,15 @@ class process_model(nn.Module):
                                      nn.ELU(),
                                      nn.Softmax(dim=-1)).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.uniform_(m.weight, -1/np.sqrt(d), 1/np.sqrt(d))
+
         self.d = d
         self.device = device
 
