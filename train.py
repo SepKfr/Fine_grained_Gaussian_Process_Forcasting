@@ -90,7 +90,6 @@ class Train:
         self.run_optuna(args)
         self.evaluate()
 
-
     def define_model(self, d_model, n_heads,
                      stack_size, kernel, src_input_size,
                      tgt_input_size):
@@ -174,6 +173,7 @@ class Train:
         self.param_history.append([d_model, kernel, stack_size, w_steps])
 
         d_k = int(d_model / n_heads)
+        assert d_model % d_k == 0
 
         model = Transformer(src_input_size=src_input_size,
                             tgt_input_size=tgt_input_size,

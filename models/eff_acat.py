@@ -62,10 +62,6 @@ class MultiHeadAttention(nn.Module):
         self.kernel = kernel
         self.seed = seed
 
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.uniform_(m.weight, -1/np.sqrt(d_model), 1/np.sqrt(d_model))
-
     def forward(self, Q, K, V, attn_mask):
 
         batch_size = Q.shape[0]
@@ -260,38 +256,30 @@ class process_model(nn.Module):
         super(process_model, self).__init__()
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.BatchNorm1d(d),
-                                     nn.ELU(),
-                                     nn.Softmax(dim=-1)).to(device)
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2))).to(device)
 
         self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.BatchNorm1d(d),
-                                     nn.ELU(),
-                                     nn.Softmax(dim=-1)).to(device)
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2))).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
-
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.uniform_(m.weight, -1/np.sqrt(d), 1/np.sqrt(d))
+        self.layer_norm = nn.LayerNorm(d, elementwise_affine=False)
 
         self.d = d
         self.device = device
 
     def forward(self, x):
 
-        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+        x = self.layer_norm(self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1) + x)
+
         musig = self.musig(x)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
-        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+
+        y = self.layer_norm(self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1) + z)
+
         mu = torch.flatten(mu, start_dim=1)
         sigma = torch.flatten(mu, start_dim=1)
+
         return y, mu, sigma
 
 
@@ -329,10 +317,6 @@ class Transformer(nn.Module):
         self.device = device
         self.p_model = p_model
 
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.uniform_(m.weight, -1/np.sqrt(d_model), 1/np.sqrt(d_model))
-
     def forward(self, enc_inputs, dec_inputs):
 
         enc_outputs = self.enc_embedding(enc_inputs)
@@ -343,8 +327,7 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            y, mu, sigma = self.process(dec_outputs)
-            outputs = y + dec_outputs
+            outputs, mu, sigma = self.process(dec_outputs)
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, mu, sigma
 

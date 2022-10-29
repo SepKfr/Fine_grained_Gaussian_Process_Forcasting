@@ -30,10 +30,6 @@ class ACAT(nn.Module):
         self.norm = nn.BatchNorm1d(h * d_k).to(device)
         self.activation = nn.ELU().to(device)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
-
     def forward(self, Q, K, V, attn_mask):
 
         b, h, l, d_k = Q.shape

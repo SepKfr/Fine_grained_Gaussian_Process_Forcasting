@@ -37,14 +37,6 @@ class KittyCatConv(nn.Module):
         self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
         self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
-
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.uniform_(m.weight, -1/np.sqrt(d_k), 1/np.sqrt(d_k))
-
         self.factor = 1
 
     def forward(self, Q, K, V, attn_mask):
@@ -76,13 +68,7 @@ class KittyCatConv(nn.Module):
         K = K.unsqueeze(-1)
         K = self.proj_back_k(K)
 
-        #index = index.unsqueeze(-2).repeat(1, 1, l, 1)
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
-
-        '''scores_f = torch.zeros(b, h, l, l_k, device=self.device)
-        scores_f[torch.arange(b)[:, None, None, None],
-                 torch.arange(h)[None, :, None, None],
-                 torch.arange(l)[None, None, :, None], index] = scores'''
 
         attn = torch.softmax(scores, -1)
         context = torch.einsum('bhqk,bhkd->bhqd', attn, V)
