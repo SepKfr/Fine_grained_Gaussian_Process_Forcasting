@@ -257,11 +257,11 @@ class process_model(nn.Module):
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.Tanh()).to(device)
+                                     nn.Softmax()).to(device)
 
         self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.Tanh()).to(device)
+                                     nn.Softmax()).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
 
         self.d = d
@@ -310,7 +310,6 @@ class Transformer(nn.Module):
 
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
-        self.layer_norm = nn.LayerNorm(d_model, elementwise_affine=False)
         self.projection = nn.Linear(d_model, 1, bias=False)
         self.process = process_model(d_model, device)
         self.attn_type = attn_type
@@ -329,7 +328,7 @@ class Transformer(nn.Module):
         if self.p_model:
 
             y, mu, sigma = self.process(dec_outputs)
-            outputs = self.layer_norm(y + dec_outputs)
+            outputs = y + dec_outputs
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, mu, sigma
 
