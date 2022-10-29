@@ -264,18 +264,20 @@ class process_model(nn.Module):
                                      nn.Softmax(dim=-1)).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
 
+        self.layer_norm = nn.LayerNorm(d, elementwise_affine=False)
+
         self.d = d
         self.device = device
 
     def forward(self, x):
 
-        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+        x = self.layer_norm(self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1))
 
         musig = self.musig(x)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
-        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+        y = self.layer_norm(self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1))
 
         mu = torch.flatten(mu, start_dim=1)
         sigma = torch.flatten(mu, start_dim=1)
