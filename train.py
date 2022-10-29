@@ -333,7 +333,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
     parser.add_argument("--pr", type=float, default=0.8)
-    parser.add_argument("--n_trials", type=int, default=4)
+    parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
     parser.add_argument("--p_model", type=str, default="True")
 
