@@ -256,26 +256,26 @@ class process_model(nn.Module):
         super(process_model, self).__init__()
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2))).to(device)
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.Tanh()).to(device)
 
         self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2))).to(device)
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.Tanh()).to(device)
         self.musig = nn.Linear(d, 2*d, device=device)
-
-        self.layer_norm = nn.LayerNorm(d, elementwise_affine=False)
 
         self.d = d
         self.device = device
 
     def forward(self, x):
 
-        x = self.layer_norm(self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1) + x)
+        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
 
         musig = self.musig(x)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
-        y = self.layer_norm(self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1) + z)
+        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
 
         mu = torch.flatten(mu, start_dim=1)
         sigma = torch.flatten(mu, start_dim=1)
@@ -310,6 +310,7 @@ class Transformer(nn.Module):
 
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
+        self.layer_norm = nn.LayerNorm(d_model, elementwise_affine=False)
         self.projection = nn.Linear(d_model, 1, bias=False)
         self.process = process_model(d_model, device)
         self.attn_type = attn_type
@@ -327,7 +328,8 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            outputs, mu, sigma = self.process(dec_outputs)
+            y, mu, sigma = self.process(dec_outputs)
+            outputs = self.layer_norm(y + dec_outputs)
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, mu, sigma
 
