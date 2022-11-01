@@ -108,9 +108,9 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
                 j = 0
                 for test_enc, test_dec, test_y in test:
-                    print(test_enc.shape)
                     output = model(test_enc, test_dec)
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
+                    print(predictions)
                     if i == 0:
                         test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
                     j += 1
