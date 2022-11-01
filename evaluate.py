@@ -50,7 +50,7 @@ _, _, test = batch_sampled_data(data, 0.8, max_samples, params['total_time_steps
                                         params["column_definition"],
                                         batch_size)
 
-_, _, test_y = next(iter(test))
+test_enc, test_dec, test_y = next(iter(test))
 total_b = len(list(iter(test)))
 
 predictions = np.zeros((3, total_b, test_y.shape[0], test_y.shape[1]))
@@ -60,11 +60,11 @@ device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
 model_path = "models_{}_{}".format(args.exp_name, pred_len)
 model_params = formatter.get_default_model_params()
 
-src_input_size = test.enc.shape[3]
-tgt_input_size = test.dec.shape[3]
+src_input_size = test_enc.shape[3]
+tgt_input_size = test_dec.shape[3]
 
 predictions = np.zeros((3, total_b, test.y_true.shape[1], test.y_true.shape[2]))
-n_batches_test = test.enc.shape[0]
+n_batches_test = test_enc.shape[0]
 
 
 mse = nn.MSELoss()
