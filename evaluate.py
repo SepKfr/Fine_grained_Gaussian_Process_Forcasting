@@ -70,7 +70,7 @@ mae = nn.L1Loss()
 stack_size = 1
 
 
-for i, seed in enumerate([21]):
+for i, seed in enumerate([4293, 1692, 3029]):
     for d in d_model:
         for k in kernel:
             try:
