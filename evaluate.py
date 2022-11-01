@@ -60,8 +60,8 @@ device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
 model_path = "models_{}_{}".format(args.exp_name, pred_len)
 model_params = formatter.get_default_model_params()
 
-src_input_size = test_enc.shape[3]
-tgt_input_size = test_dec.shape[3]
+src_input_size = test_enc.shape[2]
+tgt_input_size = test_dec.shape[2]
 
 predictions = np.zeros((3, total_b, test.y_true.shape[1], test.y_true.shape[2]))
 n_batches_test = test_enc.shape[0]
@@ -110,7 +110,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
                 j = 0
                 for test_enc, test_dec, test_y in test:
-                    output = model(test_enc[j], test_dec[j])
+                    output = model(test_enc, test_dec)
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
                         test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
