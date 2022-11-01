@@ -110,7 +110,11 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
                 j = 0
                 for test_enc, test_dec, test_y in test:
-                    output = model(test_enc.to(device), test_dec.to(device))
+                    if p_model:
+                        output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                    else:
+                        output = model(test_enc.to(device), test_dec.to(device))
+
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
                         test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
