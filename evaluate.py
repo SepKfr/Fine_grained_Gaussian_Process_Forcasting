@@ -127,9 +127,6 @@ test_y_tot = test_y_tot.cpu().detach()
 test_loss = mse(predictions, test_y_tot).item() / normaliser
 mae_loss = mae(predictions, test_y_tot).item() / normaliser
 
-print(predictions.shape)
-print(test_y_tot.shape)
-
 for j in range(args.pred_len):
 
     results[0, j] = mse(predictions[:, :, j], test_y_tot[:, :, j]).item()
