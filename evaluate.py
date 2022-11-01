@@ -14,9 +14,9 @@ from models.eff_acat import Transformer
 from models.rnn import RNN
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
-parser.add_argument("--attn_type", type=str, default='basic_attn')
-parser.add_argument("--name", type=str, default='basic_attn')
-parser.add_argument("--exp_name", type=str, default='covid')
+parser.add_argument("--attn_type", type=str, default='KittyCat')
+parser.add_argument("--name", type=str, default='KittyCat')
+parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--p_model", type=str, default="False")
@@ -70,10 +70,10 @@ mae = nn.L1Loss()
 stack_size = 1
 
 
-for i, seed in enumerate([4293, 1692, 3029]):
-    try:
-        for d in d_model:
-            for k in kernel:
+for i, seed in enumerate([21]):
+    for d in d_model:
+        for k in kernel:
+            try:
                 d_k = int(d / n_heads)
 
                 if args.name == "lstm":
@@ -87,6 +87,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                                 seed=seed,
                                 pred_len=pred_len)
                 else:
+
                     p_model = True if args.p_model == "True" else False
                     model = Transformer(src_input_size=src_input_size,
                                         tgt_input_size=tgt_input_size,
@@ -102,29 +103,26 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)))
+
                 model.load_state_dict(checkpoint['model_state_dict'])
                 model.eval()
                 model.to(device)
 
                 j = 0
                 for test_enc, test_dec, test_y in test:
-                    print(test_y.shape)
                     output = model(test_enc, test_dec)
-                    print(output.shape)
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
-                        test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
+                        test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
                     j += 1
 
-    except RuntimeError:
-        pass
+            except RuntimeError:
+                pass
 
 predictions = torch.from_numpy(np.mean(predictions, axis=0))
 
 results = torch.zeros(2, args.pred_len)
 normaliser = test_y_tot.abs().mean()
-test_y_tot = test_y_tot.cpu().detach()
-
 
 test_loss = mse(predictions, test_y_tot).item() / normaliser
 mae_loss = mae(predictions, test_y_tot).item() / normaliser
