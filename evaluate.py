@@ -107,8 +107,8 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 model.to(device)
 
                 j = 0
-                print(test.shape)
                 for test_enc, test_dec, test_y in test:
+                    print(test_enc.shape)
                     output = model(test_enc, test_dec)
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
