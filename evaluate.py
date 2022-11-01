@@ -116,8 +116,8 @@ for i, seed in enumerate([4293, 1692, 3029]):
                         test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
                     j += 1
 
-            except RuntimeError:
-                pass
+            except RuntimeError as e:
+                print(e)
 
 predictions = torch.from_numpy(np.mean(predictions, axis=0))
 
