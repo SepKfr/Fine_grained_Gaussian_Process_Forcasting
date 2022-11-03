@@ -22,20 +22,18 @@ class KittyCatConv(nn.Module):
         self.proj_k = nn.Linear(d_k, 1, bias=False, device=device)
 
         self.conv_list_k = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(h),
-                          nn.ELU())
+            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)))
             for f in self.filter_length
             ]).to(device)
 
         self.conv_list_q = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f - 1) / 2)),
-                          nn.BatchNorm1d(h),
-                          nn.ELU())
+            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)))
             for f in self.filter_length]).to(device)
 
         self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
         self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
+
+        self.layer_norm = nn.LayerNorm(self.d_k, elementwise_affine=False)
 
         self.factor = 1
 
@@ -59,14 +57,14 @@ class KittyCatConv(nn.Module):
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
         Q = torch.topk(Q_p, l, dim=2)[0]
-        Q = self.proj_back_q(Q)
+        Q = self.layer_norm(self.proj_back_q(Q))
 
         K_proj = K_p.reshape(b, h, len(self.filter_length), l_k)
         K = torch.mean(K_proj, dim=2)
 
         K, index = torch.topk(K, l_k, dim=-1)
         K = K.unsqueeze(-1)
-        K = self.proj_back_k(K)
+        K = self.layer_norm(self.proj_back_k(K))
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
 
