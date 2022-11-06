@@ -18,16 +18,24 @@ class ACAT(nn.Module):
         self.d_k = d_k
         self.filter_length = [1, 3, 7, 9]
         self.conv_list_q = nn.ModuleList(
-            [nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h,
-                       kernel_size=f,
-                       padding=int(f/2),
-                       bias=False) for f in self.filter_length]).to(device)
+            [nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h,
+                                     kernel_size=f,
+                                     padding=int(f/2),
+                                     bias=False),
+                           nn.BatchNorm1d(d_k*h),
+                           nn.Softmax(dim=-1)
+                           )
+             for f in self.filter_length]).to(device)
+
         self.conv_list_k = nn.ModuleList(
-            [nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h,
-                       kernel_size=f,
-                       padding=int(f/2),
-                       bias=False) for f in self.filter_length]).to(device)
-        self.layer_norm = nn.LayerNorm(self.d_k, elementwise_affine=False)
+            [nn.Sequential(nn.Conv1d(in_channels=d_k * h, out_channels=d_k * h,
+                                     kernel_size=f,
+                                     padding=int(f / 2),
+                                     bias=False),
+                           nn.BatchNorm1d(d_k * h),
+                           nn.Softmax(dim=-1)
+                           )
+             for f in self.filter_length]).to(device)
 
     def forward(self, Q, K, V, attn_mask):
 
@@ -36,9 +44,9 @@ class ACAT(nn.Module):
 
         len_n_k = len(self.filter_length)
 
-        Q_l = [self.layer_norm(self.conv_list_q[i](Q.reshape(b, h*d_k, l)))[:, :, :l]
+        Q_l = [self.conv_list_q[i](Q.reshape(b, h*d_k, l))[:, :, :l]
                for i in range(len(self.filter_length))]
-        K_l = [self.layer_norm(self.conv_list_k[i](K.reshape(b, h * d_k, l_k)))[:, :, :l_k]
+        K_l = [self.conv_list_k[i](K.reshape(b, h * d_k, l_k))[:, :, :l_k]
                for i in range(len(self.filter_length))]
         Q_p = torch.cat(Q_l, dim=0).reshape(b, h, len_n_k, l, d_k)
         K_tmp = torch.cat(K_l, dim=0).reshape(b, h, len_n_k, l_k, d_k)

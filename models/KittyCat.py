@@ -22,18 +22,21 @@ class KittyCatConv(nn.Module):
         self.proj_k = nn.Linear(d_k, 1, bias=False, device=device)
 
         self.conv_list_k = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)))
+            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(h),
+                          nn.Softmax(dim=-1))
             for f in self.filter_length
             ]).to(device)
 
         self.conv_list_q = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)))
+            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(h),
+                          nn.Softmax(dim=-1)
+                          )
             for f in self.filter_length]).to(device)
 
         self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
         self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
-
-        self.layer_norm = nn.LayerNorm(self.d_k, elementwise_affine=False)
 
         self.factor = 1
 
@@ -50,8 +53,8 @@ class KittyCatConv(nn.Module):
         Q = Q.reshape(b, -1, l)
         K = K.reshape(b, -1, l_k)
 
-        [Q_l.append(self.layer_norm(self.conv_list_q[i](Q))) for i in range(len(self.filter_length))]
-        [K_l.append(self.layer_norm(self.conv_list_k[i](K))) for i in range(len(self.filter_length))]
+        [Q_l.append(self.conv_list_q[i](Q)) for i in range(len(self.filter_length))]
+        [K_l.append(self.conv_list_k[i](K)) for i in range(len(self.filter_length))]
 
         Q_p = torch.cat(Q_l, dim=0).reshape(b, h, l * len(self.filter_length), -1)
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
