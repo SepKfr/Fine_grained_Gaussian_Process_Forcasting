@@ -9,7 +9,7 @@ import os
 import itertools
 import random
 import pandas as pd
-import math
+from tqdm import tqdm
 import optuna
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
@@ -49,12 +49,6 @@ class NoamOpt:
 
         for param_group in self._optimizer.param_groups:
             param_group['lr'] = lr
-
-
-def create_config(hyper_parameters):
-
-    prod = list(itertools.product(*hyper_parameters))
-    return list(random.sample(set(prod), len(prod)))
 
 
 class Train:
@@ -189,12 +183,9 @@ class Train:
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
-        epoch_start = 0
-        epoch_end = 0
-
         val_loss = 1e10
 
-        for epoch in range(epoch_start, self.num_epochs, 1):
+        for epoch in tqdm(range(self.num_epochs)):
 
             total_loss = 0
             model.train()
@@ -214,8 +205,6 @@ class Train:
                 loss.backward()
                 optimizer.step_and_update_lr()
 
-            print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-
             model.eval()
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
@@ -230,7 +219,9 @@ class Train:
 
                 test_loss += loss.item()
 
-            print("val loss: {:.4f}".format(test_loss))
+            if epoch % 5 == 0:
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                print("val loss: {:.4f}".format(test_loss))
 
             if test_loss < val_loss:
                 val_loss = test_loss
