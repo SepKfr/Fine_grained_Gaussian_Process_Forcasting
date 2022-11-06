@@ -50,21 +50,21 @@ class KittyCatConv(nn.Module):
         Q = Q.reshape(b, -1, l)
         K = K.reshape(b, -1, l_k)
 
-        [Q_l.append(self.conv_list_q[i](Q)) for i in range(len(self.filter_length))]
-        [K_l.append(self.conv_list_k[i](K)) for i in range(len(self.filter_length))]
+        [Q_l.append(self.layer_norm(self.conv_list_q[i](Q))) for i in range(len(self.filter_length))]
+        [K_l.append(self.layer_norm(self.conv_list_k[i](K))) for i in range(len(self.filter_length))]
 
         Q_p = torch.cat(Q_l, dim=0).reshape(b, h, l * len(self.filter_length), -1)
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
         Q = torch.topk(Q_p, l, dim=2)[0]
-        Q = self.layer_norm(self.proj_back_q(Q))
+        Q = self.proj_back_q(Q)
 
         K_proj = K_p.reshape(b, h, len(self.filter_length), l_k)
         K = torch.mean(K_proj, dim=2)
 
         K, index = torch.topk(K, l_k, dim=-1)
         K = K.unsqueeze(-1)
-        K = self.layer_norm(self.proj_back_k(K))
+        K = self.proj_back_k(K)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
 

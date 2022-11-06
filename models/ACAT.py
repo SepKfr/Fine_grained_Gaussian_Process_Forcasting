@@ -36,12 +36,12 @@ class ACAT(nn.Module):
 
         len_n_k = len(self.filter_length)
 
-        Q_l = [self.conv_list_q[i](Q.reshape(b, h*d_k, l))[:, :, :l]
+        Q_l = [self.layer_norm(self.conv_list_q[i](Q.reshape(b, h*d_k, l)))[:, :, :l]
                for i in range(len(self.filter_length))]
-        K_l = [self.conv_list_k[i](K.reshape(b, h * d_k, l_k))[:, :, :l_k]
+        K_l = [self.layer_norm(self.conv_list_k[i](K.reshape(b, h * d_k, l_k)))[:, :, :l_k]
                for i in range(len(self.filter_length))]
-        Q_p = self.layer_norm(torch.cat(Q_l, dim=0).reshape(b, h, len_n_k, l, d_k))
-        K_tmp = self.layer_norm(torch.cat(K_l, dim=0).reshape(b, h, len_n_k, l_k, d_k))
+        Q_p = torch.cat(Q_l, dim=0).reshape(b, h, len_n_k, l, d_k)
+        K_tmp = torch.cat(K_l, dim=0).reshape(b, h, len_n_k, l_k, d_k)
 
         m_f = max(self.filter_length)
         K_p = K_tmp[:, :, :, 0::m_f, :]
