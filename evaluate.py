@@ -1,6 +1,7 @@
 import argparse
 import json
 import random
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -104,10 +105,12 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)))
                 state_dict = checkpoint['model_state_dict']
-                for key in state_dict:
-                    state_dict[key.replace('process.', '')] = state_dict.pop(key)
+                new_state_dict = OrderedDict()
 
-                model.load_state_dict(state_dict)
+                for key, value in state_dict.items():
+                    new_state_dict[key.replace('process.', '')] = value
+
+                model.load_state_dict(checkpoint[state_dict])
                 model.eval()
                 model.to(device)
 
