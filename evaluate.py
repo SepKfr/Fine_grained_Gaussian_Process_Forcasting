@@ -112,7 +112,10 @@ for i, seed in enumerate([4293, 1692, 3029]):
                         if 'process' not in key:
                             new_state_dict[key] = value
 
-                model.load_state_dict(new_state_dict)
+                    model.load_state_dict(new_state_dict)
+                else:
+                    model.load_state_dict(checkpoint['model_state_dict'])
+
                 model.eval()
                 model.to(device)
 
@@ -129,7 +132,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                     j += 1
 
             except RuntimeError as e:
-                print(e)
+                pass
 
 predictions = torch.from_numpy(np.mean(predictions, axis=0))
 
