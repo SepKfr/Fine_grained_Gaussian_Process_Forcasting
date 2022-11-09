@@ -110,7 +110,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 for key, value in state_dict.items():
                     new_state_dict[key.replace('process.', '')] = value
 
-                model.load_state_dict(checkpoint[state_dict])
+                model.load_state_dict(new_state_dict)
                 model.eval()
                 model.to(device)
 
