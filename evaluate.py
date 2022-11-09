@@ -107,9 +107,10 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 state_dict = checkpoint['model_state_dict']
                 new_state_dict = OrderedDict()
 
-                for key, value in state_dict.items():
-                    if 'process' not in key:
-                        new_state_dict[key] = value
+                if not p_model:
+                    for key, value in state_dict.items():
+                        if 'process' not in key:
+                            new_state_dict[key] = value
 
                 model.load_state_dict(new_state_dict)
                 model.eval()
