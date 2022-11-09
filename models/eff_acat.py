@@ -313,7 +313,7 @@ class Transformer(nn.Module):
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.projection = nn.Linear(d_model, 1, bias=False)
-        if self.p_model:
+        if p_model:
             self.process = process_model(d_model, device)
         self.attn_type = attn_type
         self.pred_len = pred_len
