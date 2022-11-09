@@ -129,7 +129,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                     j += 1
 
             except RuntimeError as e:
-                print(e)
+                pass
 
 predictions = torch.from_numpy(np.mean(predictions, axis=0))
 
