@@ -103,8 +103,11 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)))
+                state_dict = checkpoint['model_state_dict']
+                for key in state_dict:
+                    state_dict[key.replace('process', '')] =state_dict.pop(key)
 
-                model.load_state_dict(checkpoint['model_state_dict'])
+                model.load_state_dict(state_dict)
                 model.eval()
                 model.to(device)
 

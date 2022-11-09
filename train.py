@@ -239,7 +239,6 @@ class Train:
         return val_loss
 
     def evaluate(self):
-
         def extract_numerical_data(data):
             """Strips out forecast time and identifier columns."""
             return data[[
