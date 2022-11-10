@@ -257,8 +257,8 @@ class Train:
             else:
                 output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
-            predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
+            predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
             '''output_map = inverse_output(output, self.test.y_true[j], self.test.y_id[j])
             p = self.formatter.format_predictions(output_map["predictions"])
