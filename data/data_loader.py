@@ -39,7 +39,7 @@ class ExperimentConfig(object):
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
                            'covid']
 
-    def __init__(self, pred_len, experiment='covid', root_folder=None):
+    def __init__(self, experiment='covid', root_folder=None):
 
         if experiment not in self.default_experiments:
             raise ValueError('Unrecognised experiment={}'.format(experiment))
@@ -52,7 +52,7 @@ class ExperimentConfig(object):
         self.root_folder = root_folder
         self.experiment = experiment
         self.data_folder = os.path.join(root_folder, '', experiment)
-        self.pred_len = pred_len
+        #self.pred_len = pred_len
 
         for relevant_directory in [
             self.root_folder, self.data_folder
@@ -299,11 +299,11 @@ def download_ett(args):
 def download_camel(args):
 
     """Downloads camels dataset"""
-    '''url = "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/basin_timeseries_v1p2_metForcing_obsFlow.zip"
+    url = "https://ral.ucar.edu/sites/default/files/public/product-tool/camels-catchment-attributes-and-meteorology-for-large-sample-studies-dataset-downloads/basin_timeseries_v1p2_metForcing_obsFlow.zip"
     data_folder = args.data_folder
     data_path = os.path.join(data_folder, 'basin_timeseries_v1p2_metForcing_obsFlow.zip')
     zip_path = data_path
-    download_and_unzip(url, zip_path, data_path, data_folder)'''
+    download_and_unzip(url, zip_path, data_path, data_folder)
     df_list = []
     data_folder = os.path.join(args.data_folder, 'basin_dataset_public_v1p2', 'usgs_streamflow')
     for dir in os.listdir(data_folder):
