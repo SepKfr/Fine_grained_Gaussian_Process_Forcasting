@@ -42,7 +42,7 @@ class camelFormatter(ElectricityFormatter):
         """Returns fixed model parameters for experiments."""
 
         fixed_params = {
-            'total_time_steps': 4 * 24 + 2 * self.pred_len,
+            'total_time_steps': 8 * 24 + self.pred_len,
             'num_encoder_steps': 4 * 24,
             'num_decoder_steps': self.pred_len,
             'num_epochs': 50,
