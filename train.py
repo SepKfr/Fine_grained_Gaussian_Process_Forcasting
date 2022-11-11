@@ -185,7 +185,7 @@ class Train:
 
         val_loss = 1e10
 
-        for epoch in tqdm(range(self.num_epochs)):
+        for epoch in range(self.num_epochs):
 
             total_loss = 0
             model.train()
