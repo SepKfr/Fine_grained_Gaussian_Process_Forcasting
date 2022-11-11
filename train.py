@@ -184,6 +184,7 @@ class Train:
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
+        e_stop = 0
 
         for epoch in range(self.num_epochs):
 
@@ -230,6 +231,11 @@ class Train:
                     self.best_model = model
                     torch.save({'model_state_dict': self.best_model.state_dict()},
                                os.path.join(self.model_path, "{}_{}".format(self.name, self.seed)))
+                    e_stop = epoch
+
+            if epoch - e_stop >= 10:
+                break
+
         return val_loss
 
     def evaluate(self):
