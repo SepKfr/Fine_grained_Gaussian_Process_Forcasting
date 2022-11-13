@@ -157,8 +157,9 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                output = model(train_enc, train_dec)
-                loss = self.criterion(output, train_y) + self.mae_loss(output, train_y)
+                output = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss = self.criterion(output, train_y.to(self.device)) + \
+                       self.mae_loss(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -172,8 +173,9 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                outputs = model(valid_enc, valid_dec)
-                loss = self.criterion(outputs, valid_y) + self.mae_loss(outputs, valid_y)
+                outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                loss = self.criterion(outputs, valid_y.to(self.device)) + \
+                       self.mae_loss(outputs, valid_y.to(self.device))
                 test_loss += loss.item()
 
             print("val loss: {:.4f}".format(test_loss))
@@ -206,7 +208,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            output = self.best_model(test_enc, test_dec)
+            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
