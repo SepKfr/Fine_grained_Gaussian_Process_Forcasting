@@ -159,7 +159,7 @@ class Train:
 
         n_heads = self.model_params['num_heads']
 
-        kernel = [1, 3, 6, 9] if self.attn_type == "attn_conv" else [1]
+        kernel = [1, 3, 6, 9] if self.attn_type == "conv_attn" else [1]
         kernel = trial.suggest_categorical("kernel", kernel)
 
         if [d_model, kernel, stack_size, w_steps] in self.param_history:
@@ -234,12 +234,6 @@ class Train:
         return val_loss
 
     def evaluate(self):
-        def extract_numerical_data(data):
-            """Strips out forecast time and identifier columns."""
-            return data[[
-                col for col in data.columns
-                if col not in {"forecast_time", "identifier"}
-            ]]
 
         self.best_model.eval()
 
@@ -261,20 +255,6 @@ class Train:
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
-            '''output_map = inverse_output(output, self.test.y_true[j], self.test.y_id[j])
-            p = self.formatter.format_predictions(output_map["predictions"])
-            if p is not None:
-                forecast = torch.from_numpy(extract_numerical_data(p).to_numpy()).to(self.device)
-
-                if self.exp_name == "covid":
-                    forecast = forecast.int()
-
-                predictions[j, :forecast.shape[0], :] = forecast
-
-                targets = torch.from_numpy(extract_numerical_data(
-                    self.formatter.format_predictions(output_map["targets"])).to_numpy()).to(self.device)
-
-                targets_all[j, :targets.shape[0], :] = targets'''
 
         predictions = torch.from_numpy(predictions)
         test_y = torch.from_numpy(test_y_tot)

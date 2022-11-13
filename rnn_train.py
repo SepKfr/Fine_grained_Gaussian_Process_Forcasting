@@ -29,11 +29,6 @@ class ModelData:
         self.y_id = y_id
 
 
-def create_config(hyper_parameters):
-    prod = list(itertools.product(*hyper_parameters))
-    return list(random.sample(set(prod), len(prod)))
-
-
 class Train:
     def __init__(self, data, args, pred_len):
 
@@ -47,6 +42,7 @@ class Train:
         self.column_definition = self.params["column_definition"]
         self.pred_len = pred_len
         self.seed = args.seed
+        self.pr = 0.8
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
         self.model_params = self.formatter.get_default_model_params()
@@ -81,17 +77,6 @@ class Train:
         model.to(self.device)
         return model
 
-    def sample_data(self, max_samples, data):
-
-        sample_data = batch_sampled_data(data, max_samples, self.params['total_time_steps'],
-                               self.params['num_encoder_steps'], self.pred_len, self.params["column_definition"],
-                                         self.seed)
-        sample_data = ModelData(torch.from_numpy(sample_data['enc_inputs']),
-                                                 torch.from_numpy(sample_data['dec_inputs']),
-                                                 torch.from_numpy(sample_data['outputs']),
-                                                 sample_data['identifier'], self.device)
-        return sample_data
-
     def split_data(self):
 
         data = self.formatter.transform_data(self.data)
@@ -99,20 +84,12 @@ class Train:
         train_max, valid_max = self.formatter.get_num_samples_for_calibration()
         max_samples = (train_max, valid_max)
 
-        train, valid, test = batch_sampled_data(data, 0.8, max_samples, self.params['total_time_steps'],
+        train, valid, test = batch_sampled_data(data, self.pr, max_samples, self.params['total_time_steps'],
                                                 self.params['num_encoder_steps'], self.pred_len,
                                                 self.params["column_definition"],
-                                                self.device)
+                                                self.batch_size)
 
-        trn_batching = batching(self.batch_size, train.enc, train.dec, train.y_true, train.y_id)
-        valid_batching = batching(self.batch_size, valid.enc, valid.dec, valid.y_true, valid.y_id)
-        test_batching = batching(self.batch_size, test.enc, test.dec, test.y_true, test.y_id)
-
-        trn = ModelData(trn_batching[0], trn_batching[1], trn_batching[2], trn_batching[3], self.device)
-        valid = ModelData(valid_batching[0], valid_batching[1], valid_batching[2], valid_batching[3], self.device)
-        test = ModelData(test_batching[0], test_batching[1], test_batching[2], test_batching[3], self.device)
-
-        return trn, valid, test
+        return train, valid, test
 
     def run_optuna(self, args):
 
@@ -141,10 +118,9 @@ class Train:
     def objective(self, trial):
 
         val_loss = 1e10
-        src_input_size = self.train.enc.shape[3]
-        tgt_input_size = self.train.dec.shape[3]
-        n_batches_train = self.train.enc.shape[0]
-        n_batches_valid = self.valid.enc.shape[0]
+        train_enc, train_dec, _ = next(iter(self.train))
+        src_input_size = train_enc.shape[2]
+        tgt_input_size = train_dec.shape[2]
 
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
@@ -179,10 +155,10 @@ class Train:
 
             total_loss = 0
             model.train()
-            for batch_id in range(n_batches_train):
+            for train_enc, train_dec, train_y in self.train:
 
-                output = model(self.train.enc[batch_id], self.train.dec[batch_id])
-                loss = self.criterion(output, self.train.y_true[batch_id]) + self.mae_loss(output, self.train.y_true[batch_id])
+                output = model(train_enc, train_dec)
+                loss = self.criterion(output, train_y) + self.mae_loss(output, train_y)
 
                 total_loss += loss.item()
 
@@ -194,10 +170,10 @@ class Train:
 
             model.eval()
             test_loss = 0
-            for j in range(n_batches_valid):
+            for valid_enc, valid_dec, valid_y in self.valid:
 
-                outputs = model(self.valid.enc[j], self.valid.dec[j])
-                loss = self.criterion(outputs, self.valid.y_true[j]) + self.mae_loss(outputs, self.valid.y_true[j])
+                outputs = model(valid_enc, valid_dec)
+                loss = self.criterion(outputs, valid_y) + self.mae_loss(outputs, valid_y)
                 test_loss += loss.item()
 
             print("val loss: {:.4f}".format(test_loss))
@@ -222,39 +198,27 @@ class Train:
             ]]
 
         self.best_model.eval()
-        predictions = torch.zeros(self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2])
-        targets_all = torch.zeros(self.test.y_true.shape[0], self.test.y_true.shape[1], self.test.y_true.shape[2])
-        n_batches_test = self.test.enc.shape[0]
+        _, _, test_y = next(iter(self.test))
+        total_b = len(list(iter(self.test)))
+        predictions = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
+        j = 0
 
-        for j in range(n_batches_test):
+        for test_enc, test_dec, test_y in self.test:
 
-            output = self.best_model(self.test.enc[j], self.test.dec[j])
-            predictions[j] = output.squeeze(-1)
-            targets_all[j] = self.test.y_true[j].squeeze(-1)
-            '''output_map = inverse_output(output, self.test.y_true[j], self.test.y_id[j])
-            p = self.formatter.format_predictions(output_map["predictions"])
-            if p is not None:
-                if self.exp_name == "covid":
-                    tp = 'int'
-                else:
-                    tp = 'float'
-                forecast = torch.from_numpy(extract_numerical_data(p).to_numpy().astype(tp)).to(self.device)
+            output = self.best_model(test_enc, test_dec)
+            predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
+            j += 1
 
-                predictions[j, :forecast.shape[0], :] = forecast
+        predictions = torch.from_numpy(predictions)
+        test_y = torch.from_numpy(test_y_tot)
+        normaliser = test_y.abs().mean()
 
-                targets = torch.from_numpy(extract_numerical_data(
-                    self.formatter.format_predictions(output_map["targets"])).to_numpy().astype(tp)).to(self.device)
-
-                targets_all[j, :targets.shape[0], :] = targets'''
-
-        predictions = predictions.to('cpu')
-        targets_all = targets_all.to('cpu')
-        test_loss = self.criterion(predictions, targets_all).item()
-        normaliser = targets_all.abs().mean()
+        test_loss = self.criterion(predictions, test_y).item()
         test_loss = test_loss / normaliser
 
-        mae_loss = self.mae_loss(predictions, targets_all).item()
-        normaliser = targets_all.abs().mean()
+        mae_loss = self.mae_loss(predictions, test_y).item()
         mae_loss = mae_loss / normaliser
 
         print("test loss {:.4f}".format(test_loss))
@@ -285,7 +249,7 @@ def main():
     parser = argparse.ArgumentParser(description="preprocess argument parser")
     parser.add_argument("--attn_type", type=str, default='lstm')
     parser.add_argument("--name", type=str, default="lstm")
-    parser.add_argument("--exp_name", type=str, default='covid')
+    parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
     parser.add_argument("--n_trials", type=int, default=5)
