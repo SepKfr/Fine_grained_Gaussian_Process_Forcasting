@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 import random
+from torch.autograd import Variable
 from models.ACAT import ACAT
 from models.BasicAttn import BasicAttn
 from models.ConvAttn import ConvAttn
@@ -12,6 +13,7 @@ from models.Autoformer import AutoCorrelation
 from models.Informer import ProbAttention
 from models.KittyCat import KittyCatConv
 from models.LogTrans import LogTrans
+
 
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.deterministic = True
@@ -271,14 +273,20 @@ class process_model(nn.Module):
 
     def forward(self, x, noise_factor=0.3):
 
-        x = x + torch.randn_like(x, device=self.device) * noise_factor
-        x = torch.clip(x, 0, 1)
+        eps = Variable(torch.randn_like(x, device=self.device) * 0.025)
+        x = x.add_(eps)
+        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
 
-        z = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+        musig = self.musig(x)
+        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+        z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
 
-        return y
+        mu = torch.flatten(mu, start_dim=1)
+        sigma = torch.flatten(mu, start_dim=1)
+
+        return y, mu, sigma
 
 
 class Transformer(nn.Module):
@@ -326,10 +334,10 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            y = self.process(dec_outputs)
+            y, mu, sigma = self.process(dec_outputs)
             outputs = y + dec_outputs
             outputs = self.projection(outputs[:, -self.pred_len:, :])
-            return outputs
+            return outputs, mu, sigma
 
         else:
 
