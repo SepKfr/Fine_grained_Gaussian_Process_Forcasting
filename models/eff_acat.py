@@ -269,20 +269,16 @@ class process_model(nn.Module):
         self.d = d
         self.device = device
 
-    def forward(self, x):
+    def forward(self, x, noise_factor=0.3):
 
-        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+        x = x + torch.randn_like(x, device=self.device) * noise_factor
+        x = torch.clip(x, 0, 1)
 
-        musig = self.musig(x)
-        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
-        z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+        z = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
 
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
 
-        mu = torch.flatten(mu, start_dim=1)
-        sigma = torch.flatten(mu, start_dim=1)
-
-        return y, mu, sigma
+        return y
 
 
 class Transformer(nn.Module):
@@ -330,10 +326,10 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            y, mu, sigma = self.process(dec_outputs)
+            y = self.process(dec_outputs)
             outputs = y + dec_outputs
             outputs = self.projection(outputs[:, -self.pred_len:, :])
-            return outputs, mu, sigma
+            return outputs
 
         else:
 

@@ -191,13 +191,8 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                if self.p_model:
-                    output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kld_loss
-                else:
-                    output = model(train_enc.to(self.device), train_dec.to(self.device))
-                    loss = self.criterion(output, train_y.to(self.device))
+                output = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss = self.criterion(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -209,13 +204,8 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                if self.p_model:
-                    outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kld_loss
-                else:
-                    outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss = self.criterion(outputs, valid_y.to(self.device))
+                outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                loss = self.criterion(outputs, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
@@ -247,10 +237,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            if self.p_model:
-                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-            else:
-                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
@@ -300,7 +287,7 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--p_model", type=str, default="True")
+    parser.add_argument("--p_model", type=str, default="False")
 
     args = parser.parse_args()
 
