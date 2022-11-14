@@ -271,7 +271,7 @@ class process_model(nn.Module):
         self.d = d
         self.device = device
 
-    def forward(self, x, noise_factor=0.3):
+    def forward(self, x):
 
         eps = Variable(torch.randn_like(x, device=self.device) * 0.025)
         x = x.add_(eps)
