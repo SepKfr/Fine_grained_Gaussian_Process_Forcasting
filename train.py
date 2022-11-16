@@ -193,7 +193,7 @@ class Train:
 
                 if self.p_model:
                     output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
                     loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kld_loss
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
@@ -211,7 +211,7 @@ class Train:
 
                 if self.p_model:
                     outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
                     loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kld_loss
                 else:
                     outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
