@@ -338,7 +338,7 @@ class Transformer(nn.Module):
         if self.p_model:
 
             y, mu, sigma = self.process(dec_outputs)
-            outputs = y
+            outputs = y + dec_outputs
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, mu, sigma
 
