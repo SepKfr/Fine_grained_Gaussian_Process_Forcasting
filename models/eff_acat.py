@@ -280,6 +280,7 @@ class process_model(nn.Module):
 
         musig = self.musig(x)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
         y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
