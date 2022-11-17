@@ -16,7 +16,7 @@ class ACAT(nn.Module):
 
         self.device = device
         self.d_k = d_k
-        self.filter_length = [3, 7, 9]
+        self.filter_length = [1, 3, 7, 9]
         self.conv_list_q = nn.ModuleList(
             [nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h,
                                      kernel_size=f,

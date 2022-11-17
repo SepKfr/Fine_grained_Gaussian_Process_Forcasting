@@ -16,7 +16,7 @@ class KittyCatConv(nn.Module):
 
         self.device = device
         self.d_k = d_k
-        self.filter_length = [3, 7, 9]
+        self.filter_length = [1, 3, 7, 9]
 
         self.proj_q = nn.Linear(d_k, 1, bias=False, device=device)
         self.proj_k = nn.Linear(d_k, 1, bias=False, device=device)
@@ -37,6 +37,7 @@ class KittyCatConv(nn.Module):
 
         self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
         self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
+        self.layer_norm = nn.LayerNorm(d_k, elementwise_affine=False)
 
         self.factor = 1
 
@@ -60,14 +61,14 @@ class KittyCatConv(nn.Module):
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
         Q = torch.topk(Q_p, l, dim=2)[0]
-        Q = self.proj_back_q(Q) + Q
+        Q = self.layer_norm(self.proj_back_q(Q) + Q)
 
         K_proj = K_p.reshape(b, h, len(self.filter_length), l_k)
         K = torch.mean(K_proj, dim=2)
 
         K, index = torch.topk(K, l_k, dim=-1)
         K = K.unsqueeze(-1)
-        K = self.proj_back_k(K) + K
+        K = self.layer_norm(self.proj_back_k(K) + K)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
 
