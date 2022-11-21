@@ -85,7 +85,7 @@ def Train(data, args, pred_len):
     erros["{}".format(args.name)].append(float("{:.5f}".format(mse_loss)))
     erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
 
-    error_path = "new_Errors_{}_{}.json".format(args.exp_name, pred_len)
+    error_path = "errors_{}_{}.json".format(args.exp_name, pred_len)
 
     if os.path.exists(error_path):
         with open(error_path) as json_file:
