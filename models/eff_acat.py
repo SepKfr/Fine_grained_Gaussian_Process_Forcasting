@@ -274,8 +274,6 @@ class process_model(nn.Module):
 
     def forward(self, x):
 
-        eps = Variable(torch.randn_like(x, device=self.device) * 0.025)
-        x = x.add_(eps)
         x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
 
         musig = self.musig(x)
