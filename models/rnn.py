@@ -34,7 +34,7 @@ class RNN(nn.Module):
         if self.hidden is None:
             self.hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
 
-        _, (hidden, cell) = self.lstm(x, (self.hidden, self.hidden))
+        outputs, (hidden, cell) = self.lstm(x, (self.hidden, self.hidden))
 
         if self.p_model:
 

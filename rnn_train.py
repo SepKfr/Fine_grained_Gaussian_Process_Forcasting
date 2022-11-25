@@ -52,7 +52,7 @@ class Train:
         self.mae_loss = nn.L1Loss()
         self.num_epochs = self.params['num_epochs']
         self.name = args.name
-        self.p_model = args.p_model
+        self.p_model = True if args.p_model == "True" else False
         self.param_history = []
         self.n_distinct_trial = 0
         self.erros = dict()
@@ -61,22 +61,6 @@ class Train:
         self.train, self.valid, self.test = self.split_data()
         self.run_optuna(args)
         self.evaluate()
-
-    def define_model(self, d_model, stack_size, src_input_size, tgt_input_size):
-
-        stack_size, d_model = stack_size, d_model
-
-        model = RNN(n_layers=stack_size,
-                    hidden_size=d_model,
-                    src_input_size=src_input_size,
-                    tgt_input_size=tgt_input_size,
-                    rnn_type="lstm",
-                    device=self.device,
-                    d_r=0,
-                    seed=self.seed,
-                    pred_len=self.pred_len)
-        model.to(self.device)
-        return model
 
     def split_data(self):
 
