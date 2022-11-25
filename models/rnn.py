@@ -34,18 +34,18 @@ class RNN(nn.Module):
         if self.hidden is None:
             self.hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
 
-        outputs, (hidden, cell) = self.lstm(x, (self.hidden, self.hidden))
+        outputs, _ = self.lstm(x, (self.hidden, self.hidden))
 
         if self.p_model:
 
-            musig = self.musig(hidden)
+            musig = self.musig(outputs)
             mu, sigma = musig[:, :, :self.hidden_size], musig[:, :, -self.hidden_size:]
             z = mu + torch.exp(sigma * 0.5) * torch.randn_like(sigma, device=self.device)
             output = z
             mu = torch.flatten(mu, start_dim=1)
             sigma = torch.flatten(mu, start_dim=1)
         else:
-            output = hidden
+            output = outputs
 
         output = self.linear2(output).transpose(0, 1)
         output = output[:, -self.pred_len:, :]
