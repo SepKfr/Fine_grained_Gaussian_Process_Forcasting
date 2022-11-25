@@ -219,8 +219,10 @@ class Train:
         j = 0
 
         for test_enc, test_dec, test_y in self.test:
-
-            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            if self.p_model:
+                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            else:
+                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
