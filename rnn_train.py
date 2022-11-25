@@ -52,6 +52,7 @@ class Train:
         self.mae_loss = nn.L1Loss()
         self.num_epochs = self.params['num_epochs']
         self.name = args.name
+        self.p_model = args.p_model
         self.param_history = []
         self.n_distinct_trial = 0
         self.erros = dict()
@@ -142,7 +143,9 @@ class Train:
                     device=self.device,
                     d_r=0,
                     seed=self.seed,
-                    pred_len=self.pred_len)
+                    pred_len=self.pred_len,
+                    p_model=self.p_model)
+
         model.to(self.device)
 
         optimizer = Adam(model.parameters(), lr=1e-4)
@@ -157,9 +160,13 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                output = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = self.criterion(output, train_y.to(self.device)) + \
-                       self.mae_loss(output, train_y.to(self.device))
+                if self.p_model:
+                    output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
+                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kld_loss
+                else:
+                    output = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = self.criterion(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -173,9 +180,14 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = self.criterion(outputs, valid_y.to(self.device)) + \
-                       self.mae_loss(outputs, valid_y.to(self.device))
+                if self.p_model:
+                    outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kld_loss
+                else:
+                    outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = self.criterion(outputs, valid_y.to(self.device))
+
                 test_loss += loss.item()
 
             print("val loss: {:.4f}".format(test_loss))
@@ -255,6 +267,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
     parser.add_argument("--n_trials", type=int, default=5)
+    parser.add_argument("--p_model", type=str, default="False")
     parser.add_argument("--DataParallel", type=bool, default=False)
     args = parser.parse_args()
 
