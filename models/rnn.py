@@ -22,6 +22,7 @@ class RNN(nn.Module):
         self.hidden_size = hidden_size
         self.rnn_type = rnn_type
         self.linear2 = nn.Linear(hidden_size, 1, bias=False)
+        self.proj_out = nn.Linear(hidden_size, hidden_size)
         self.hidden = None
         self.device = device
         self.p_model = p_model
@@ -41,9 +42,10 @@ class RNN(nn.Module):
             musig = self.musig(outputs)
             mu, sigma = musig[:, :, :self.hidden_size], musig[:, :, -self.hidden_size:]
             z = mu + torch.exp(sigma * 0.5) * torch.randn_like(sigma, device=self.device)
-            output = z
+            output = self.proj_out(z)
             mu = torch.flatten(mu, start_dim=1)
             sigma = torch.flatten(mu, start_dim=1)
+
         else:
             output = outputs
 
