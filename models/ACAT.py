@@ -23,7 +23,7 @@ class ACAT(nn.Module):
                                      padding=int(f/2),
                                      bias=False),
                            nn.BatchNorm1d(d_k*h),
-                           nn.Softmax(dim=-1)
+                           nn.ReLU()
                            )
              for f in self.filter_length]).to(device)
 
@@ -33,7 +33,7 @@ class ACAT(nn.Module):
                                      padding=int(f / 2),
                                      bias=False),
                            nn.BatchNorm1d(d_k * h),
-                           nn.Softmax(dim=-1)
+                           nn.ReLU()
                            )
              for f in self.filter_length]).to(device)
 
