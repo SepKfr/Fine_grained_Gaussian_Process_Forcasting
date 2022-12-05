@@ -106,10 +106,11 @@ def _kl_normal_loss(m_1: torch.Tensor,
     """Calculates the KL divergence between two normal distributions
     with diagonal covariance matrices."""
 
-    latent_kl = torch.mean(0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
-                 + (m_2 - m_1).pow(2) / lv_2.exp()))
+    latent_kl = (0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
+                        + (m_2 - m_1).pow(2) / lv_2.exp()).mean(dim=0))
+    total_kl = latent_kl.sum()
 
-    return latent_kl
+    return total_kl
 
 
 def _gjs_normal_loss(mean, logvar, dual=False, a=0.5, invert_alpha=True):
