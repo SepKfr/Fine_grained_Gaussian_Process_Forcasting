@@ -51,6 +51,102 @@ class NoamOpt:
             param_group['lr'] = lr
 
 
+class GeometricJSLoss(nn.Module):
+    r"""Compute VAE loss with skew geometric-Jensen-Shannon regularisation [1].
+    Parameters
+    ----------
+    alpha : float, optional
+        Skew of the skew geometric-Jensen-Shannon divergence
+    beta : float, optional
+        Weight of the skew g-js divergence.
+    dual : bool, optional
+        Whether to use Dual or standard GJS.
+    invert_alpha : bool, optional
+        Whether to replace alpha with 1 - a.
+    kwargs:
+        Additional arguments for `BaseLoss`, e.g. `rec_dist`.
+    References
+    ----------
+        [1] Deasy, Jacob, Nikola Simidjievski, and Pietro Liò.
+        "Constraining Variational Inference with Geometric Jensen-Shannon Divergence."
+        Advances in Neural Information Processing Systems 33 (2020).
+    """
+
+    def __init__(self, device, alpha=0.5, beta=1.0, dual=True, invert_alpha=True, **kwargs):
+        super(GeometricJSLoss, self).__init__()
+        self.alpha = alpha
+        self.beta = beta
+        self.dual = dual
+        self.invert_alpha = invert_alpha
+        self.alpha = torch.nn.Parameter(torch.tensor(alpha, device=device))
+
+    def __call__(self, data, recon_data, latent_dist, is_train, **kwargs):
+
+        loss = _gjs_normal_loss(*latent_dist,
+                                dual=self.dual,
+                                a=self.alpha,
+                                invert_alpha=self.invert_alpha)
+
+        return loss
+
+
+def _get_mu_var(m_1, v_1, m_2, v_2, a=0.5):
+    """Get mean and standard deviation of geometric mean distribution."""
+    v_a = 1 / ((1 - a) / v_1 + a / v_2)
+    m_a = v_a * ((1 - a) * m_1 / v_1 + a * m_2 / v_2)
+
+    return m_a, v_a
+
+
+def _kl_normal_loss(m_1: torch.Tensor,
+                    lv_1: torch.Tensor,
+                    m_2: torch.Tensor,
+                    lv_2: torch.Tensor,
+                    ) -> torch.Tensor:
+    """Calculates the KL divergence between two normal distributions
+    with diagonal covariance matrices."""
+
+    latent_kl = torch.mean(0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
+                 + (m_2 - m_1).pow(2) / lv_2.exp()))
+
+    return latent_kl
+
+
+def _gjs_normal_loss(mean, logvar, dual=False, a=0.5, invert_alpha=True):
+    var = logvar.exp()
+    mean_0 = torch.zeros_like(mean)
+    var_0 = torch.ones_like(var)
+
+    if invert_alpha:
+        mean_a, var_a = _get_mu_var(
+            mean, var, mean_0, var_0, a=1-a)
+    else:
+        mean_a, var_a = _get_mu_var(
+            mean, var, mean_0, var_0, a=a)
+
+    var_a = torch.log(var_a)
+    var_0 = torch.log(var_0)
+    var = torch.log(var)
+
+    if dual:
+        kl_1 = _kl_normal_loss(
+            mean_a, var_a, mean, var)
+        kl_2 = _kl_normal_loss(
+            mean_a, var_a, mean_0, var_0)
+    else:
+        kl_1 = _kl_normal_loss(
+            mean, var, mean_a, var_a)
+        kl_2 = _kl_normal_loss(
+            mean_0, var_0, mean_a, var_a)
+    with torch.no_grad():
+        _ = _kl_normal_loss(
+            mean, var, mean_0, var_0)
+
+    total_gjs = (1 - a) * kl_1 + a * kl_2
+
+    return total_gjs
+
+
 class Train:
     def __init__(self, data, args, pred_len):
 
@@ -184,6 +280,7 @@ class Train:
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
+        kl_loss = GeometricJSLoss(device=self.device)
 
         for epoch in range(self.num_epochs):
 
@@ -193,8 +290,10 @@ class Train:
 
                 if self.p_model:
                     output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kld_loss
+                    #kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    latent_dist = mu, log_var
+                    loss = self.criterion(output, train_y.to(self.device)) + \
+                           0.005 * kl_loss(train_y.to(self.device), output, latent_dist, True)
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
                     loss = self.criterion(output, train_y.to(self.device))
@@ -211,8 +310,10 @@ class Train:
 
                 if self.p_model:
                     outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
-                    loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kld_loss
+                    #kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                    latent_dist = mu, log_var
+                    loss = self.criterion(outputs, valid_y.to(self.device)) + \
+                           0.005 * kl_loss(valid_y.to(self.device), outputs, latent_dist, False)
                 else:
                     outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     loss = self.criterion(outputs, valid_y.to(self.device))
