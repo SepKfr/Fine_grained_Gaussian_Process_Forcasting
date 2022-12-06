@@ -72,25 +72,25 @@ class GeometricJSLoss(nn.Module):
         Advances in Neural Information Processing Systems 33 (2020).
     """
 
-    def __init__(self, device, alpha=0.5, beta=1.0, dual=True, invert_alpha=True, **kwargs):
+    def __init__(self, device, beta=1.0, dual=True, invert_alpha=True, **kwargs):
         super(GeometricJSLoss, self).__init__()
-        self.alpha = alpha
+
         self.beta = beta
         self.dual = dual
         self.invert_alpha = invert_alpha
-        self.alpha = torch.nn.Parameter(torch.tensor(alpha, device=device))
+        self.alpha = torch.nn.Parameter(torch.tensor(0.5, device=device))
 
     def __call__(self, data, recon_data, latent_dist, is_train, **kwargs):
 
         loss = _gjs_normal_loss(*latent_dist,
+                                self.alpha,
                                 dual=self.dual,
-                                a=self.alpha,
                                 invert_alpha=self.invert_alpha)
 
         return loss
 
 
-def _get_mu_var(m_1, v_1, m_2, v_2, a=0.5):
+def _get_mu_var(m_1, v_1, m_2, v_2, a):
     """Get mean and standard deviation of geometric mean distribution."""
     v_a = 1 / ((1 - a) / v_1 + a / v_2)
     m_a = v_a * ((1 - a) * m_1 / v_1 + a * m_2 / v_2)
@@ -112,7 +112,8 @@ def _kl_normal_loss(m_1: torch.Tensor,
     return latent_kl
 
 
-def _gjs_normal_loss(mean, logvar, dual=False, a=0.5, invert_alpha=True):
+def _gjs_normal_loss(mean, logvar, a, dual=True, invert_alpha=True):
+
     var = logvar.exp()
     mean_0 = torch.zeros_like(mean)
     var_0 = torch.ones_like(var)
