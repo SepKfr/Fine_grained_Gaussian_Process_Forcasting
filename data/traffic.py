@@ -180,6 +180,7 @@ class TrafficFormatter(GenericDataFormatter):
         return model_params
 
     def get_num_samples_for_calibration(self):
+
         """Gets the default number of training and validation samples.
         Use to sub-sample the data_set for network calibration and a value of -1 uses
         all available samples.
