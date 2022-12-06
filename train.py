@@ -297,7 +297,7 @@ class Train:
                     if self.skew:
                         kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, True)
                     else:
-                        kl_final_loss = torch.sum(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=0))
+                        kl_final_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=0))
 
                     loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
