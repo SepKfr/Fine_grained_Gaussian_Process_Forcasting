@@ -106,10 +106,11 @@ def _kl_normal_loss(m_1: torch.Tensor,
     """Calculates the KL divergence between two normal distributions
     with diagonal covariance matrices."""
 
-    latent_kl = torch.mean(0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
-                 + (m_2 - m_1).pow(2) / lv_2.exp()))
+    latent_kl = (0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
+                        + (m_2 - m_1).pow(2) / lv_2.exp()).mean(dim=0))
+    total_kl = latent_kl.sum()
 
-    return latent_kl
+    return total_kl
 
 
 def _gjs_normal_loss(mean, logvar, a, dual=True, invert_alpha=True):
@@ -173,6 +174,7 @@ class Train:
         self.name = args.name
         self.best_val = 1e10
         self.pr = args.pr
+        self.skew = True if args.skew == "True" else False
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
@@ -291,10 +293,13 @@ class Train:
 
                 if self.p_model:
                     output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
-                    #kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
                     latent_dist = mu, log_var
-                    loss = self.criterion(output, train_y.to(self.device)) + \
-                           0.005 * kl_loss(train_y.to(self.device), output, latent_dist, True)
+                    if self.skew:
+                        kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, True)
+                    else:
+                        kl_final_loss = torch.sum(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=0))
+
+                    loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
                     loss = self.criterion(output, train_y.to(self.device))
@@ -311,10 +316,13 @@ class Train:
 
                 if self.p_model:
                     outputs, mu, log_var = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    #kld_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
                     latent_dist = mu, log_var
-                    loss = self.criterion(outputs, valid_y.to(self.device)) + \
-                           0.005 * kl_loss(valid_y.to(self.device), outputs, latent_dist, False)
+                    if self.skew:
+                        kl_final_loss = kl_loss(valid_y.to(self.device), outputs, latent_dist, False)
+                    else:
+                        kl_final_loss = torch.sum(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1),dim=0)
+
+                    loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
                     outputs = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     loss = self.criterion(outputs, valid_y.to(self.device))
@@ -403,6 +411,7 @@ def main():
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
     parser.add_argument("--p_model", type=str, default="True")
+    parser.add_argument("--skew", type=str, default="False")
 
     args = parser.parse_args()
 
