@@ -172,7 +172,7 @@ class Train:
         self.name = args.name
         self.best_val = 1e10
         self.pr = args.pr
-        self.skew = True if args.skew == "Ture" else False
+        self.skew = True if args.skew == "True" else False
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
