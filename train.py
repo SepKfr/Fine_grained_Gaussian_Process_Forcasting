@@ -72,25 +72,25 @@ class GeometricJSLoss(nn.Module):
         Advances in Neural Information Processing Systems 33 (2020).
     """
 
-    def __init__(self, device, beta=1.0, dual=True, invert_alpha=True, **kwargs):
+    def __init__(self, device, alpha=0.5, beta=1.0, dual=True, invert_alpha=True, **kwargs):
         super(GeometricJSLoss, self).__init__()
-
+        self.alpha = alpha
         self.beta = beta
         self.dual = dual
         self.invert_alpha = invert_alpha
-        self.alpha = torch.nn.Parameter(torch.tensor(0.5, device=device))
+        self.alpha = torch.nn.Parameter(torch.tensor(alpha, device=device))
 
     def __call__(self, data, recon_data, latent_dist, is_train, **kwargs):
 
         loss = _gjs_normal_loss(*latent_dist,
-                                self.alpha,
                                 dual=self.dual,
+                                a=self.alpha,
                                 invert_alpha=self.invert_alpha)
 
         return loss
 
 
-def _get_mu_var(m_1, v_1, m_2, v_2, a):
+def _get_mu_var(m_1, v_1, m_2, v_2, a=0.5):
     """Get mean and standard deviation of geometric mean distribution."""
     v_a = 1 / ((1 - a) / v_1 + a / v_2)
     m_a = v_a * ((1 - a) * m_1 / v_1 + a * m_2 / v_2)
@@ -106,15 +106,13 @@ def _kl_normal_loss(m_1: torch.Tensor,
     """Calculates the KL divergence between two normal distributions
     with diagonal covariance matrices."""
 
-    latent_kl = (0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
-                        + (m_2 - m_1).pow(2) / lv_2.exp()).mean(dim=0))
-    total_kl = latent_kl.sum()
+    latent_kl = torch.mean(0.5 * torch.mean(-1 + (lv_2 - lv_1) + lv_1.exp() /
+                                  lv_2.exp() + (m_2 - m_1).pow(2) / lv_2.exp()))
 
-    return total_kl
+    return latent_kl
 
 
-def _gjs_normal_loss(mean, logvar, a, dual=True, invert_alpha=True):
-
+def _gjs_normal_loss(mean, logvar, dual=False, a=0.5, invert_alpha=True):
     var = logvar.exp()
     mean_0 = torch.zeros_like(mean)
     var_0 = torch.ones_like(var)
@@ -174,7 +172,7 @@ class Train:
         self.name = args.name
         self.best_val = 1e10
         self.pr = args.pr
-        self.skew = True if args.skew == "True" else False
+        self.skew = True if args.skew == "Ture" else False
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
@@ -293,11 +291,12 @@ class Train:
 
                 if self.p_model:
                     output, mu, log_var = model(train_enc.to(self.device), train_dec.to(self.device))
+
                     latent_dist = mu, log_var
                     if self.skew:
-                        kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, True)
+                        kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, False)
                     else:
-                        kl_final_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=0))
+                        kl_final_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
 
                     loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
@@ -320,7 +319,7 @@ class Train:
                     if self.skew:
                         kl_final_loss = kl_loss(valid_y.to(self.device), outputs, latent_dist, False)
                     else:
-                        kl_final_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+                        kl_final_loss = torch.mean(-0.5 * torch.mean(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
 
                     loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
@@ -411,7 +410,7 @@ def main():
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
     parser.add_argument("--p_model", type=str, default="True")
-    parser.add_argument("--skew", type=str, default="False")
+    parser.add_argument("--skew", type=str, default="True")
 
     args = parser.parse_args()
 
@@ -422,7 +421,7 @@ def main():
     data_csv_path = "{}.csv".format(args.exp_name)
     raw_data = pd.read_csv(data_csv_path, dtype={'date': str})
 
-    for pred_len in [96, 72, 48, 24]:
+    for pred_len in [24, 48, 72, 96]:
         Train(raw_data, args, pred_len)
 
 
