@@ -251,7 +251,7 @@ class Train:
             os.makedirs(self.model_path)
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        w_steps = trial.suggest_categorical("w_steps", [4000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
@@ -278,7 +278,7 @@ class Train:
                             seed=self.seed, kernel=kernel, p_model=self.p_model)
         model.to(self.device)
 
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+        optimizer = Adam(model.parameters(), lr=1e-4)
 
         val_loss = 1e10
         kl_loss = GeometricJSLoss(device=self.device)
@@ -307,7 +307,7 @@ class Train:
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step_and_update_lr()
+                optimizer.step()
 
             model.eval()
             test_loss = 0
