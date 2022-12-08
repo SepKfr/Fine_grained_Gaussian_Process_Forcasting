@@ -61,11 +61,7 @@ class KittyCatConv(nn.Module):
         Q = torch.topk(Q_p, l, dim=2)[0]
         Q = self.proj_back_q(Q)
 
-        K_proj = K_p.reshape(b, h, len(self.filter_length), l_k)
-        K = torch.mean(K_proj, dim=2)
-
-        K, index = torch.topk(K, l_k, dim=-1)
-        K = K.unsqueeze(-1)
+        K = torch.topk(K_p, l_k, dim=2)[0]
         K = self.proj_back_k(K)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
