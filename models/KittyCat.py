@@ -19,16 +19,16 @@ class KittyCatConv(nn.Module):
         self.filter_length = [1, 3, 7, 9]
 
         self.conv_list_k = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(d_k*h),
-                          nn.ReLU())
+            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(h),
+                          nn.Softmax(dim=-1))
             for f in self.filter_length
             ]).to(device)
 
         self.conv_list_q = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(d_k*h),
-                          nn.ReLU())
+            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(h),
+                          nn.Softmax(dim=-1))
             for f in self.filter_length]).to(device)
 
         self.factor = 1
