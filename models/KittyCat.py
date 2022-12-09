@@ -28,8 +28,12 @@ class KittyCatConv(nn.Module):
         self.conv_list_q = nn.ModuleList([
             nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
                           nn.BatchNorm1d(h),
-                          nn.Softmax(dim=-1))
+                          nn.Softmax(dim=-1)
+                          )
             for f in self.filter_length]).to(device)
+
+        self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
+        self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
 
         self.factor = 1
 
@@ -50,8 +54,10 @@ class KittyCatConv(nn.Module):
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
         Q = torch.topk(Q_p, l, dim=2)[0]
+        Q = self.proj_back_q(Q)
 
         K = torch.topk(K_p, l_k, dim=2)[0]
+        K = self.proj_back_k(K)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
 
