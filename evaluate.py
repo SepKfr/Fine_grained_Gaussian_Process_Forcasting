@@ -21,6 +21,7 @@ parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--p_model", type=str, default="False")
+parser.add_argument("--skew", type=str, default="False")
 
 args = parser.parse_args()
 
