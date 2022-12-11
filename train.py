@@ -108,7 +108,7 @@ def _kl_normal_loss(m_1: torch.Tensor,
 
     latent_kl = (0.5 * (-1 + (lv_2 - lv_1) + lv_1.exp() / lv_2.exp()
                         + (m_2 - m_1).pow(2) / lv_2.exp()).mean(dim=0))
-    total_kl = latent_kl.sum()
+    total_kl = latent_kl.mean()
 
     return total_kl
 
@@ -297,7 +297,7 @@ class Train:
                     if self.skew:
                         kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, False)
                     else:
-                        kl_final_loss = (-0.5 * (1 + log_var - mu ** 2 - log_var.exp()).mean(dim=0)).sum()
+                        kl_final_loss = (-0.5 * (1 + log_var - mu ** 2 - log_var.exp()).mean(dim=0)).mean()
 
                     loss = self.criterion(output, train_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
@@ -320,7 +320,7 @@ class Train:
                     if self.skew:
                         kl_final_loss = kl_loss(valid_y.to(self.device), outputs, latent_dist, False)
                     else:
-                        kl_final_loss = (-0.5 * (1 + log_var - mu ** 2 - log_var.exp()).mean(dim=0)).sum()
+                        kl_final_loss = (-0.5 * (1 + log_var - mu ** 2 - log_var.exp()).mean(dim=0)).mean()
 
                     loss = self.criterion(outputs, valid_y.to(self.device)) + 0.005 * kl_final_loss
                 else:
