@@ -294,7 +294,7 @@ class Train:
 
                     latent_dist = mu, log_var
                     if self.skew:
-                        kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, False)
+                        kl_final_loss = kl_loss(train_y.to(self.device), output, latent_dist, True)
                     else:
                         kl_final_loss = (-0.5 * (1 + log_var - mu ** 2 - log_var.exp())).mean()
 
