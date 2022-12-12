@@ -47,3 +47,12 @@ class AirQualityFormatter(ElectricityFormatter):
         self.set_scalers(train)
 
         return (self.transform_inputs(data) for data in [train, valid, test])
+
+    def get_num_samples_for_calibration(self):
+        """Gets the default number of training and validation samples.
+        Use to sub-sample the data_set for network calibration and a value of -1 uses
+        all available samples.
+        Retdurns:
+          Tuple of (training samples, validation samples)
+        """
+        return 32000, 3840
