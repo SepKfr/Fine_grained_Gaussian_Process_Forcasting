@@ -23,24 +23,22 @@ class DeepAr(nn.Module):
         self.distribution_mu = nn.Linear(hidden_size, 1)
         self.distribution_presigma = nn.Linear(hidden_size, 1)
         self.distribution_sigma = nn.Softplus()
+        self.proj_out = nn.Linear(hidden_size, 1)
 
-        self.linear2 = nn.Linear(hidden_size, 1, bias=False)
+    def forward(self, x, hidden=None):
 
-    def forward(self, x_en, x_de, hidden=None):
-
-        x = torch.cat((x_en, x_de), dim=1).permute(1, 0, 2)
+        x = x.permute(1, 0, 2)
 
         if hidden is None:
 
             hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
 
-        outputs, _ = self.lstm(x, (hidden, hidden))
+        outputs, (hidden, hidden) = self.lstm(x, (hidden, hidden))
 
-        output = outputs.transpose(0, 1)[:, -self.pred_len:, :]
+        hidden = hidden.transpose(0, 1)
 
-        mu = self.distribution_mu(output)
-        sigma = self.distribution_sigma(self.distribution_presigma(output))
+        mu = self.distribution_mu(hidden)
+        sigma = self.distribution_sigma(self.distribution_presigma(hidden))
+        hidden = self.proj_out(hidden)
 
-        output = self.linear2(output)
-
-        return output, mu, sigma
+        return hidden, mu, sigma

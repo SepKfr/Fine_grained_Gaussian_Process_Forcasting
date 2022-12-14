@@ -150,22 +150,25 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 if self.name == "DeepAr":
+                    loss = 0
+                    for t in range(self.pred_len):
 
-                    output, mu, sigma = model(train_enc.to(self.device), train_dec.to(self.device))
-                    distribution = torch.distributions.normal.Normal(mu, sigma)
-                    likelihood = distribution.log_prob(train_y.to(self.device))
-                    loss = -torch.mean(likelihood)
+                        x = torch.cat((train_enc, train_dec), dim=1)
+                        output, mu, sigma = model(x[:, t:t+1, :].to(self.device))
+                        distribution = torch.distributions.normal.Normal(mu, sigma)
+                        likelihood = distribution.log_prob(train_y[:, t:t+1, :].to(self.device))
+                        loss_in = -torch.mean(likelihood)
+                        loss += loss_in
 
                 else:
 
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
                     loss = self.criterion(output, train_y.to(self.device))
 
-                total_loss += loss.item()
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                total_loss += loss.item()
 
             print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
 
@@ -174,11 +177,14 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 if self.name == "DeepAr":
-
-                    output, mu, sigma = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    distribution = torch.distributions.normal.Normal(mu, sigma)
-                    likelihood = distribution.log_prob(valid_y.to(self.device))
-                    loss = -torch.mean(likelihood)
+                    loss = 0
+                    for t in range(self.pred_len):
+                        x = torch.cat((valid_enc, valid_dec), dim=1)
+                        output, mu, sigma = model(x[:, t:t+1, :].to(self.device))
+                        distribution = torch.distributions.normal.Normal(mu, sigma)
+                        likelihood = distribution.log_prob(valid_y[:, t:t+1, :].to(self.device))
+                        loss_in = -torch.mean(likelihood)
+                        loss += loss_in
 
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
@@ -216,7 +222,11 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
             if self.name == "DeepAr":
-                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                x = torch.cat((test_enc, test_enc), dim=1)
+                output = torch.zeros_like(test_y, device=self.device)
+                for t in range(self.pred_len):
+                    hidd , _, _ = self.best_model(x[:, t:t+1, :].to(self.device))
+                    output[:, t, :] = hidd.squeeze(1)
             else:
                 output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
