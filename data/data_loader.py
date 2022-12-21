@@ -26,8 +26,6 @@ import sys
 import random
 import gc
 import glob
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import lit
 from tqdm import tqdm
 
 
