@@ -85,11 +85,11 @@ class EpsilonTheta(nn.Module):
         self,
         target_dim,
         cond_length,
-        time_emb_dim=16,
+        time_emb_dim=8,
         residual_layers=1,
         residual_channels=8,
         dilation_cycle_length=2,
-        residual_hidden=64,
+        residual_hidden=8,
     ):
         super().__init__()
         self.input_projection = nn.Conv1d(
