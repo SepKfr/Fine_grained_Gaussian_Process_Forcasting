@@ -40,10 +40,10 @@ class GaussianDiffusion(nn.Module):
         self.gp = gp
         self.denoise_fn = denoise_fn
         self.input_size = input_size
-        self.model_mean_type = 'xprev'
+        self.model_mean_type = 'eps'
         self.denoise_fn_proj = nn.Linear(2, 1)
+        self.weight = nn.Parameter(torch.randn(1), requires_grad=True)
         self.__scale = None
-
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
@@ -136,121 +136,25 @@ class GaussianDiffusion(nn.Module):
 
     def extract(self, x, t, x_shape):
 
-        b, s, d = x_shape
+        b, *_ = t.shape
         out = x.gather(-1, t)
-        out = out.unsqueeze(-1).repeat(1, s)
-        out = out.unsqueeze(-1).repeat(1, 1, d)
+        out = out.reshape(b, *((1,) * (len(x_shape) - 1)))
         return out
-
-    def get_betas(self, t, x_shape, gp_cov=None):
-
-        out = self.extract(self.betas, t, x_shape)
-        b = out if gp_cov is None else out * gp_cov
-        assert torch.isnan(b.view(-1)).sum().item() == 0
-        return b
-
-    def get_alpha_cumprod(self, t, x_shape, gp_cov=None):
-
-        alphas_cumprod = self.extract(self.alphas_cumprod, t, x_shape)
-        alphas_cumprod = alphas_cumprod if gp_cov is None else alphas_cumprod * gp_cov
-        assert torch.isnan(alphas_cumprod.view(-1)).sum().item() == 0
-        return alphas_cumprod
-
-    def get_alphas_cumprod_prev(self, t, x_shape, gp_cov=None):
-
-        alphas_cumprod_prev = self.extract(self.alphas_cumprod_prev, t, x_shape)
-        alphas_cumprod_prev = alphas_cumprod_prev if gp_cov is None else alphas_cumprod_prev * gp_cov
-        return alphas_cumprod_prev
-
-    def get_sqrt_alphas_cumprod(self, t, x_shape, gp_cov=None):
-
-        sqrt_alphas_cumprod = self.extract(self.sqrt_alphas_cumprod, t, x_shape)
-        sqrt_alphas_cumprod = sqrt_alphas_cumprod if gp_cov is None else sqrt_alphas_cumprod * gp_cov
-        assert torch.isnan(sqrt_alphas_cumprod.view(-1)).sum().item() == 0
-        return sqrt_alphas_cumprod
-
-    def get_sqrt_one_minus_alphas_cumprod(self, t, x_shape, gp_cov=None):
-
-        sqrt_one_minus_alphas_cumprod = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_shape)
-        sqrt_one_minus_alphas_cumprod = sqrt_one_minus_alphas_cumprod if gp_cov is None else \
-            sqrt_one_minus_alphas_cumprod * gp_cov
-        assert torch.isnan(sqrt_one_minus_alphas_cumprod.view(-1)).sum().item() == 0
-        return sqrt_one_minus_alphas_cumprod
-
-    def get_log_one_minus_alphas_cumprod(self, t, x_shape, gp_cov=None):
-
-        log_one_minus_alphas_cumprod = self.extract(self.log_one_minus_alphas_cumprod, t, x_shape)
-        log_one_minus_alphas_cumprod = log_one_minus_alphas_cumprod if gp_cov is None else \
-            log_one_minus_alphas_cumprod * gp_cov
-        assert torch.isnan(log_one_minus_alphas_cumprod.view(-1)).sum().item() == 0
-
-        return log_one_minus_alphas_cumprod
-
-    def get_sqrt_recip_alphas_cumprod(self, t, x_shape, gp_cov=None):
-
-        sqrt_recip_alphas_cumprod = self.extract(self.sqrt_recip_alphas_cumprod, t, x_shape)
-        log_one_minus_alphas_cumprod = sqrt_recip_alphas_cumprod if gp_cov is None else \
-            sqrt_recip_alphas_cumprod * gp_cov
-
-        assert torch.isnan(log_one_minus_alphas_cumprod.view(-1)).sum().item() == 0
-
-        return log_one_minus_alphas_cumprod
-
-    def get_sqrt_recipm1_alphas_cumprod(self, t, x_shape, gp_cov=None):
-
-        sqrt_recipm1_alphas_cumprod = self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_shape)
-        sqrt_recipm1_alphas_cumprod = sqrt_recipm1_alphas_cumprod if gp_cov is None else \
-            sqrt_recipm1_alphas_cumprod * gp_cov
-
-        assert torch.isnan(sqrt_recipm1_alphas_cumprod.view(-1)).sum().item() == 0
-
-        return sqrt_recipm1_alphas_cumprod
-
-    def get_posterior_variance(self, t, x_shape, gp_cov=None):
-
-        posterior_variance = self.extract(self.posterior_variance, t, x_shape)
-        posterior_variance = posterior_variance if gp_cov is None else \
-            posterior_variance * gp_cov
-
-        assert torch.isnan(posterior_variance.view(-1)).sum().item() == 0
-
-        return posterior_variance
-
-    def get_posterior_log_variance_clipped(self, t, x_shape, gp_cov=None):
-
-        posterior_log_variance_clipped = self.extract(self.posterior_log_variance_clipped, t, x_shape)
-        posterior_log_variance_clipped = posterior_log_variance_clipped if gp_cov is None else \
-            posterior_log_variance_clipped * gp_cov
-
-        assert torch.isnan(posterior_log_variance_clipped.view(-1)).sum().item() == 0
-
-        return posterior_log_variance_clipped
-
-    def get_posterior_mean_coef1(self, t, x_shape, gp_cov=None):
-
-        posterior_mean_coef1 = self.extract(self.posterior_mean_coef1, t, x_shape)
-        posterior_mean_coef1 = posterior_mean_coef1 if gp_cov is None else \
-            posterior_mean_coef1 * gp_cov
-
-        assert torch.isnan(posterior_mean_coef1.view(-1)).sum().item() == 0
-
-        return posterior_mean_coef1
-
-    def get_posterior_mean_coef2(self, t, x_shape, gp_cov=None):
-
-        posterior_mean_coef2 = self.extract(self.posterior_mean_coef2, t, x_shape)
-        posterior_mean_coef2 = posterior_mean_coef2 if gp_cov is None else \
-            posterior_mean_coef2 * gp_cov
-
-        assert torch.isnan(posterior_mean_coef2.view(-1)).sum().item() == 0
-
-        return posterior_mean_coef2
 
     def q_mean_variance(self, x_start, t, gp_cov=None):
 
-        mean = self.get_sqrt_alphas_cumprod(t, x_start.shape, gp_cov) * x_start
-        variance = 1.0 - self.get_alphas_cumprod(t, x_start.shape, gp_cov)
-        log_variance = self.log_one_minus_alphas_cumprod(t, x_start.shape, gp_cov)
+        mean = self.extract(self.sqrt_alphas_cumprod(t, x_start.shape, gp_cov), t, x_start.shape) * x_start
+        variance = 1.0 - self.extract(self.alphas_cumprod(t, x_start.shape, gp_cov), t, x_start.shape)
+        log_variance = torch.log(variance)
+        if gp_cov is None:
+            pass
+        else:
+            variance = self.weight * variance + (1 - self.weight) * gp_cov
+
+        if gp_cov is None:
+            pass
+        else:
+            log_variance = self.weight * torch.log(variance) + (1 - self.weight) * torch.log(gp_cov)
         return mean, variance, log_variance
 
     def q_sample(self, x_start, t, noise=None, gp_cov=None):
@@ -260,9 +164,11 @@ class GaussianDiffusion(nn.Module):
         if noise is None:
             noise = torch.randn_like(x_start)
         assert noise.shape == x_start.shape
+        variance = self.weight * self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) \
+                   + (1 - self.weight) * gp_cov if gp_cov is not None else  \
+            self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
         return (
-                self.get_sqrt_alphas_cumprod(t, x_start.shape, gp_cov) * x_start +
-                self.get_sqrt_one_minus_alphas_cumprod(t, x_start.shape, gp_cov) * noise
+                self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start + variance * noise
         )
 
     def q_posterior_mean_variance(self, x_start, x_t, t, gp_cov=None):
@@ -271,20 +177,21 @@ class GaussianDiffusion(nn.Module):
         """
         assert x_start.shape == x_t.shape
         posterior_mean = (
-                self.get_posterior_mean_coef1(t, x_start.shape, gp_cov) * x_start +
-                self.get_posterior_mean_coef2(t, x_start.shape, gp_cov) * x_t
+                self.extract(self.posterior_mean_coef1, t, x_start.shape) * x_start +
+                self.extract(self.posterior_mean_coef2, t, x_start.shape) * x_t
         )
-        posterior_variance = self.get_posterior_variance(t, x_start.shape, gp_cov)
-        posterior_log_variance_clipped = self.get_posterior_log_variance_clipped(t, x_start.shape, gp_cov)
+        posterior_variance = self.extract(self.posterior_variance, t, x_start.shape)
+        posterior_log_variance_clipped = self.extract(self.posterior_log_variance_clipped, t,  x_start.shape)
         assert (posterior_mean.shape[0] == posterior_variance.shape[0] == posterior_log_variance_clipped.shape[0] ==
                 x_start.shape[0])
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def _predict_xstart_from_eps(self, x_t, t, eps, gp_cov=None):
+
         assert x_t.shape == eps.shape
         return (
-                self.get_sqrt_recip_alphas_cumprod(t, x_t.shape, gp_cov) * x_t -
-                self.get_sqrt_recipm1_alphas_cumprod(t, x_t.shape, gp_cov) * eps
+                self.extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t -
+                self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * eps
         )
 
     def p_mean_variance(self, denoise_fn, x, cond, t, clip_denoised: bool, return_pred_xstart: bool, gp_cov=None):
@@ -320,8 +227,9 @@ class GaussianDiffusion(nn.Module):
 
         assert x_t.shape == xprev.shape
         return (  # (xprev - coef2*x_t) / coef1
-                1.0 / self.get_posterior_mean_coef1(t, x_t.shape, gp_cov) * xprev
-                - self.get_posterior_mean_coef2(t, x_t.shape, gp_cov) / self.get_posterior_mean_coef1(t, x_t.shape, gp_cov)
+                1.0 / self.extract(self.posterior_mean_coef1(t, x_t.shape, gp_cov), t, x_t.shape) * xprev
+                - self.extract(self.posterior_mean_coef2(t, x_t.shape, gp_cov), t, x_t.shape)
+                / self.extract(self.posterior_mean_coef1, t, x_t.shape)
         ) * x_t
 
     def p_sample(self, denoise_fn, *, x, cond, t, clip_denoised=True, gp_cov=None):
@@ -397,14 +305,17 @@ class GaussianDiffusion(nn.Module):
             device = next(model.parameters()).device
 
         img = torch.randn(*shape, device=device)
+        B, T, _ = img.shape
         if self.gp:
+
             mean = self.mean_module(img)
             co_var = self.covar_module(img)
             gp_cov = gpytorch.distributions.MultivariateNormal(mean, co_var).sample().unsqueeze(-1)
-
+            gp_cov.reshape(B * T, 1, -1)
         else:
             gp_cov = None
 
+        img = img.reshape(B*T, 1, -1)
         indices = list(range(self.num_timesteps))[::-1]
 
         if progress:
@@ -414,10 +325,11 @@ class GaussianDiffusion(nn.Module):
             indices = tqdm(indices)
 
         for i in indices:
-            t = torch.tensor([i] * shape[0], device=device)
+            t = torch.fill(torch.zeros((B*T, )), i).long()
             with torch.no_grad():
                 sample, pred_xstart = self.p_sample(
-                    denoise_fn=model, x=img, cond=cond, t=t, gp_cov=gp_cov)
+                    denoise_fn=model, x=img,
+                    cond=cond.reshape(B*T, 1, -1), t=t, gp_cov=gp_cov)
                 yield sample
                 img = sample
 
@@ -429,21 +341,24 @@ class GaussianDiffusion(nn.Module):
             mean = self.mean_module(x_start)
             co_var = self.covar_module(x_start)
             gp_cov = gpytorch.distributions.MultivariateNormal(mean, co_var).sample().unsqueeze(-1)
+            B, T, _ = gp_cov.shape
+            gp_cov = gp_cov.reshape(B*T, 1, -1)
         else:
             gp_cov = None
 
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
-        x_recon = self.denoise_fn_proj(self.denoise_fn(x_noisy, t, cond=cond))
+        x_recon = self.denoise_fn(x_noisy, t, cond=cond)
+        x_recon, _ = torch.chunk(x_recon, 2, dim=-1)
 
         return x_noisy, x_recon
 
     def log_prob(self, x, cond, *args, **kwargs):
 
-        B = x.shape[0]
+        B, T, _ = x.shape
 
-        time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
+        time = torch.randint(0, self.num_timesteps, (B * T,), device=x.device).long()
         x_noisy, x_rec = self.p_losses(
-            x, cond, time, *args, **kwargs
+            x.reshape(B*T, 1, -1), cond.reshape(B*T, 1, -1), time, *args, **kwargs
         )
 
         return x_noisy, x_rec

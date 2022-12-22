@@ -162,7 +162,6 @@ class Train:
                                         stack_size=stack_size, device=self.device,
                                         attn_type=self.attn_type,
                                         seed=self.seed,
-                                        conditioning_length=train_enc.shape[1],
                                         gp=self.gp)
         else:
             model = Transformer(src_input_size=src_input_size,

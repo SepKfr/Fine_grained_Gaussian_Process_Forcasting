@@ -18,11 +18,10 @@ class ACATTrainingNetwork(nn.Module):
                  stack_size,
                  device,
                  seed,
-                 conditioning_length,
                  residual_layers=8,
                  residual_channels=8,
                  dilation_cycle_length=2,
-                 diff_steps=100,
+                 diff_steps=25,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",
@@ -31,7 +30,12 @@ class ACATTrainingNetwork(nn.Module):
                  , ):
         super(ACATTrainingNetwork, self).__init__()
 
+        self.target_dim = d_model
         self.loss_type = loss_type
+        self.pred_len = pred_len
+        self.target_proj = nn.Linear(1, self.target_dim)
+        self.target_proj_back = nn.Linear(self.target_dim, 1)
+
         self.model = Transformer(src_input_size=src_input_size,
                                  tgt_input_size=tgt_input_size,
                                  pred_len=pred_len,
@@ -44,7 +48,8 @@ class ACATTrainingNetwork(nn.Module):
                                  seed=seed, kernel=1)
 
         self.denoise_fn = EpsilonTheta(
-            target_dim=1,
+            target_dim=self.target_dim,
+            cond_length=d_model,
             residual_layers=residual_layers,
             residual_channels=residual_channels,
             dilation_cycle_length=dilation_cycle_length,
@@ -63,6 +68,7 @@ class ACATTrainingNetwork(nn.Module):
     def forward(self, x_en, x_de, target):
 
         model_output = self.model(x_en, x_de)
+        target = self.target_proj(target)
 
         x_noisy, x_rec = self.diffusion.log_prob(target, model_output)
 
@@ -79,8 +85,10 @@ class ACATTrainingNetwork(nn.Module):
 
     def predict(self, x_en, x_de):
 
+        B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
         new_samples = self.diffusion.p_sample_loop(cond=model_output, model=self.denoise_fn, shape=model_output.shape)
+        new_samples = self.target_proj_back(new_samples).reshape(B, self.pred_len, -1)
 
         return new_samples
 
