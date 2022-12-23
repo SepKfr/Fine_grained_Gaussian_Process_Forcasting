@@ -325,7 +325,7 @@ class GaussianDiffusion(nn.Module):
             indices = tqdm(indices)
 
         for i in indices:
-            t = torch.fill(torch.zeros((B*T, )), i).long()
+            t = torch.fill(torch.zeros((B*T)).to(device), i).long()
             with torch.no_grad():
                 sample, pred_xstart = self.p_sample(
                     denoise_fn=model, x=img,
