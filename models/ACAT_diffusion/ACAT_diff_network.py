@@ -19,7 +19,7 @@ class ACATTrainingNetwork(nn.Module):
                  device,
                  seed,
                  residual_layers=1,
-                 residual_channels=4,
+                 residual_channels=8,
                  dilation_cycle_length=2,
                  diff_steps=25,
                  loss_type="l2",

@@ -85,11 +85,11 @@ class EpsilonTheta(nn.Module):
         self,
         target_dim,
         cond_length,
-        time_emb_dim=8,
-        residual_layers=1,
+        time_emb_dim=16,
+        residual_layers=8,
         residual_channels=8,
         dilation_cycle_length=2,
-        residual_hidden=8,
+        residual_hidden=64,
     ):
         super().__init__()
         self.input_projection = nn.Conv1d(
@@ -113,7 +113,6 @@ class EpsilonTheta(nn.Module):
         )
         self.skip_projection = nn.Conv1d(residual_channels, residual_channels, 3)
         self.output_projection = nn.Conv1d(residual_channels, 1, 3)
-        self.output_projection_2 = nn.Linear(target_dim, target_dim*2)
 
         nn.init.kaiming_normal_(self.input_projection.weight)
         nn.init.kaiming_normal_(self.skip_projection.weight)
@@ -134,5 +133,4 @@ class EpsilonTheta(nn.Module):
         x = self.skip_projection(x)
         x = F.leaky_relu(x, 0.4)
         x = self.output_projection(x)
-        x = self.output_projection_2(x)
         return x

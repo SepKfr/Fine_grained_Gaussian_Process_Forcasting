@@ -138,7 +138,8 @@ class GaussianDiffusion(nn.Module):
 
         b, *_ = t.shape
         out = x.gather(-1, t)
-        out = out.reshape(b, *((1,) * (len(x_shape) - 1)))
+        out = out.unsqueeze(-1).expand(-1, x_shape[-1])
+        out = out.unsqueeze(1)
         return out
 
     def q_mean_variance(self, x_start, t, gp_cov=None):
@@ -198,30 +199,17 @@ class GaussianDiffusion(nn.Module):
 
         model_output = denoise_fn(x, t, cond)
 
-        # Learned variance
-
-        model_output, model_log_variance = torch.chunk(model_output, 2, dim=-1)
-        model_variance = torch.exp(model_log_variance)
-
         # Mean parameterization
         _maybe_clip = lambda x_: (x_.clamp(-1, 1) if clip_denoised else x_)
-        if self.model_mean_type == 'xprev':  # the model predicts x_{t-1}
-            pred_xstart = _maybe_clip(self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output, gp_cov=gp_cov))
-            model_mean = model_output
-        elif self.model_mean_type == 'xstart':  # the model predicts x_0
-            pred_xstart = _maybe_clip(model_output)
-            model_mean, _, _ = self.q_posterior_mean_variance(x_start=pred_xstart, x_t=x, t=t, gp_cov=gp_cov)
-        elif self.model_mean_type == 'eps':  # the model predicts epsilon
-            pred_xstart = _maybe_clip(self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output, gp_cov=gp_cov))
-            model_mean, _, _ = self.q_posterior_mean_variance(x_start=pred_xstart, x_t=x, t=t, gp_cov=gp_cov)
-        else:
-            raise NotImplementedError(self.model_mean_type)
 
-        assert model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
+        pred_xstart = _maybe_clip(self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output, gp_cov=gp_cov))
+        model_mean, posterior_log_variance, posterior_log_variance_clipped = self.q_posterior_mean_variance(x_start=pred_xstart, x_t=x, t=t, gp_cov=gp_cov)
+
+        assert model_mean.shape == posterior_log_variance_clipped.shape == pred_xstart.shape == x.shape
         if return_pred_xstart:
-            return model_mean, model_variance, model_log_variance, pred_xstart
+            return model_mean, posterior_log_variance_clipped, posterior_log_variance, pred_xstart
         else:
-            return model_mean, model_variance, model_log_variance
+            return model_mean, posterior_log_variance, posterior_log_variance_clipped
 
     def _predict_xstart_from_xprev(self, x_t, t, xprev, gp_cov=None):
 
@@ -307,7 +295,6 @@ class GaussianDiffusion(nn.Module):
         img = torch.randn(*shape, device=device)
         B, T, _ = img.shape
         if self.gp:
-
             mean = self.mean_module(img)
             co_var = self.covar_module(img)
             gp_cov = gpytorch.distributions.MultivariateNormal(mean, co_var).sample().unsqueeze(-1)
@@ -348,7 +335,6 @@ class GaussianDiffusion(nn.Module):
 
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
         x_recon = self.denoise_fn(x_noisy, t, cond=cond)
-        x_recon, _ = torch.chunk(x_recon, 2, dim=-1)
 
         return x_noisy, x_recon
 
