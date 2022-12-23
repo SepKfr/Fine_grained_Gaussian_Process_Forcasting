@@ -292,6 +292,7 @@ class Transformer(nn.Module):
         dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(dec_outputs, enc_outputs)
 
         outputs = dec_outputs[:, -self.pred_len:, :]
+        outputs = self.projection(outputs)
 
         return outputs
 

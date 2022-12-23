@@ -93,7 +93,7 @@ class EpsilonTheta(nn.Module):
     ):
         super().__init__()
         self.input_projection = nn.Conv1d(
-            1, residual_channels, 1, padding=2, padding_mode="circular"
+            1, residual_channels, 1
         )
         self.diffusion_embedding = DiffusionEmbedding(
             time_emb_dim, proj_dim=residual_hidden
@@ -113,6 +113,7 @@ class EpsilonTheta(nn.Module):
         )
         self.skip_projection = nn.Conv1d(residual_channels, residual_channels, 3)
         self.output_projection = nn.Conv1d(residual_channels, 1, 3)
+        self.proj_dim = nn.Linear(target_dim, 1)
 
         nn.init.kaiming_normal_(self.input_projection.weight)
         nn.init.kaiming_normal_(self.skip_projection.weight)
@@ -132,5 +133,5 @@ class EpsilonTheta(nn.Module):
         x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))
         x = self.skip_projection(x)
         x = F.leaky_relu(x, 0.4)
-        x = self.output_projection(x)
+        x = self.proj_dim(self.output_projection(x))
         return x

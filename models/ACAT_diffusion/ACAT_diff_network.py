@@ -49,7 +49,7 @@ class ACATTrainingNetwork(nn.Module):
 
         self.denoise_fn = EpsilonTheta(
             target_dim=self.target_dim,
-            cond_length=d_model,
+            cond_length=1,
             residual_layers=residual_layers,
             residual_channels=residual_channels,
             dilation_cycle_length=dilation_cycle_length,
@@ -68,27 +68,17 @@ class ACATTrainingNetwork(nn.Module):
     def forward(self, x_en, x_de, target):
 
         model_output = self.model(x_en, x_de)
-        target = self.target_proj(target)
 
-        x_noisy, x_rec = self.diffusion.log_prob(target, model_output)
+        loss = self.diffusion.log_prob(target, model_output)
 
-        if self.loss_type == "l1":
-            loss = F.l1_loss(x_rec, x_noisy)
-        elif self.loss_type == "l2":
-            loss = F.mse_loss(x_rec, x_noisy)
-        elif self.loss_type == "huber":
-            loss = F.smooth_l1_loss(x_rec, x_noisy)
-        else:
-            raise NotImplementedError()
-
-        return loss.mean()
+        return loss
 
     def predict(self, x_en, x_de):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
         new_samples = self.diffusion.p_sample_loop(cond=model_output, model=self.denoise_fn, shape=model_output.shape)
-        new_samples = self.target_proj_back(new_samples).reshape(B, self.pred_len, -1)
+        new_samples = new_samples.reshape(B, self.pred_len, -1)
 
         return new_samples
 

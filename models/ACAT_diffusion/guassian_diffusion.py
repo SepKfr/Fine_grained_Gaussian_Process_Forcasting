@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 import gpytorch
+import torch.nn.functional as F
 
 from models.time_grad.guassian_diffusion import cosine_beta_schedule, default
 
@@ -134,13 +135,10 @@ class GaussianDiffusion(nn.Module):
     def scale(self, scale):
         self.__scale = scale
 
-    def extract(self, x, t, x_shape):
-
+    def extract(self, a, t, x_shape):
         b, *_ = t.shape
-        out = x.gather(-1, t)
-        out = out.unsqueeze(-1).expand(-1, x_shape[-1])
-        out = out.unsqueeze(1)
-        return out
+        out = a.gather(-1, t)
+        return out.reshape(b, *((1,) * (len(x_shape) - 1)))
 
     def q_mean_variance(self, x_start, t, gp_cov=None):
 
@@ -229,9 +227,7 @@ class GaussianDiffusion(nn.Module):
         noise = torch.randn_like(model_mean)
         assert noise.shape == x.shape
         # no noise when t == 0
-        nonzero_mask = (
-            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
-        )
+        nonzero_mask = (1 - (t == 0).float()).reshape(x.shape[0], *((1,) * (len(x.shape) - 1)))
         sample = model_mean + nonzero_mask * torch.exp(0.5 * model_log_variance) * noise
         assert sample.shape == pred_xstart.shape
         return sample, pred_xstart
@@ -336,17 +332,26 @@ class GaussianDiffusion(nn.Module):
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
         x_recon = self.denoise_fn(x_noisy, t, cond=cond)
 
-        return x_noisy, x_recon
+        if self.loss_type == "l1":
+            loss = F.l1_loss(x_recon, noise)
+        elif self.loss_type == "l2":
+            loss = F.mse_loss(x_recon, noise)
+        elif self.loss_type == "huber":
+            loss = F.smooth_l1_loss(x_recon, noise)
+        else:
+            raise NotImplementedError()
+
+        return loss
 
     def log_prob(self, x, cond, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B * T,), device=x.device).long()
-        x_noisy, x_rec = self.p_losses(
+        loss = self.p_losses(
             x.reshape(B*T, 1, -1), cond.reshape(B*T, 1, -1), time, *args, **kwargs
         )
 
-        return x_noisy, x_rec
+        return loss.mean()
 
 
