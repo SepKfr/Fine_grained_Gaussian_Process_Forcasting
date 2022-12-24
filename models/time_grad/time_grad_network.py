@@ -262,7 +262,7 @@ class TimeGradTrainingNetwork(nn.Module):
             subsequences_length = self.context_length
         else:
             time_feat = torch.cat(
-                (past_time_feat[:, -self.context_length :, ...], future_time_feat),
+                (past_time_feat[:, -self.context_length:, ...], future_time_feat),
                 dim=1,
             )
             sequence = torch.cat((past_target_cdf, future_target_cdf), dim=1)

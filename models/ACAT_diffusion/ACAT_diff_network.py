@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from models.ACAT_diffusion.guassian_diffusion import GaussianDiffusion
 from models.eff_acat import Transformer
-from models.time_grad.epsilon_theta import EpsilonTheta
+from models.time_grad.epsilon_theta import UNetModel
 
 
 class ACATTrainingNetwork(nn.Module):
@@ -18,15 +18,11 @@ class ACATTrainingNetwork(nn.Module):
                  stack_size,
                  device,
                  seed,
-                 residual_layers=1,
-                 residual_channels=8,
-                 dilation_cycle_length=2,
-                 diff_steps=100,
+                 diff_steps=1000,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",
-                 attn_type="KittyCat",
-                 gp=True
+                 attn_type="KittyCat"
                  , ):
         super(ACATTrainingNetwork, self).__init__()
 
@@ -47,12 +43,12 @@ class ACATTrainingNetwork(nn.Module):
                                  attn_type=attn_type,
                                  seed=seed, kernel=1)
 
-        self.denoise_fn = EpsilonTheta(
-            target_dim=self.target_dim,
-            cond_length=1,
-            residual_layers=residual_layers,
-            residual_channels=residual_channels,
-            dilation_cycle_length=dilation_cycle_length,
+        self.denoise_fn = UNetModel(
+            in_channels=1,
+            model_channels=16,
+            out_channels=1,
+            num_res_blocks=3,
+            attention_resolutions=(3,)
         )
 
         self.diffusion = GaussianDiffusion(
@@ -61,8 +57,7 @@ class ACATTrainingNetwork(nn.Module):
             diff_steps=diff_steps,
             loss_type=loss_type,
             beta_end=beta_end,
-            beta_schedule=beta_schedule,
-            gp=gp
+            beta_schedule=beta_schedule
         )
 
     def forward(self, x_en, x_de, target):
@@ -81,7 +76,3 @@ class ACATTrainingNetwork(nn.Module):
         new_samples = new_samples.reshape(B, self.pred_len, -1)
 
         return new_samples
-
-
-
-

@@ -161,8 +161,7 @@ class Train:
                                         d_k=d_k, n_heads=n_heads,
                                         stack_size=stack_size, device=self.device,
                                         attn_type=self.attn_type,
-                                        seed=self.seed,
-                                        gp=self.gp)
+                                        seed=self.seed)
         else:
             model = Transformer(src_input_size=src_input_size,
                                 tgt_input_size=tgt_input_size,
