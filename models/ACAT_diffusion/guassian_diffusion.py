@@ -242,6 +242,43 @@ class GaussianDiffusion(nn.Module):
         progress=False,
     ):
         """
+        Generate samples from the model.
+        :param model: the model module.
+        :param shape: the shape of the samples, (N, C, H, W).
+        :param noise: if specified, the noise from the encoder to sample.
+                      Should be of the same shape as `shape`.
+        :param clip_denoised: if True, clip x_start predictions to [-1, 1].
+        :param denoised_fn: if not None, a function which applies to the
+            x_start prediction before it is used to sample.
+        :param model_kwargs: if not None, a dict of extra keyword arguments to
+            pass to the model. This can be used for conditioning.
+        :param device: if specified, the device to create the samples on.
+                       If not specified, use a model parameter's device.
+        :param progress: if True, show a tqdm progress bar.
+        :return: a non-differentiable batch of samples.
+        """
+        final = None
+        for sample in self.p_sample_loop_progressive(
+            model,
+            shape,
+            cond,
+            noise=noise,
+            device=device,
+            progress=progress,
+        ):
+            final = sample
+        return final
+
+    def p_sample_loop_progressive(
+        self,
+        model,
+        shape,
+        cond,
+        noise=None,
+        device=None,
+        progress=False,
+    ):
+        """
         Generate samples from the model and yield intermediate samples from
         each timestep of diffusion.
         Arguments are the same as p_sample_loop().
@@ -264,12 +301,20 @@ class GaussianDiffusion(nn.Module):
         img = img.reshape(B*T, 1, -1)
         indices = list(range(self.num_timesteps))[::-1]
 
+        if progress:
+            # Lazy import so that we don't depend on tqdm.
+            from tqdm.auto import tqdm
+
+            indices = tqdm(indices)
+
         for i in indices:
             t = torch.fill(torch.zeros((B*T)).to(device), i).long()
-            img, pred_xstart = self.p_sample(
-                denoise_fn=model, x=img,
-                cond=cond.reshape(B*T, 1, -1), t=t, gp_cov=gp_cov)
-        return img
+            with torch.no_grad():
+                sample, pred_xstart = self.p_sample(
+                    denoise_fn=model, x=img,
+                    cond=cond.reshape(B*T, 1, -1), t=t, gp_cov=gp_cov)
+                yield sample
+                img = sample
 
     def p_losses(self, x_start, cond, t, noise=None):
 
