@@ -47,8 +47,8 @@ class ACATTrainingNetwork(nn.Module):
             in_channels=1,
             model_channels=16,
             out_channels=1,
-            num_res_blocks=3,
-            attention_resolutions=(3,)
+            num_res_blocks=1,
+            attention_resolutions=(1,)
         )
 
         self.diffusion = GaussianDiffusion(
