@@ -21,7 +21,7 @@ class ACATTrainingNetwork(nn.Module):
                  residual_layers=1,
                  residual_channels=8,
                  dilation_cycle_length=2,
-                 diff_steps=25,
+                 diff_steps=100,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",

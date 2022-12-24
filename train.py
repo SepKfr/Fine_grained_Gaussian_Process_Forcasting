@@ -176,14 +176,7 @@ class Train:
                                 seed=self.seed, kernel=kernel)
         model.to(self.device)
 
-        optimizer = Adam(model.parameters())
-
-        lr_scheduler = OneCycleLR(
-            optimizer,
-            max_lr=1e-2,
-            steps_per_epoch=125,
-            epochs=50,
-        )
+        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
         for epoch in range(self.num_epochs):
@@ -204,8 +197,7 @@ class Train:
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
-                lr_scheduler.step()
+                optimizer.step_and_update_lr()
 
             model.eval()
             test_loss = 0
@@ -262,10 +254,10 @@ class Train:
         test_y = torch.from_numpy(test_y_tot)
         normaliser = test_y.abs().mean()
 
-        test_loss = self.criterion(predictions, test_y).item()
+        test_loss = F.mse_loss(predictions, test_y).item()
         test_loss = test_loss / normaliser
 
-        mae_loss = self.mae_loss(predictions, test_y).item()
+        mae_loss = F.l1_loss(predictions, test_y).item()
         mae_loss = mae_loss / normaliser
 
         print("test loss {:.4f}".format(test_loss))
