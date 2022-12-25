@@ -192,10 +192,10 @@ class GaussianDiffusion(nn.Module):
             - self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
 
-    def p_mean_variance(self, denoise_fn, x, cond, t, clip_denoised: bool):
+    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool):
 
         x_recon = self.predict_start_from_noise(
-            x, t=t, noise=denoise_fn(x, t, y=cond)
+            x, t=t, noise=denoise_fn(x, t)
         )
 
         if clip_denoised:
@@ -215,12 +215,12 @@ class GaussianDiffusion(nn.Module):
                 / self.extract(self.posterior_mean_coef1, t, x_t.shape)
         ) * x_t
 
-    def p_sample(self, denoise_fn, *, x, cond, t, clip_denoised=True):
+    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True):
         """
         Sample from the model
         """
         model_mean, _, model_log_variance = self.p_mean_variance(
-            denoise_fn, x=x, cond=cond, t=t, clip_denoised=clip_denoised)
+            denoise_fn, x=x, t=t, clip_denoised=clip_denoised)
         noise = torch.randn_like(model_mean)
         assert noise.shape == x.shape
         # no noise when t == 0
@@ -299,40 +299,32 @@ class GaussianDiffusion(nn.Module):
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
             with torch.no_grad():
                 sample = self.p_sample(
-                    denoise_fn=model, x=img,
-                    cond=cond.reshape(B, 1, T), t=t)
+                    denoise_fn=model, x=img, t=t)
                 yield sample
                 img = sample
 
-    def p_losses(self, x_start, cond, t, noise=None):
+    def p_losses(self, x_start, t, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
-        x_recon = self.denoise_fn(x_t, t, y=cond)
+        x_recon = self.denoise_fn(x_t, t)
+
+        sample = self.p_sample(denoise_fn=self.denoise_fn, x=x_recon, t=t)
 
         target = noise
 
-        if self.loss_type == "l1":
-            loss = F.l1_loss(target, x_recon)
-        elif self.loss_type == "l2":
-            loss = F.mse_loss(target, x_recon)
-        elif self.loss_type == "huber":
-            loss = F.smooth_l1_loss(target, x_recon)
-        else:
-            raise NotImplementedError()
+        return x_recon, target, sample
 
-        return loss
-
-    def log_prob(self, x, cond, *args, **kwargs):
+    def log_prob(self, x, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
-        loss = self.p_losses(
-            x.reshape(B, 1, T), cond.reshape(B, 1, T), time, *args, **kwargs
+        x_recon, target, sample = self.p_losses(
+            x.reshape(B, 1, T), time, *args, **kwargs
         )
 
-        return loss.mean()
+        return x_recon, target, sample
 
 

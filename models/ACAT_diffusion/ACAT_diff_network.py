@@ -59,12 +59,19 @@ class ACATTrainingNetwork(nn.Module):
             beta_end=beta_end,
             beta_schedule=beta_schedule
         )
+        self.layer_norm = nn.LayerNorm(1, elementwise_affine=False)
 
     def forward(self, x_en, x_de, target):
 
+        B = x_de.shape[0]
+
         model_output = self.model(x_en, x_de)
 
-        loss = self.diffusion.log_prob(target, model_output)
+        x_recon, noise, sample = self.diffusion.log_prob(model_output)
+
+        output = self.layer_norm(model_output + sample.reshape(B, self.pred_len, -1))
+
+        loss = nn.MSELoss()(x_recon, noise) + nn.MSELoss()(output, target)
 
         return loss
 
@@ -72,7 +79,9 @@ class ACATTrainingNetwork(nn.Module):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        new_samples = self.diffusion.p_sample_loop(cond=model_output, model=self.denoise_fn, shape=model_output.shape)
-        new_samples = new_samples.reshape(B, self.pred_len, -1)
+        _, _, samples = self.diffusion.log_prob(model_output)
+        new_samples = samples.reshape(B, self.pred_len, -1)
 
-        return new_samples
+        output = self.layer_norm(new_samples + model_output)
+
+        return output
