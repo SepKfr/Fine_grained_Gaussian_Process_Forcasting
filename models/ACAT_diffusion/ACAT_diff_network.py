@@ -7,6 +7,7 @@ from models.eff_acat import Transformer
 from models.time_grad.epsilon_theta import UNetModel
 from models.eff_acat import PoswiseFeedForwardNet
 
+
 class ACATTrainingNetwork(nn.Module):
     def __init__(self,
                  src_input_size,
@@ -22,16 +23,15 @@ class ACATTrainingNetwork(nn.Module):
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",
-                 attn_type="KittyCat"
-                 , ):
+                 attn_type="KittyCat",
+                 gp_cov=False):
         super(ACATTrainingNetwork, self).__init__()
 
+        self.gp_cov = gp_cov
         self.device = device
         self.target_dim = d_model
         self.loss_type = loss_type
         self.pred_len = pred_len
-
-        self.poss = PoswiseFeedForwardNet(1, d_model)
 
         self.model = Transformer(src_input_size=src_input_size,
                                  tgt_input_size=tgt_input_size,
@@ -58,7 +58,8 @@ class ACATTrainingNetwork(nn.Module):
             diff_steps=diff_steps,
             loss_type=loss_type,
             beta_end=beta_end,
-            beta_schedule=beta_schedule
+            beta_schedule=beta_schedule,
+            gp=self.gp_cov
         )
         self.layer_norm = nn.LayerNorm(1, elementwise_affine=False)
 
@@ -70,11 +71,9 @@ class ACATTrainingNetwork(nn.Module):
 
         x_recon, noise, sample = self.diffusion.log_prob(model_output, self.device)
 
-        output = sample.reshape(B, self.pred_len, -1) + model_output
+        output = self.layer_norm(sample.reshape(B, self.pred_len, -1) + model_output)
 
-        output = self.poss(output)
-
-        loss = nn.MSELoss()(output, target)
+        loss = nn.MSELoss()(output, target) + nn.MSELoss()(x_recon, noise)
 
         return loss
 
@@ -83,7 +82,6 @@ class ACATTrainingNetwork(nn.Module):
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
         _, _, samples = self.diffusion.log_prob(model_output, self.device)
-        new_samples = samples.reshape(B, self.pred_len, -1) + model_output
-        output = self.poss(new_samples)
+        new_samples = self.layer_norm(samples.reshape(B, self.pred_len, -1) + model_output)
 
-        return output
+        return new_samples

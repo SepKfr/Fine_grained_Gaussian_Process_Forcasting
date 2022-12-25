@@ -34,7 +34,7 @@ class GaussianDiffusion(nn.Module):
             loss_type="l2",
             betas=None,
             beta_schedule="linear",
-            gp=True,
+            gp=None,
     ):
         super().__init__()
 
@@ -42,7 +42,6 @@ class GaussianDiffusion(nn.Module):
         self.denoise_fn = denoise_fn
         self.input_size = input_size
         self.model_mean_type = 'eps'
-        self.denoise_fn_proj = nn.Linear(2, 1)
         self.weight = nn.Parameter(torch.randn(1), requires_grad=True)
         self.__scale = None
 
@@ -158,20 +157,24 @@ class GaussianDiffusion(nn.Module):
             log_variance = self.weight * torch.log(variance) + (1 - self.weight) * torch.log(gp_cov)
         return mean, variance, log_variance
 
-    def q_sample(self, x_start, t, noise=None):
+    def q_sample(self, x_start, t, noise=None, gp_cov=None):
         """
         Diffuse the data (t == 0 means diffused for 1 step)
         """
         if noise is None:
             noise = torch.randn_like(x_start)
         assert noise.shape == x_start.shape
-
+        if gp_cov is None:
+            variance = self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+        else:
+            variance = self.weight * self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) + \
+                       (1 - self.weight) * gp_cov
         return (
                 self.extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
-                self.extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
+                variance * noise
         )
 
-    def q_posterior(self, x_start, x_t, t):
+    def q_posterior(self, x_start, x_t, t, gp_cov=None):
         """
         Compute the mean and variance of the diffusion posterior q(x_{t-1} | x_t, x_0)
         """
@@ -181,28 +184,35 @@ class GaussianDiffusion(nn.Module):
                 self.extract(self.posterior_mean_coef2, t, x_start.shape) * x_t
         )
         posterior_variance = self.extract(self.posterior_variance, t, x_start.shape)
+        if gp_cov is not None:
+            posterior_variance = self.weight * posterior_variance + (1 - self.weight) * gp_cov
         posterior_log_variance_clipped = self.extract(self.posterior_log_variance_clipped, t, x_start.shape)
+        if gp_cov is not None:
+            posterior_log_variance_clipped = self.weight * posterior_log_variance_clipped + \
+            (1 - self.weight) * torch.log(torch.maximum(gp_cov, torch.fill(torch.zeros_like(gp_cov), 1e-20)))
         assert (posterior_mean.shape[0] == posterior_variance.shape[0] == posterior_log_variance_clipped.shape[0] ==
                 x_start.shape[0])
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def predict_start_from_noise(self, x_t, t, noise):
+    def predict_start_from_noise(self, x_t, t, noise, gp_cov=None):
+        if gp_cov is not None:
+            noise = self.weight * noise + (1 - self.weight) * gp_cov
         return (
             self.extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
             - self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
 
-    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool):
+    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool, gp_cov=None):
 
         x_recon = self.predict_start_from_noise(
-            x, t=t, noise=denoise_fn(x, t)
+            x, t=t, noise=denoise_fn(x, t), gp_cov=gp_cov
         )
 
         if clip_denoised:
             x_recon.clamp_(-1.0, 1.0)
 
         model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
-            x_start=x_recon, x_t=x, t=t
+            x_start=x_recon, x_t=x, t=t, gp_cov=gp_cov
         )
         return model_mean, posterior_variance, posterior_log_variance
 
@@ -215,12 +225,12 @@ class GaussianDiffusion(nn.Module):
                 / self.extract(self.posterior_mean_coef1, t, x_t.shape)
         ) * x_t
 
-    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True):
+    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True, gp_cov=None):
         """
         Sample from the model
         """
         model_mean, _, model_log_variance = self.p_mean_variance(
-            denoise_fn, x=x, t=t, clip_denoised=clip_denoised)
+            denoise_fn, x=x, t=t, clip_denoised=clip_denoised, gp_cov=gp_cov)
         noise = torch.randn_like(model_mean)
         assert noise.shape == x.shape
         # no noise when t == 0
@@ -234,6 +244,7 @@ class GaussianDiffusion(nn.Module):
         model,
         x,
         device,
+        gp_cov
     ):
         """
         Generate samples from the model.
@@ -256,6 +267,7 @@ class GaussianDiffusion(nn.Module):
             model,
             x,
             device,
+            gp_cov
         ):
             final = sample
 
@@ -265,7 +277,8 @@ class GaussianDiffusion(nn.Module):
         self,
         model,
         img,
-        device
+        device,
+        gp_cov
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -287,18 +300,28 @@ class GaussianDiffusion(nn.Module):
         for i in indices:
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
             sample = self.p_sample(
-                denoise_fn=model, x=img, t=t)
+                denoise_fn=model, x=img, t=t, gp_cov=gp_cov)
             yield sample
             img = sample
 
     def p_losses(self, x_start, t, device, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
+        B, T, _ = x_start.shape
 
-        x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
+        if self.gp:
+
+            mean = self.mean_module(x_start)
+            co_var = self.covar_module(x_start)
+            gp_cov = gpytorch.distributions.MultivariateNormal(mean, co_var).sample().unsqueeze(-1)
+            gp_cov.reshape(B, -1, T)
+        else:
+            gp_cov = None
+
+        x_t = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
         x_recon = self.denoise_fn(x_t, t)
 
-        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device)
+        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device, gp_cov=gp_cov)
 
         target = noise
 
