@@ -161,7 +161,8 @@ class Train:
                                         d_k=d_k, n_heads=n_heads,
                                         stack_size=stack_size, device=self.device,
                                         attn_type=self.attn_type,
-                                        seed=self.seed)
+                                        seed=self.seed,
+                                        gp_cov=self.gp)
         else:
             model = Transformer(src_input_size=src_input_size,
                                 tgt_input_size=tgt_input_size,
@@ -294,7 +295,7 @@ def main():
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
     parser.add_argument("--diff_model", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="True")
 
     args = parser.parse_args()
 
