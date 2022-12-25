@@ -233,7 +233,7 @@ class GaussianDiffusion(nn.Module):
         self,
         model,
         x,
-        progress=False,
+        device,
     ):
         """
         Generate samples from the model.
@@ -255,7 +255,7 @@ class GaussianDiffusion(nn.Module):
         for sample in self.p_sample_loop_progressive(
             model,
             x,
-            progress=progress,
+            device,
         ):
             final = sample
 
@@ -265,8 +265,7 @@ class GaussianDiffusion(nn.Module):
         self,
         model,
         img,
-        device=None,
-        progress=False,
+        device
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -284,11 +283,6 @@ class GaussianDiffusion(nn.Module):
 
         indices = list(range(self.num_timesteps))[::-1]
         B = img.shape[0]
-        if progress:
-            # Lazy import so that we don't depend on tqdm.
-            from tqdm.auto import tqdm
-
-            indices = tqdm(indices)
 
         for i in indices:
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
@@ -297,26 +291,26 @@ class GaussianDiffusion(nn.Module):
             yield sample
             img = sample
 
-    def p_losses(self, x_start, t, noise=None):
+    def p_losses(self, x_start, t, device, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
         x_recon = self.denoise_fn(x_t, t)
 
-        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon)
+        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device)
 
         target = noise
 
         return x_recon, target, sample
 
-    def log_prob(self, x, *args, **kwargs):
+    def log_prob(self, x, device, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
         x_recon, target, sample = self.p_losses(
-            x.reshape(B, 1, T), time, *args, **kwargs
+            x.reshape(B, 1, T), time, device, *args, **kwargs
         )
 
         return x_recon, target, sample

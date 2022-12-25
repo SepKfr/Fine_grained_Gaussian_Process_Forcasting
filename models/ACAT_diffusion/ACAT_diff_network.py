@@ -26,6 +26,7 @@ class ACATTrainingNetwork(nn.Module):
                  , ):
         super(ACATTrainingNetwork, self).__init__()
 
+        self.device = device
         self.target_dim = d_model
         self.loss_type = loss_type
         self.pred_len = pred_len
@@ -67,7 +68,7 @@ class ACATTrainingNetwork(nn.Module):
 
         model_output = self.model(x_en, x_de)
 
-        x_recon, noise, sample = self.diffusion.log_prob(model_output)
+        x_recon, noise, sample = self.diffusion.log_prob(model_output, self.device)
 
         output = sample.reshape(B, self.pred_len, -1) + model_output
 
@@ -79,7 +80,7 @@ class ACATTrainingNetwork(nn.Module):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        _, _, samples = self.diffusion.log_prob(model_output)
+        _, _, samples = self.diffusion.log_prob(model_output, self.device)
         new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
         output = new_samples
