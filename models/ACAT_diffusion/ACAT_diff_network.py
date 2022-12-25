@@ -30,8 +30,6 @@ class ACATTrainingNetwork(nn.Module):
         self.target_dim = d_model
         self.loss_type = loss_type
         self.pred_len = pred_len
-        self.target_proj = nn.Linear(1, self.target_dim)
-        self.target_proj_back = nn.Linear(self.target_dim, 1)
 
         self.model = Transformer(src_input_size=src_input_size,
                                  tgt_input_size=tgt_input_size,
