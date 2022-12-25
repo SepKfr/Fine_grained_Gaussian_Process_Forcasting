@@ -81,6 +81,4 @@ class ACATTrainingNetwork(nn.Module):
         _, _, samples = self.diffusion.log_prob(model_output, self.device)
         new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
-        output = new_samples + model_output
-
-        return output
+        return new_samples
