@@ -69,9 +69,7 @@ class ACATTrainingNetwork(nn.Module):
 
         x_recon, noise, sample = self.diffusion.log_prob(model_output)
 
-        output = self.layer_norm(model_output + sample.reshape(B, self.pred_len, -1))
-
-        loss = nn.MSELoss()(x_recon, noise) * 0.001 + nn.MSELoss()(output, target)
+        loss = nn.MSELoss()(x_recon, noise) + nn.MSELoss()(sample.reshape(B, self.pred_len, -1), target)
 
         return loss
 
@@ -82,6 +80,6 @@ class ACATTrainingNetwork(nn.Module):
         _, _, samples = self.diffusion.log_prob(model_output)
         new_samples = samples.reshape(B, self.pred_len, -1)
 
-        output = self.layer_norm(new_samples + model_output)
+        output = new_samples
 
         return output
