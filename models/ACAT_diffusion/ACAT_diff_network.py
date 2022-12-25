@@ -69,7 +69,7 @@ class ACATTrainingNetwork(nn.Module):
 
         x_recon, noise, sample = self.diffusion.log_prob(model_output)
 
-        loss = nn.MSELoss()(x_recon, noise) + nn.MSELoss()(sample.reshape(B, self.pred_len, -1), target)
+        loss = nn.MSELoss()(sample.reshape(B, self.pred_len, -1), target)
 
         return loss
 
