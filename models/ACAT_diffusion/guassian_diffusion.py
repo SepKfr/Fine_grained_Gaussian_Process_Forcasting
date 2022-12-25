@@ -232,10 +232,7 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop(
         self,
         model,
-        shape,
-        cond,
-        noise=None,
-        device=None,
+        x,
         progress=False,
     ):
         """
@@ -257,9 +254,7 @@ class GaussianDiffusion(nn.Module):
         final = None
         for sample in self.p_sample_loop_progressive(
             model,
-            shape,
-            cond,
-            device=device,
+            x,
             progress=progress,
         ):
             final = sample
@@ -269,8 +264,7 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop_progressive(
         self,
         model,
-        shape,
-        cond,
+        img,
         device=None,
         progress=False,
     ):
@@ -281,14 +275,15 @@ class GaussianDiffusion(nn.Module):
         Returns a generator over dicts, where each dict is the return value of
         p_sample().
         """
-        if device is None:
+        '''if device is None:
             device = next(model.parameters()).device
 
         img = torch.randn(*shape, device=device)
         B, T, _ = img.shape
-        img = img.reshape(B, 1, T)
-        indices = list(range(self.num_timesteps))[::-1]
+        img = img.reshape(B, 1, T)'''
 
+        indices = list(range(self.num_timesteps))[::-1]
+        B = img.shape[0]
         if progress:
             # Lazy import so that we don't depend on tqdm.
             from tqdm.auto import tqdm
@@ -297,11 +292,10 @@ class GaussianDiffusion(nn.Module):
 
         for i in indices:
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
-            with torch.no_grad():
-                sample = self.p_sample(
-                    denoise_fn=model, x=img, t=t)
-                yield sample
-                img = sample
+            sample = self.p_sample(
+                denoise_fn=model, x=img, t=t)
+            yield sample
+            img = sample
 
     def p_losses(self, x_start, t, noise=None):
 
@@ -310,7 +304,7 @@ class GaussianDiffusion(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise)
         x_recon = self.denoise_fn(x_t, t)
 
-        sample = self.p_sample(denoise_fn=self.denoise_fn, x=x_recon, t=t)
+        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon)
 
         target = noise
 
