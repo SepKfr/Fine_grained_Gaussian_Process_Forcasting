@@ -184,19 +184,12 @@ class GaussianDiffusion(nn.Module):
                 self.extract(self.posterior_mean_coef2, t, x_start.shape) * x_t
         )
         posterior_variance = self.extract(self.posterior_variance, t, x_start.shape)
-        if gp_cov is not None:
-            posterior_variance = self.weight * posterior_variance + (1 - self.weight) * gp_cov
         posterior_log_variance_clipped = self.extract(self.posterior_log_variance_clipped, t, x_start.shape)
-        if gp_cov is not None:
-            posterior_log_variance_clipped = self.weight * posterior_log_variance_clipped + \
-            (1 - self.weight) * torch.log(torch.maximum(gp_cov, torch.fill(torch.zeros_like(gp_cov), 1e-20)))
         assert (posterior_mean.shape[0] == posterior_variance.shape[0] == posterior_log_variance_clipped.shape[0] ==
                 x_start.shape[0])
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def predict_start_from_noise(self, x_t, t, noise, gp_cov=None):
-        if gp_cov is not None:
-            noise = self.weight * noise + (1 - self.weight) * gp_cov
         return (
             self.extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
             - self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
@@ -204,17 +197,21 @@ class GaussianDiffusion(nn.Module):
 
     def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool, gp_cov=None):
 
+        model_output = denoise_fn(x, t)
+        model_output, model_log_variance = torch.chunk(model_output, 2, 1)
+        model_variance = torch.exp(model_log_variance)
+
         x_recon = self.predict_start_from_noise(
-            x, t=t, noise=denoise_fn(x, t), gp_cov=gp_cov
+            x, t=t, noise=model_output, gp_cov=gp_cov
         )
 
         if clip_denoised:
             x_recon.clamp_(-1.0, 1.0)
 
-        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
+        model_mean, _, _ = self.q_posterior(
             x_start=x_recon, x_t=x, t=t, gp_cov=gp_cov
         )
-        return model_mean, posterior_variance, posterior_log_variance
+        return model_mean, model_variance, model_log_variance
 
     def _predict_xstart_from_xprev(self, x_t, t, xprev, gp_cov=None):
 
@@ -319,7 +316,7 @@ class GaussianDiffusion(nn.Module):
             gp_cov = None
 
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
-        x_recon = self.denoise_fn(x_t, t)
+        x_recon, _ = torch.chunk(self.denoise_fn(x_t, t), 2, 1)
 
         sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device, gp_cov=gp_cov)
 

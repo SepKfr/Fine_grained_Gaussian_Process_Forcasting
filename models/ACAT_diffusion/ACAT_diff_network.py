@@ -47,7 +47,7 @@ class ACATTrainingNetwork(nn.Module):
         self.denoise_fn = UNetModel(
             in_channels=1,
             model_channels=8,
-            out_channels=1,
+            out_channels=2,
             num_res_blocks=1,
             attention_resolutions=(1,)
         )
