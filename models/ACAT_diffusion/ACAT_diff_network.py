@@ -59,7 +59,7 @@ class ACATTrainingNetwork(nn.Module):
             seed=seed
         )
 
-    def forward(self, x_en, x_de, target):
+    def forward(self, x_en, x_de):
 
         B = x_de.shape[0]
 
@@ -69,15 +69,13 @@ class ACATTrainingNetwork(nn.Module):
 
         output = sample.reshape(B, self.pred_len, -1) + model_output
 
-        loss = nn.MSELoss()(output, target)
-
-        return loss
+        return output
 
     def predict(self, x_en, x_de):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        _, _, samples = self.diffusion.log_prob(model_output)
+        samples = self.diffusion.p_sample_once(model_output)
         new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
         return new_samples
