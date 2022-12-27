@@ -19,7 +19,7 @@ class ACATTrainingNetwork(nn.Module):
                  stack_size,
                  device,
                  seed,
-                 diff_steps=3,
+                 diff_steps=100,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",
@@ -46,7 +46,7 @@ class ACATTrainingNetwork(nn.Module):
 
         self.denoise_fn = UNetModel(
             in_channels=1,
-            model_channels=8,
+            model_channels=d_model,
             out_channels=2,
             num_res_blocks=1,
             attention_resolutions=(1,)
@@ -68,7 +68,7 @@ class ACATTrainingNetwork(nn.Module):
 
         model_output = self.model(x_en, x_de)
 
-        x_recon, noise, sample = self.diffusion.log_prob(model_output, self.device)
+        x_recon, noise, sample = self.diffusion.log_prob(model_output, target)
 
         output = sample.reshape(B, self.pred_len, -1) + model_output
 
@@ -80,7 +80,7 @@ class ACATTrainingNetwork(nn.Module):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        _, _, samples = self.diffusion.log_prob(model_output, self.device)
+        _, _, samples = self.diffusion.log_prob(model_output)
         new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
         return new_samples
