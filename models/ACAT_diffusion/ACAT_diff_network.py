@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from models.ACAT_diffusion.guassian_diffusion import GaussianDiffusion
 from models.eff_acat import Transformer
-from models.time_grad.epsilon_theta import UNetModel
+from models.time_grad.epsilon_theta import EpsilonTheta
 from models.eff_acat import PoswiseFeedForwardNet
 
 
@@ -44,12 +44,7 @@ class ACATTrainingNetwork(nn.Module):
                                  attn_type=attn_type,
                                  seed=seed, kernel=1)
 
-        self.denoise_fn = UNetModel(
-            in_channels=1,
-            model_channels=d_model,
-            out_channels=2,
-            num_res_blocks=1,
-            attention_resolutions=(1,),
+        self.denoise_fn = EpsilonTheta(
             seed=seed,
         )
 
@@ -70,7 +65,7 @@ class ACATTrainingNetwork(nn.Module):
 
         model_output = self.model(x_en, x_de)
 
-        x_recon, noise, sample = self.diffusion.log_prob(model_output, target)
+        x_recon, noise, sample = self.diffusion.log_prob(model_output)
 
         output = sample.reshape(B, self.pred_len, -1) + model_output
 
