@@ -8,6 +8,12 @@ from torch import nn, einsum
 import torch.nn.functional as F
 
 
+def default(val, d):
+    if val is not None:
+        return val
+    return d() if isfunction(d) else d
+
+
 def extract(a, t, x_shape):
     b, *_ = t.shape
     out = a.gather(-1, t)
@@ -20,6 +26,19 @@ def noise_like(shape, device, repeat=False):
     )
     noise = lambda: torch.randn(shape, device=device)
     return repeat_noise() if repeat else noise()
+
+
+def cosine_beta_schedule(timesteps, s=0.008):
+    """
+    cosine schedule
+    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
+    """
+    steps = timesteps + 1
+    x = np.linspace(0, timesteps, steps)
+    alphas_cumprod = np.cos(((x / timesteps) + s) / (1 + s) * np.pi * 0.5) ** 2
+    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
+    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+    return np.clip(betas, 0, 0.999)
 
 
 class GaussianDiffusion(nn.Module):
