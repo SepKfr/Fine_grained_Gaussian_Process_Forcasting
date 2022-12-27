@@ -83,10 +83,10 @@ class EpsilonTheta(nn.Module):
         self,
         seed,
         time_emb_dim=16,
-        residual_layers=3,
+        residual_layers=2,
         residual_channels=8,
         dilation_cycle_length=2,
-        residual_hidden=32
+        residual_hidden=16
     ):
         super().__init__()
 
