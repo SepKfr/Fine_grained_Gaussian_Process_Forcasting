@@ -22,7 +22,7 @@ class ACATTrainingNetwork(nn.Module):
                  diff_steps=50,
                  loss_type="l2",
                  beta_end=0.1,
-                 beta_schedule="linear",
+                 beta_schedule="cosine",
                  attn_type="KittyCat",
                  gp_cov=False):
         super(ACATTrainingNetwork, self).__init__()
@@ -49,7 +49,8 @@ class ACATTrainingNetwork(nn.Module):
             model_channels=d_model,
             out_channels=2,
             num_res_blocks=1,
-            attention_resolutions=(1,)
+            attention_resolutions=(1,),
+            seed=seed,
         )
 
         self.diffusion = GaussianDiffusion(
@@ -59,7 +60,8 @@ class ACATTrainingNetwork(nn.Module):
             loss_type=loss_type,
             beta_end=beta_end,
             beta_schedule=beta_schedule,
-            gp=self.gp_cov
+            gp=self.gp_cov,
+            seed=seed
         )
 
     def forward(self, x_en, x_de, target):

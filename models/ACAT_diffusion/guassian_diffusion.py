@@ -1,12 +1,30 @@
+import random
 from functools import partial
 
 import numpy as np
 import torch
 from torch import nn
 import gpytorch
-import torch.nn.functional as F
+from inspect import isfunction
 
-from models.time_grad.guassian_diffusion import cosine_beta_schedule, default
+
+def default(val, d):
+    if val is not None:
+        return val
+    return d() if isfunction(d) else d
+
+
+def cosine_beta_schedule(timesteps, s=0.008):
+    """
+    cosine schedule
+    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
+    """
+    steps = timesteps + 1
+    x = np.linspace(0, timesteps, steps)
+    alphas_cumprod = np.cos(((x / timesteps) + s) / (1 + s) * np.pi * 0.5) ** 2
+    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
+    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+    return np.clip(betas, 0, 0.999)
 
 
 def noise_like(shape, device, repeat=False):
@@ -29,14 +47,19 @@ class GaussianDiffusion(nn.Module):
             self,
             denoise_fn,
             input_size,
+            seed,
             beta_end=0.1,
-            diff_steps=100,
+            diff_steps=50,
             loss_type="l2",
             betas=None,
-            beta_schedule="linear",
+            beta_schedule="cosine",
             gp=None,
     ):
         super().__init__()
+
+        torch.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
 
         self.gp = gp
         self.denoise_fn = denoise_fn
