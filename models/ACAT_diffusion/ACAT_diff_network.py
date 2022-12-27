@@ -22,7 +22,7 @@ class ACATTrainingNetwork(nn.Module):
                  diff_steps=5,
                  loss_type="l2",
                  beta_end=0.1,
-                 beta_schedule="cosine",
+                 beta_schedule="linear",
                  attn_type="KittyCat",
                  gp_cov=False):
         super(ACATTrainingNetwork, self).__init__()
@@ -45,7 +45,7 @@ class ACATTrainingNetwork(nn.Module):
                                  seed=seed, kernel=1)
 
         self.denoise_fn = EpsilonTheta(
-            seed=seed,
+            seed=seed
         )
 
         self.diffusion = GaussianDiffusion(
@@ -55,36 +55,28 @@ class ACATTrainingNetwork(nn.Module):
             loss_type=loss_type,
             beta_end=beta_end,
             beta_schedule=beta_schedule,
-            gp=self.gp_cov,
-            seed=seed
+            gp=self.gp_cov
         )
 
     def forward(self, x_en, x_de, target):
 
-        model_output = self.model(x_en, x_de)
-
         B = x_de.shape[0]
 
-        x_recon, noise = self.diffusion.log_prob(model_output)
+        model_output = self.model(x_en, x_de)
 
-        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output.shape, self.device)
+        x_recon, noise, sample = self.diffusion.log_prob(model_output, self.device)
 
-        output = samples.reshape(B, self.pred_len, -1) + model_output
+        output = sample.reshape(B, self.pred_len, -1) + model_output
 
-        loss = F.mse_loss(x_recon, noise).mean() * 0.001 + F.mse_loss(target, output)
+        loss = nn.MSELoss()(output, target) + nn.MSELoss()(noise, x_recon) * 0.001
 
         return loss
 
     def predict(self, x_en, x_de):
 
-        model_output = self.model(x_en, x_de)
-
         B = x_de.shape[0]
+        model_output = self.model(x_en, x_de)
+        _, _, samples = self.diffusion.log_prob(model_output, self.device)
+        new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
-        _, _ = self.diffusion.log_prob(model_output)
-
-        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output.shape, self.device)
-
-        output = samples.reshape(B, self.pred_len, -1) + model_output
-
-        return output
+        return new_samples

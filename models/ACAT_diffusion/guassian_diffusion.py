@@ -1,30 +1,12 @@
-import random
 from functools import partial
 
 import numpy as np
 import torch
 from torch import nn
 import gpytorch
-from inspect import isfunction
+import torch.nn.functional as F
 
-
-def default(val, d):
-    if val is not None:
-        return val
-    return d() if isfunction(d) else d
-
-
-def cosine_beta_schedule(timesteps, s=0.008):
-    """
-    cosine schedule
-    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
-    """
-    steps = timesteps + 1
-    x = np.linspace(0, timesteps, steps)
-    alphas_cumprod = np.cos(((x / timesteps) + s) / (1 + s) * np.pi * 0.5) ** 2
-    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-    return np.clip(betas, 0, 0.999)
+from models.time_grad.guassian_diffusion import cosine_beta_schedule, default
 
 
 def noise_like(shape, device, repeat=False):
@@ -47,19 +29,14 @@ class GaussianDiffusion(nn.Module):
             self,
             denoise_fn,
             input_size,
-            seed,
             beta_end=0.1,
-            diff_steps=50,
+            diff_steps=100,
             loss_type="l2",
             betas=None,
-            beta_schedule="cosine",
+            beta_schedule="linear",
             gp=None,
     ):
         super().__init__()
-
-        torch.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
 
         self.gp = gp
         self.denoise_fn = denoise_fn
@@ -197,7 +174,7 @@ class GaussianDiffusion(nn.Module):
                 variance * noise
         )
 
-    def q_posterior(self, x_start, x_t, t):
+    def q_posterior(self, x_start, x_t, t, gp_cov=None):
         """
         Compute the mean and variance of the diffusion posterior q(x_{t-1} | x_t, x_0)
         """
@@ -212,27 +189,27 @@ class GaussianDiffusion(nn.Module):
                 x_start.shape[0])
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
-    def predict_start_from_noise(self, x_t, t, noise):
+    def predict_start_from_noise(self, x_t, t, noise, gp_cov=None):
         return (
             self.extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
             - self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
 
-    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool):
+    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool, gp_cov=None):
 
         model_output = denoise_fn(x, t)
         model_output, model_log_variance = torch.chunk(model_output, 2, 1)
         model_variance = torch.exp(model_log_variance)
 
         x_recon = self.predict_start_from_noise(
-            x, t=t, noise=model_output,
+            x, t=t, noise=model_output, gp_cov=gp_cov
         )
 
         if clip_denoised:
             x_recon.clamp_(-1.0, 1.0)
 
         model_mean, _, _ = self.q_posterior(
-            x_start=x_recon, x_t=x, t=t
+            x_start=x_recon, x_t=x, t=t, gp_cov=gp_cov
         )
         return model_mean, model_variance, model_log_variance
 
@@ -245,12 +222,12 @@ class GaussianDiffusion(nn.Module):
                 / self.extract(self.posterior_mean_coef1, t, x_t.shape)
         ) * x_t
 
-    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True):
+    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True, gp_cov=None):
         """
         Sample from the model
         """
         model_mean, _, model_log_variance = self.p_mean_variance(
-            denoise_fn, x=x, t=t, clip_denoised=clip_denoised)
+            denoise_fn, x=x, t=t, clip_denoised=clip_denoised, gp_cov=gp_cov)
         noise = torch.randn_like(model_mean)
         assert noise.shape == x.shape
         # no noise when t == 0
@@ -262,8 +239,9 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop(
         self,
         model,
-        shape,
+        x,
         device,
+        gp_cov
     ):
         """
         Generate samples from the model.
@@ -284,8 +262,9 @@ class GaussianDiffusion(nn.Module):
         final = None
         for sample in self.p_sample_loop_progressive(
             model,
-            shape,
+            x,
             device,
+            gp_cov
         ):
             final = sample
 
@@ -294,8 +273,9 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop_progressive(
         self,
         model,
-        shape,
+        img,
         device,
+        gp_cov
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -304,12 +284,12 @@ class GaussianDiffusion(nn.Module):
         Returns a generator over dicts, where each dict is the return value of
         p_sample().
         """
-        if device is None:
+        '''if device is None:
             device = next(model.parameters()).device
 
         img = torch.randn(*shape, device=device)
         B, T, _ = img.shape
-        img = img.reshape(B, 1, T)
+        img = img.reshape(B, 1, T)'''
 
         indices = list(range(self.num_timesteps))[::-1]
         B = img.shape[0]
@@ -317,11 +297,11 @@ class GaussianDiffusion(nn.Module):
         for i in indices:
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
             sample = self.p_sample(
-                denoise_fn=self.denoise_fn, x=img, t=t)
+                denoise_fn=model, x=img, t=t, gp_cov=gp_cov)
             yield sample
             img = sample
 
-    def p_losses(self, x_start, t, noise=None):
+    def p_losses(self, x_start, t, device, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
         B, T, _ = x_start.shape
@@ -338,17 +318,21 @@ class GaussianDiffusion(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
         x_recon, _ = torch.chunk(self.denoise_fn(x_t, t), 2, 1)
 
-        return noise, x_recon,
+        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device, gp_cov=gp_cov)
 
-    def log_prob(self, x, *args, **kwargs):
+        target = noise
+
+        return x_recon, target, sample
+
+    def log_prob(self, x, device, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
-        x_recon, target = self.p_losses(
-            x.reshape(B, 1, T), time, *args, **kwargs
+        x_recon, target, sample = self.p_losses(
+            x.reshape(B, 1, T), time, device, *args, **kwargs
         )
 
-        return x_recon, target
+        return x_recon, target, sample
 
 
