@@ -131,5 +131,5 @@ class EpsilonTheta(nn.Module):
         x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))
         x = self.skip_projection(x)
         x = F.leaky_relu(x, 0.4)
-        x = self.output_projection(x) + inputs
+        x = self.output_projection(x)
         return x
