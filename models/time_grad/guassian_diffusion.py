@@ -22,9 +22,6 @@ def noise_like(shape, device, repeat=False):
     return repeat_noise() if repeat else noise()
 
 
-
-
-
 class GaussianDiffusion(nn.Module):
     def __init__(
         self,
