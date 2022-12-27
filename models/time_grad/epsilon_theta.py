@@ -49,15 +49,13 @@ class ResidualBlock(nn.Module):
         )
         self.output_projection = nn.Conv1d(residual_channels, 2 * residual_channels, 1)
 
-        nn.init.kaiming_normal_(self.conditioner_projection.weight)
         nn.init.kaiming_normal_(self.output_projection.weight)
 
-    def forward(self, x, conditioner, diffusion_step):
+    def forward(self, x, diffusion_step):
         diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)
-        conditioner = self.conditioner_projection(conditioner)
 
         y = x + diffusion_step
-        y = self.dilated_conv(y) + conditioner
+        y = self.dilated_conv(y)
 
         gate, filter = torch.chunk(y, 2, dim=1)
         y = torch.sigmoid(gate) * torch.tanh(filter)
@@ -122,14 +120,14 @@ class EpsilonTheta(nn.Module):
         nn.init.kaiming_normal_(self.skip_projection.weight)
         nn.init.zeros_(self.output_projection.weight)
 
-    def forward(self, inputs, time, cond):
+    def forward(self, inputs, time):
         x = self.input_projection(inputs)
         x = F.leaky_relu(x, 0.4)
 
         diffusion_step = self.diffusion_embedding(time)
         skip = []
         for layer in self.residual_layers:
-            x, skip_connection = layer(x, cond, diffusion_step)
+            x, skip_connection = layer(x, diffusion_step)
             skip.append(skip_connection)
 
         x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))

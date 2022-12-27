@@ -19,7 +19,7 @@ class ACATTrainingNetwork(nn.Module):
                  stack_size,
                  device,
                  seed,
-                 diff_steps=50,
+                 diff_steps=5,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="cosine",
@@ -61,19 +61,30 @@ class ACATTrainingNetwork(nn.Module):
 
     def forward(self, x_en, x_de, target):
 
-        B = x_de.shape[0]
-
         model_output = self.model(x_en, x_de)
 
-        x_recon, noise = self.diffusion.log_prob(target, model_output)
+        B = x_de.shape[0]
 
-        return F.mse_loss(x_recon, noise).mean()
+        x_recon, noise = self.diffusion.log_prob(model_output)
+
+        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output.shape, self.device)
+
+        output = samples.reshape(B, self.pred_len, -1) + model_output
+
+        loss = F.mse_loss(x_recon, noise).mean() * 0.001 + F.mse_loss(target, output)
+
+        return loss
 
     def predict(self, x_en, x_de):
 
-        B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output, model_output.shape, self.device)
-        new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
-        return new_samples
+        B = x_de.shape[0]
+
+        _, _ = self.diffusion.log_prob(model_output)
+
+        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output.shape, self.device)
+
+        output = samples.reshape(B, self.pred_len, -1) + model_output
+
+        return output
