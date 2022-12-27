@@ -87,7 +87,7 @@ class EpsilonTheta(nn.Module):
         self,
         seed,
         time_emb_dim=16,
-        residual_layers=8,
+        residual_layers=1,
         residual_channels=8,
         dilation_cycle_length=2,
         residual_hidden=64,
