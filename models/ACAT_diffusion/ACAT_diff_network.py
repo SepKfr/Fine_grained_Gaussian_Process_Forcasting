@@ -69,7 +69,7 @@ class ACATTrainingNetwork(nn.Module):
 
         output = sample.reshape(B, self.pred_len, -1) + model_output
 
-        loss = nn.MSELoss()(output, target) + nn.MSELoss()(x_recon, noise) * 0.005
+        loss = nn.MSELoss()(output, target)
 
         return loss
 
