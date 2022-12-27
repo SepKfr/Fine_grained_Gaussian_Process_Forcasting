@@ -184,9 +184,14 @@ class Train:
             total_loss = 0
             model.train()
             for train_enc, train_dec, train_y in self.train:
-                output = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = F.mse_loss(output, train_y.to(self.device))
-                loss = loss.mean()
+
+                if self.diff_model:
+                    output = model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
+                    loss = output
+                else:
+                    output = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = F.mse_loss(output, train_y.to(self.device))
+                    loss = loss.mean()
 
                 total_loss += loss.item()
 
@@ -200,10 +205,12 @@ class Train:
 
                 if self.diff_model:
                     output = model.predict(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = F.mse_loss(output, valid_y.to(self.device))
+                    loss = loss.mean()
                 else:
                     output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = F.mse_loss(output, valid_y.to(self.device))
-                loss = loss.mean()
+                    loss = F.mse_loss(output, valid_y.to(self.device))
+                    loss = loss.mean()
 
                 test_loss += loss.item()
 

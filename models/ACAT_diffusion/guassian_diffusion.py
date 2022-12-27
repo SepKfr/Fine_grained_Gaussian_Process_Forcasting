@@ -218,9 +218,9 @@ class GaussianDiffusion(nn.Module):
             - self.extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
 
-    def p_mean_variance(self, denoise_fn, x, t, clip_denoised: bool):
+    def p_mean_variance(self, denoise_fn, x, t, cond, clip_denoised: bool):
 
-        model_output = denoise_fn(x, t)
+        model_output = denoise_fn(x, t, cond)
         model_output, model_log_variance = torch.chunk(model_output, 2, 1)
         model_variance = torch.exp(model_log_variance)
 
@@ -245,12 +245,12 @@ class GaussianDiffusion(nn.Module):
                 / self.extract(self.posterior_mean_coef1, t, x_t.shape)
         ) * x_t
 
-    def p_sample(self, denoise_fn, *, x, t, clip_denoised=True):
+    def p_sample(self, denoise_fn, *, x, t, cond, clip_denoised=True):
         """
         Sample from the model
         """
         model_mean, _, model_log_variance = self.p_mean_variance(
-            denoise_fn, x=x, t=t, clip_denoised=clip_denoised)
+            denoise_fn, x=x, t=t, cond=cond, clip_denoised=clip_denoised)
         noise = torch.randn_like(model_mean)
         assert noise.shape == x.shape
         # no noise when t == 0
@@ -259,18 +259,12 @@ class GaussianDiffusion(nn.Module):
 
         return sample
 
-    def p_sample_once(self, x):
-        B = x.shape[0]
-        time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
-        return self.p_sample(self.denoise_fn, x=x.reshape(B, 1, -1), t=time)
-
     def p_sample_loop(
         self,
         model,
         x,
+        shape,
         device,
-        gp_cov,
-        target
     ):
         """
         Generate samples from the model.
@@ -292,9 +286,8 @@ class GaussianDiffusion(nn.Module):
         for sample in self.p_sample_loop_progressive(
             model,
             x,
+            shape,
             device,
-            gp_cov,
-            target
         ):
             final = sample
 
@@ -303,10 +296,9 @@ class GaussianDiffusion(nn.Module):
     def p_sample_loop_progressive(
         self,
         model,
-        img,
+        cond,
+        shape,
         device,
-        gp_cov,
-        target=None
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -315,12 +307,12 @@ class GaussianDiffusion(nn.Module):
         Returns a generator over dicts, where each dict is the return value of
         p_sample().
         """
-        '''if device is None:
+        if device is None:
             device = next(model.parameters()).device
 
         img = torch.randn(*shape, device=device)
         B, T, _ = img.shape
-        img = img.reshape(B, 1, T)'''
+        img = img.reshape(B, 1, T)
 
         indices = list(range(self.num_timesteps))[::-1]
         B = img.shape[0]
@@ -328,11 +320,11 @@ class GaussianDiffusion(nn.Module):
         for i in indices:
             t = torch.fill(torch.zeros((B,)).to(device), i).long()
             sample = self.p_sample(
-                denoise_fn=model, x=img, t=t)
+                denoise_fn=self.denoise_fn, x=img, t=t, cond=cond.reshape(B, 1, T))
             yield sample
             img = sample
 
-    def p_losses(self, x_start, t, noise=None):
+    def p_losses(self, x_start, cond, t, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
         B, T, _ = x_start.shape
@@ -347,23 +339,19 @@ class GaussianDiffusion(nn.Module):
             gp_cov = None
 
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
-        x_recon, _ = torch.chunk(self.denoise_fn(x_t, t), 2, 1)
+        x_recon, _ = torch.chunk(self.denoise_fn(x_t, t, cond), 2, 1)
 
-        sample = self.p_sample(denoise_fn=self.denoise_fn, x=x_recon, t=t)
+        return noise, x_recon,
 
-        target = noise
-
-        return x_recon, target, sample
-
-    def log_prob(self, x, *args, **kwargs):
+    def log_prob(self, x, cond, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
-        x_recon, target, sample = self.p_losses(
-            x.reshape(B, 1, T), time, *args, **kwargs
+        x_recon, target = self.p_losses(
+            x.reshape(B, 1, T), cond.reshape(B, 1, T), time, *args, **kwargs
         )
 
-        return x_recon, target, sample
+        return x_recon, target
 
 

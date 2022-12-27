@@ -59,23 +59,21 @@ class ACATTrainingNetwork(nn.Module):
             seed=seed
         )
 
-    def forward(self, x_en, x_de):
+    def forward(self, x_en, x_de, target):
 
         B = x_de.shape[0]
 
         model_output = self.model(x_en, x_de)
 
-        x_recon, noise, sample = self.diffusion.log_prob(model_output)
+        x_recon, noise = self.diffusion.log_prob(target, model_output)
 
-        output = sample.reshape(B, self.pred_len, -1) + model_output
-
-        return output
+        return F.mse_loss(x_recon, noise).mean()
 
     def predict(self, x_en, x_de):
 
         B = x_de.shape[0]
         model_output = self.model(x_en, x_de)
-        samples = self.diffusion.p_sample_once(model_output)
+        samples = self.diffusion.p_sample_loop(self.denoise_fn, model_output, model_output.shape, self.device)
         new_samples = samples.reshape(B, self.pred_len, -1) + model_output
 
         return new_samples

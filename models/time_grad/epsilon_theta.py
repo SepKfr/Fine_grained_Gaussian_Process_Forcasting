@@ -44,16 +44,20 @@ class ResidualBlock(nn.Module):
             padding_mode="circular",
         )
         self.diffusion_projection = nn.Linear(hidden_size, residual_channels)
+        self.conditioner_projection = nn.Conv1d(
+            1, 2 * residual_channels, 1, padding=2, padding_mode="circular"
+        )
         self.output_projection = nn.Conv1d(residual_channels, 2 * residual_channels, 1)
 
+        nn.init.kaiming_normal_(self.conditioner_projection.weight)
         nn.init.kaiming_normal_(self.output_projection.weight)
 
-    def forward(self, x, diffusion_step):
+    def forward(self, x, conditioner, diffusion_step):
         diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)
+        conditioner = self.conditioner_projection(conditioner)
 
         y = x + diffusion_step
-
-        y = self.dilated_conv(y)
+        y = self.dilated_conv(y) + conditioner
 
         gate, filter = torch.chunk(y, 2, dim=1)
         y = torch.sigmoid(gate) * torch.tanh(filter)
@@ -83,17 +87,17 @@ class EpsilonTheta(nn.Module):
         self,
         seed,
         time_emb_dim=16,
-        residual_layers=1,
+        residual_layers=8,
         residual_channels=8,
         dilation_cycle_length=2,
-        residual_hidden=16
+        residual_hidden=64,
     ):
-        super().__init__()
 
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
 
+        super().__init__()
         self.input_projection = nn.Conv1d(
             1, residual_channels, 1, padding=2, padding_mode="circular"
         )
@@ -118,14 +122,14 @@ class EpsilonTheta(nn.Module):
         nn.init.kaiming_normal_(self.skip_projection.weight)
         nn.init.zeros_(self.output_projection.weight)
 
-    def forward(self, inputs, time):
+    def forward(self, inputs, time, cond):
         x = self.input_projection(inputs)
         x = F.leaky_relu(x, 0.4)
-        diffusion_step = self.diffusion_embedding(time)
 
+        diffusion_step = self.diffusion_embedding(time)
         skip = []
         for layer in self.residual_layers:
-            x, skip_connection = layer(x, diffusion_step)
+            x, skip_connection = layer(x, cond, diffusion_step)
             skip.append(skip_connection)
 
         x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))
