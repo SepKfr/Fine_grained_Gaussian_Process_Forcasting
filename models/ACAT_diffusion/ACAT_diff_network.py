@@ -19,7 +19,7 @@ class ACATTrainingNetwork(nn.Module):
                  stack_size,
                  device,
                  seed,
-                 diff_steps=100,
+                 diff_steps=50,
                  loss_type="l2",
                  beta_end=0.1,
                  beta_schedule="linear",
