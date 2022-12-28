@@ -59,7 +59,7 @@ class Train:
     def __init__(self, data, args, pred_len):
 
         config = ExperimentConfig(pred_len, args.exp_name)
-        self.diff_model = True if args.diff_model == "True" else False
+        self.dae = True if args.dae == "True" else False
         self.gp = True if args.gp == "True" else False
         self.data = data
         self.len_data = len(data)
@@ -153,27 +153,16 @@ class Train:
         d_k = int(d_model / n_heads)
         assert d_model % d_k == 0
 
-        if self.diff_model:
-            model = ACATTrainingNetwork(src_input_size=src_input_size,
-                                        tgt_input_size=tgt_input_size,
-                                        pred_len=self.pred_len,
-                                        d_model=d_model,
-                                        d_k=d_k, n_heads=n_heads,
-                                        stack_size=stack_size, device=self.device,
-                                        attn_type=self.attn_type,
-                                        seed=self.seed,
-                                        gp_cov=self.gp)
-        else:
-            model = Transformer(src_input_size=src_input_size,
-                                tgt_input_size=tgt_input_size,
-                                pred_len=self.pred_len,
-                                d_model=d_model,
-                                d_ff=d_model * 4,
-                                d_k=d_k, d_v=d_k, n_heads=n_heads,
-                                n_layers=stack_size, src_pad_index=0,
-                                tgt_pad_index=0, device=self.device,
-                                attn_type=self.attn_type,
-                                seed=self.seed, kernel=kernel)
+        model = Transformer(src_input_size=src_input_size,
+                            tgt_input_size=tgt_input_size,
+                            pred_len=self.pred_len,
+                            d_model=d_model,
+                            d_ff=d_model * 4,
+                            d_k=d_k, d_v=d_k, n_heads=n_heads,
+                            n_layers=stack_size, src_pad_index=0,
+                            tgt_pad_index=0, device=self.device,
+                            attn_type=self.attn_type,
+                            seed=self.seed, kernel=kernel, gp=self.gp, p_model=self.dae)
         model.to(self.device)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
@@ -185,13 +174,12 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                if self.diff_model:
-                    output = model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
-                    loss = output
+                if self.dae:
+                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = nn.MSELoss()(output, train_y.to(self.device)) + kl_loss * 0.005
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
-                    loss = F.mse_loss(output, train_y.to(self.device))
-                    loss = loss.mean()
+                    loss = nn.MSELoss()(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -203,14 +191,13 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                if self.diff_model:
-                    output = model.predict(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss = F.mse_loss(output, valid_y.to(self.device))
-                    loss = loss.mean()
+                if self.dae:
+                    output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + kl_loss * 0.005
+
                 else:
                     output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss = F.mse_loss(output, valid_y.to(self.device))
-                    loss = loss.mean()
+                    loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
@@ -242,8 +229,8 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            if self.diff_model:
-                output = self.best_model.predict(test_enc.to(self.device), test_dec.to(self.device))
+            if self.dae:
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
                 output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
@@ -295,8 +282,8 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--diff_model", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--dae", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="False")
 
     args = parser.parse_args()
 

@@ -18,8 +18,13 @@ def noise_like(shape, device, repeat=False):
 
 
 def normal_kl(mean1, logvar1, mean2, logvar2):
-    total_kl = (0.5 * (-1 + (logvar2 - logvar1) + logvar1.exp() / logvar2.exp()
-                        + (mean2 - mean1).pow(2) / logvar2.exp()))
+    total_kl = 0.5 * (
+        -1.0
+        + logvar2
+        - logvar1
+        + torch.exp(logvar1 - logvar2)
+        + ((mean1 - mean2) ** 2) * torch.exp(-logvar2)
+    )
 
     return total_kl
 
@@ -301,7 +306,7 @@ class GaussianDiffusion(nn.Module):
             yield sample
             img = sample
 
-    def p_losses(self, x_start, t, device, noise=None):
+    def p_losses(self, x_start, t, noise=None):
 
         noise = default(noise, lambda: torch.randn_like(x_start))
         B, T, _ = x_start.shape
@@ -318,19 +323,15 @@ class GaussianDiffusion(nn.Module):
         x_t = self.q_sample(x_start=x_start, t=t, noise=noise, gp_cov=gp_cov)
         x_recon, _ = torch.chunk(self.denoise_fn(x_t, t), 2, 1)
 
-        sample = self.p_sample_loop(model=self.denoise_fn, x=x_recon, device=device, gp_cov=gp_cov)
+        return x_recon, noise
 
-        target = noise
-
-        return x_recon, target, sample
-
-    def log_prob(self, x, device, *args, **kwargs):
+    def log_prob(self, x, *args, **kwargs):
 
         B, T, _ = x.shape
 
         time = torch.randint(0, self.num_timesteps, (B,), device=x.device).long()
-        x_recon, target, sample = self.p_losses(
-            x.reshape(B, 1, T), time, device, *args, **kwargs
+        x_recon, target = self.p_losses(
+            x.reshape(B, 1, T), time, *args, **kwargs
         )
 
         return x_recon, target, sample

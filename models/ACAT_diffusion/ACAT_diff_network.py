@@ -42,7 +42,7 @@ class ACATTrainingNetwork(nn.Module):
                                  n_layers=stack_size, src_pad_index=0,
                                  tgt_pad_index=0, device=device,
                                  attn_type=attn_type,
-                                 seed=seed, kernel=1)
+                                 seed=seed, kernel=1, gp=self.gp_cov)
 
         self.denoise_fn = EpsilonTheta(
             seed=seed

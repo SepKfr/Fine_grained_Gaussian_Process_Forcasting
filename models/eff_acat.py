@@ -1,5 +1,6 @@
 import math
 
+import gpytorch
 import torch
 import torch.nn as nn
 import numpy as np
@@ -28,10 +29,10 @@ def get_attn_subsequent_mask(seq):
 
 class PositionalEncoding(nn.Module):
     """Positional encoding."""
-    def __init__(self, d_hid, max_len=1000):
+    def __init__(self, d_hid, device, max_len=1000):
         super(PositionalEncoding, self).__init__()
         # Create a long enough `P`
-        self.P = torch.zeros((1, max_len, d_hid))
+        self.P = torch.zeros((1, max_len, d_hid)).to(device)
         X = torch.arange(max_len, dtype=torch.float32).reshape(
             -1, 1) / torch.pow(10000, torch.arange(
             0, d_hid, 2, dtype=torch.float32) / d_hid)
@@ -147,7 +148,8 @@ class Encoder(nn.Module):
         self.pad_index = pad_index
         self.attn_type = attn_type
         self.pos_emb = PositionalEncoding(
-            d_hid=d_model)
+            d_hid=d_model,
+            device=device)
         self.n_layers = n_layers
         self.layers = []
         for _ in range(n_layers):
@@ -161,7 +163,7 @@ class Encoder(nn.Module):
 
     def forward(self, enc_input):
 
-        enc_outputs = self.pos_emb(enc_input).to(self.device)
+        enc_outputs = self.pos_emb(enc_input)
 
         enc_self_attn_mask = None
 
@@ -213,7 +215,8 @@ class Decoder(nn.Module):
         self.device = device
         self.attn_type = attn_type
         self.pos_emb = PositionalEncoding(
-            d_hid=d_model)
+            d_hid=d_model,
+            device=device)
         self.layer_norm = nn.LayerNorm(d_model)
         self.layers = []
         for _ in range(n_layers):
@@ -228,7 +231,7 @@ class Decoder(nn.Module):
 
     def forward(self, dec_inputs, enc_outputs):
 
-        dec_outputs = self.pos_emb(dec_inputs).to(self.device)
+        dec_outputs = self.pos_emb(dec_inputs)
 
         dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
 
@@ -251,11 +254,91 @@ class Decoder(nn.Module):
         return dec_outputs, dec_self_attns, dec_enc_attns
 
 
+def normal_kl(mean1, logvar1, mean2, logvar2):
+    total_kl = 0.5 * (
+        -1.0
+        + logvar2
+        - logvar1
+        + torch.exp(logvar1 - logvar2)
+        + ((mean1 - mean2) ** 2) * torch.exp(-logvar2)
+    )
+
+    return total_kl
+
+
+class process_model(nn.Module):
+    def __init__(self, gp,  d, device):
+        super(process_model, self).__init__()
+
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(d),
+                                     nn.Softmax(dim=-1)).to(device)
+
+        self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(d),
+                                     nn.Softmax(dim=-1)).to(device)
+
+        self.musig = nn.Linear(d, 2*d, device=device)
+
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.gp = gp
+        if self.gp:
+            self.gp_proj_mean = nn.Linear(1, d)
+            self.gp_proj_var = nn.Linear(1, d)
+
+        self.d = d
+        self.device = device
+
+    def forward(self, x):
+
+        eps = Variable(torch.randn_like(x, device=self.device))
+
+        if self.gp:
+            b, s, _ = x.shape
+            mean_gp = self.mean_module(x)
+            co_var_gp = self.covar_module(x)
+
+            mean = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).mean
+            mean = mean.unsqueeze(-1)
+            co_var = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).variance
+            co_var = co_var.unsqueeze(-1)
+            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
+
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
+            x = x.add_(eps)
+
+        else:
+            mean = torch.zeros_like(x)
+            co_var = torch.ones_like(x)
+            x = x.add_(eps)
+
+        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+
+        musig = self.musig(x)
+        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+
+        z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+
+        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+
+        mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
+        co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
+        mu = torch.flatten(torch.mean(mu, dim=-1), start_dim=1)
+        sigma = torch.flatten(torch.mean(sigma, dim=-1), start_dim=1)
+
+        kl_loss = normal_kl(mean, co_var, mu, sigma).mean()
+
+        return y, kl_loss
+
+
 class Transformer(nn.Module):
 
     def __init__(self, src_input_size, tgt_input_size, pred_len, d_model,
                  d_ff, d_k, d_v, n_heads, n_layers, src_pad_index,
-                 tgt_pad_index, device, attn_type, kernel, seed):
+                 tgt_pad_index, device, attn_type, kernel, seed, p_model, gp):
         super(Transformer, self).__init__()
 
         torch.manual_seed(seed)
@@ -279,6 +362,9 @@ class Transformer(nn.Module):
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.projection = nn.Linear(d_model, 1, bias=False)
+        self.p_model = p_model
+        if self.p_model:
+            self.process = process_model(gp, d_model, device)
         self.attn_type = attn_type
         self.pred_len = pred_len
         self.device = device
@@ -291,8 +377,14 @@ class Transformer(nn.Module):
         enc_outputs, enc_self_attns = self.encoder(enc_outputs)
         dec_outputs, dec_self_attns, dec_enc_attn = self.decoder(dec_outputs, enc_outputs)
 
-        outputs = dec_outputs[:, -self.pred_len:, :]
-        outputs = self.projection(outputs)
+        if self.p_model:
 
-        return outputs
+            y, kl_loss = self.process(dec_outputs)
+            outputs = y + dec_outputs
+            outputs = self.projection(outputs[:, -self.pred_len:, :])
+            return outputs, kl_loss
 
+        else:
+
+            outputs = self.projection(dec_outputs[:, -self.pred_len:, :])
+            return outputs
