@@ -53,7 +53,7 @@ class SolarFormatter(ElectricityFormatter):
 
         model_params = {
             'hidden_layer_size': [8],
-            'minibatch_size': [512],
+            'minibatch_size': [256],
             'num_heads': 8,
             'stack_size': [1],
             'context_lengths': [1, 3, 6, 9]
@@ -80,4 +80,4 @@ class SolarFormatter(ElectricityFormatter):
         Returns:
           Tuple of (training samples, validation samples)
         """
-        return 25600, 2560
+        return 32000, 3840

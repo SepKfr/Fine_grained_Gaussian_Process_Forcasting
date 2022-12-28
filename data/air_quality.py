@@ -55,4 +55,4 @@ class AirQualityFormatter(ElectricityFormatter):
         Retdurns:
           Tuple of (training samples, validation samples)
         """
-        return 25600, 2560
+        return 32000, 3840
