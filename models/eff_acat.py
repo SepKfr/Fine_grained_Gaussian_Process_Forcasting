@@ -294,7 +294,7 @@ class process_model(nn.Module):
 
     def forward(self, x):
 
-        eps = Variable(torch.randn_like(x, device=self.device))
+        eps = torch.randn_like(x)
 
         if self.gp:
             b, s, _ = x.shape
@@ -307,13 +307,13 @@ class process_model(nn.Module):
             co_var = co_var.unsqueeze(-1)
             co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
             x = x.add_(eps)
 
         else:
             mean = torch.zeros_like(x)
             co_var = torch.ones_like(x)
-            x = x.add_(eps)
+            x = x.add_(eps * 0.1)
 
         x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
 
@@ -330,6 +330,9 @@ class process_model(nn.Module):
         sigma = torch.flatten(torch.mean(sigma, dim=-1), start_dim=1)
 
         kl_loss = normal_kl(mean, co_var, mu, sigma).mean()
+        rec_loss = nn.MSELoss()(x, y)
+
+        kl_loss += rec_loss
 
         return y, kl_loss
 
