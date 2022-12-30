@@ -308,16 +308,17 @@ class process_model(nn.Module):
             co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
             eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
-            x = x.add_(eps)
+            x_noisy = x.add_(eps)
 
         else:
+
             mean = torch.zeros_like(x)
             co_var = torch.ones_like(x)
-            x = x.add_(eps * 0.1)
+            x_noisy = x.add_(eps * 0.1)
 
-        x = self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1)
+        x_t = self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1)
 
-        musig = self.musig(x)
+        musig = self.musig(x_t)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
         z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
