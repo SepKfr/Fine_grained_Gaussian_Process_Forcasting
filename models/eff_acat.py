@@ -272,7 +272,7 @@ class process_model(nn.Module):
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d * 4, out_channels=d * 2, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.BatchNorm1d(d),
+                                     nn.BatchNorm1d(d*2),
                                      nn.Softmax(dim=-1),).to(device)
 
         self.musig = nn.Linear(d, 2*d, device=device)
