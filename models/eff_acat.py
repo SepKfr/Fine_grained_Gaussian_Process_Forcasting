@@ -298,15 +298,10 @@ class process_model(nn.Module):
 
         if self.gp:
             b, s, _ = x.shape
-            mean_gp = self.mean_module(x)
-            co_var_gp = self.covar_module(x)
+            mean = self.mean_module(x).unsqueeze(-1)
 
-            multi_norm = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp)
-            mean = multi_norm.mean
-            mean = mean.unsqueeze(-1)
-            co_var = multi_norm.variance
-            co_var = co_var.unsqueeze(-1)
-            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
+            co_var_gp = self.covar_module(x).diagonal().unsqueeze(-1)
+            co_var = torch.maximum(co_var_gp, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
             eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
             x_noisy = x.add_(eps)
@@ -319,7 +314,7 @@ class process_model(nn.Module):
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        mu, sigma = musig[:, :, :self.d], (musig[:, :, -self.d:])
+        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
