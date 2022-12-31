@@ -273,7 +273,7 @@ class process_model(nn.Module):
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
                                      nn.BatchNorm1d(d),
-                                     nn.Softmax(dim=-1)).to(device)
+                                     nn.Softmax(dim=-1),).to(device)
 
         self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
@@ -305,25 +305,22 @@ class process_model(nn.Module):
             mean = mean.unsqueeze(-1)
             co_var = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).variance
             co_var = co_var.unsqueeze(-1)
-            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
+            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06)) * 0.1
 
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
             x_noisy = x.add_(eps)
 
         else:
 
             mean = torch.zeros_like(x)
-            co_var = torch.ones_like(x)
+            co_var = torch.ones_like(x) * 0.1
             x_noisy = x.add_(eps * 0.1)
 
-        x_t = self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1)
+        musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        musig = self.musig(x_t)
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
-        z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
-
-        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
+        y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
         mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
         co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
