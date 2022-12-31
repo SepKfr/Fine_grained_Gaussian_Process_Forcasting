@@ -270,15 +270,10 @@ class process_model(nn.Module):
     def __init__(self, gp,  d, device):
         super(process_model, self).__init__()
 
-        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d * 4, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.BatchNorm1d(d),
                                      nn.Softmax(dim=-1),).to(device)
-
-        self.decoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9-1)/2)),
-                                     nn.BatchNorm1d(d),
-                                     nn.Softmax(dim=-1)).to(device)
 
         self.musig = nn.Linear(d, 2*d, device=device)
 
