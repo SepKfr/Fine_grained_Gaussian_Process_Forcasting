@@ -294,7 +294,7 @@ class process_model(nn.Module):
 
     def forward(self, x):
 
-        eps = torch.randn_like(x) * 0.1
+        eps = torch.randn_like(x)
 
         if self.gp:
             b, s, _ = x.shape
@@ -308,19 +308,18 @@ class process_model(nn.Module):
             co_var = co_var.unsqueeze(-1)
             co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
             x_noisy = x.add_(eps)
 
         else:
 
             mean = torch.zeros_like(x)
-            co_var = torch.ones_like(x)
-            x_noisy = x.add_(eps)
+            co_var = torch.ones_like(x) * 0.1
+            x_noisy = x.add_(eps * 0.1)
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        mu, sigma = musig[:, :, :self.d], torch.maximum(musig[:, :, -self.d:],
-                                                        torch.fill(torch.zeros_like(x_noisy), 1.0e-06))
+        mu, sigma = musig[:, :, :self.d], (musig[:, :, -self.d:])
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
