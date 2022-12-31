@@ -283,7 +283,7 @@ class process_model(nn.Module):
         self.musig = nn.Linear(d, 2*d, device=device)
 
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.cosine_kernel.CosineKernel()
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
         if self.gp:
             self.gp_proj_mean = nn.Linear(1, d)
@@ -301,9 +301,10 @@ class process_model(nn.Module):
             mean_gp = self.mean_module(x)
             co_var_gp = self.covar_module(x)
 
-            mean = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).mean
+            multi_norm = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp)
+            mean = multi_norm.mean
             mean = mean.unsqueeze(-1)
-            co_var = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).variance
+            co_var = multi_norm.variance
             co_var = co_var.unsqueeze(-1)
             co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
@@ -318,7 +319,8 @@ class process_model(nn.Module):
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
+        mu, sigma = musig[:, :, :self.d], torch.maximum(musig[:, :, -self.d:],
+                                                        torch.fill(torch.zeros_like(x_noisy), 1.0e-06))
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
