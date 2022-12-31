@@ -283,7 +283,7 @@ class process_model(nn.Module):
         self.musig = nn.Linear(d, 2*d, device=device)
 
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.covar_module = gpytorch.kernels.cosine_kernel.CosineKernel()
         self.gp = gp
         if self.gp:
             self.gp_proj_mean = nn.Linear(1, d)
@@ -294,7 +294,7 @@ class process_model(nn.Module):
 
     def forward(self, x):
 
-        eps = torch.randn_like(x)
+        eps = torch.randn_like(x) * 0.1
 
         if self.gp:
             b, s, _ = x.shape
@@ -305,7 +305,7 @@ class process_model(nn.Module):
             mean = mean.unsqueeze(-1)
             co_var = gpytorch.distributions.MultivariateNormal(mean_gp, co_var_gp).variance
             co_var = co_var.unsqueeze(-1)
-            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06)) * 0.1
+            co_var = torch.maximum(co_var, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
             eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
             x_noisy = x.add_(eps)
@@ -313,12 +313,12 @@ class process_model(nn.Module):
         else:
 
             mean = torch.zeros_like(x)
-            co_var = torch.ones_like(x) * 0.1
-            x_noisy = x.add_(eps * 0.1)
+            co_var = torch.ones_like(x)
+            x_noisy = x.add_(eps)
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+        mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
