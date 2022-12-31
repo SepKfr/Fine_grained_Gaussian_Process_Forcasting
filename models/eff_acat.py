@@ -271,10 +271,11 @@ class process_model(nn.Module):
         super(process_model, self).__init__()
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=4 * d, out_channels=4 * d, kernel_size=3,padding=int((3-1)/2)),
                                      nn.Conv1d(in_channels=d * 4, out_channels=d * 2, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.BatchNorm1d(d*2),
+                                     nn.BatchNorm1d(d),
                                      nn.Softmax(dim=-1),).to(device)
+
+        self.musig = nn.Linear(d, 2*d, device=device)
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
@@ -306,7 +307,7 @@ class process_model(nn.Module):
             co_var = torch.ones_like(x) * 0.1
             x_noisy = x.add_(eps * 0.1)
 
-        musig = self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1)
+        musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
