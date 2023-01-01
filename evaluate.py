@@ -125,7 +125,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 j = 0
                 for test_enc, test_dec, test_y in test:
                     if p_model:
-                        output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                        output, _ = model(test_enc.to(device), test_dec.to(device))
                     else:
                         output = model(test_enc.to(device), test_dec.to(device))
 
