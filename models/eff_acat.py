@@ -275,6 +275,8 @@ class process_model(nn.Module):
                                      nn.BatchNorm1d(2*d),
                                      nn.Softmax(dim=-1),).to(device)
 
+        self.proj_to_org = nn.Linear(d, d)
+
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
@@ -313,6 +315,8 @@ class process_model(nn.Module):
         mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+
+        y = self.proj_to_org(y)
 
         mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
         co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
