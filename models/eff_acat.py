@@ -271,17 +271,17 @@ class process_model(nn.Module):
         super(process_model, self).__init__()
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=4 * d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d * 4, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.BatchNorm1d(d),
                                      nn.Softmax(dim=-1),).to(device)
 
-        self.musig = nn.Linear(d, 2*d)
+        self.musig = nn.Linear(d, 2*d, device=device)
+        self.norm = nn.LayerNorm(d)
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
         if self.gp:
-
             self.gp_proj_mean = nn.Linear(1, d)
             self.gp_proj_var = nn.Linear(1, d)
 
@@ -294,15 +294,13 @@ class process_model(nn.Module):
 
         if self.gp:
             b, s, _ = x.shape
-            mean = self.gp_proj_mean(self.mean_module(x).to_dense().unsqueeze(-1))
+            mean = self.mean_module(x).unsqueeze(-1)
 
             co_var_gp = self.covar_module(x).diagonal().unsqueeze(-1)
+            co_var = torch.maximum(co_var_gp, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
-            co_var = nn.Softplus()(self.gp_proj_var(co_var_gp))
-
-            eps = torch.distributions.normal.Normal(mean, co_var).sample()
-
-            x_noisy = x.add_(eps * 0.1)
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
+            x_noisy = x.add_(eps)
 
         else:
 
@@ -312,9 +310,11 @@ class process_model(nn.Module):
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
-        mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
+        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+
+        output = self.norm(y + x)
 
         mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
         co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
@@ -326,7 +326,7 @@ class process_model(nn.Module):
 
         kl_loss += rec_loss
 
-        return y, kl_loss
+        return output, kl_loss
 
 
 class Transformer(nn.Module):
@@ -374,8 +374,7 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            y, kl_loss = self.process(dec_outputs)
-            outputs = y + dec_outputs
+            outputs, kl_loss = self.process(dec_outputs)
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, kl_loss
 
