@@ -271,7 +271,7 @@ class process_model(nn.Module):
         super(process_model, self).__init__()
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=4 * d, out_channels=2*d, kernel_size=9, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=4 * d, out_channels=2*d, kernel_size=3, padding=int((3-1)/2)),
                                      nn.BatchNorm1d(2*d),
                                      nn.Softmax(dim=-1),).to(device)
 
