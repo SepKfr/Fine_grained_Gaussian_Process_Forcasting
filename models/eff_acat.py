@@ -281,6 +281,7 @@ class process_model(nn.Module):
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
         if self.gp:
+
             self.gp_proj_mean = nn.Linear(1, d)
             self.gp_proj_var = nn.Linear(1, d)
 

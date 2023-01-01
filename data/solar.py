@@ -73,11 +73,17 @@ class SolarFormatter(ElectricityFormatter):
 
         return fixed_params
 
-    def get_num_samples_for_calibration(self):
+    def get_num_samples_for_calibration(self, num_train=-1):
+
         """Gets the default number of training and validation samples.
         Use to sub-sample the data_set for network calibration and a value of -1 uses
         all available samples.
         Returns:
           Tuple of (training samples, validation samples)
         """
-        return 32000, 3840
+        if num_train == -1:
+
+            return 32000, 3840
+
+        else:
+            return num_train, 3840
