@@ -270,8 +270,8 @@ class process_model(nn.Module):
     def __init__(self, gp,  d, device):
         super(process_model, self).__init__()
 
-        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d, out_channels=2*d, kernel_size=9, padding=int((9-1)/2)),
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=4 * d, out_channels=2*d, kernel_size=9, padding=int((3-1)/2)),
                                      nn.BatchNorm1d(2*d),
                                      nn.Softmax(dim=-1),).to(device)
 
@@ -315,8 +315,6 @@ class process_model(nn.Module):
         mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
-
-        y = self.proj_to_org(y)
 
         mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
         co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
