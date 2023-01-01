@@ -270,12 +270,10 @@ class process_model(nn.Module):
     def __init__(self, gp,  d, device):
         super(process_model, self).__init__()
 
-        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.Conv1d(in_channels=d * 4, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
-                                     nn.BatchNorm1d(d),
+        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3-1)/2)),
+                                     nn.Conv1d(in_channels=d, out_channels=2*d, kernel_size=9, padding=int((9-1)/2)),
+                                     nn.BatchNorm1d(2*d),
                                      nn.Softmax(dim=-1),).to(device)
-
-        self.musig = nn.Linear(d, 2*d, device=device)
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
@@ -294,13 +292,15 @@ class process_model(nn.Module):
 
         if self.gp:
             b, s, _ = x.shape
-            mean = self.mean_module(x).unsqueeze(-1)
+            mean = self.gp_proj_mean(self.mean_module(x).to_dense().unsqueeze(-1))
 
             co_var_gp = self.covar_module(x).diagonal().unsqueeze(-1)
-            co_var = torch.maximum(co_var_gp, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
 
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
-            x_noisy = x.add_(eps)
+            co_var = nn.Softplus()(self.gp_proj_var(co_var_gp))
+
+            eps = torch.distributions.normal.Normal(mean, co_var).sample()
+
+            x_noisy = x.add_(eps * 0.1)
 
         else:
 
@@ -308,9 +308,9 @@ class process_model(nn.Module):
             co_var = torch.ones_like(x) * 0.1
             x_noisy = x.add_(eps * 0.1)
 
-        musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
+        musig = self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1)
 
-        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
+        mu, sigma = musig[:, :, :self.d], nn.Softplus()(musig[:, :, -self.d:])
 
         y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
 
