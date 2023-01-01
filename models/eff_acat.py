@@ -275,8 +275,6 @@ class process_model(nn.Module):
                                      nn.BatchNorm1d(2*d),
                                      nn.Softmax(dim=-1),).to(device)
 
-        self.proj_to_org = nn.Linear(d, d)
-
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
