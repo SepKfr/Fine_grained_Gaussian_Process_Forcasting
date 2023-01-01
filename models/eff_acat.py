@@ -296,8 +296,7 @@ class process_model(nn.Module):
             b, s, _ = x.shape
             mean = self.mean_module(x).unsqueeze(-1)
 
-            co_var_gp = self.covar_module(x).diagonal().unsqueeze(-1)
-            co_var = torch.maximum(co_var_gp, torch.fill(torch.zeros((b, s, 1), device=self.device), 1.0e-06))
+            co_var = self.covar_module(x).diagonal().unsqueeze(-1)
 
             eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
             x_noisy = x.add_(eps)
