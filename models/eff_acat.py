@@ -276,6 +276,13 @@ class process_model(nn.Module):
                                      nn.Softmax(dim=-1),).to(device)
 
         self.musig = nn.Linear(d, 2*d, device=device)
+
+        self.decoder = nn.Sequential(
+            nn.Conv1d(in_channels=d, out_channels=4 * d, kernel_size=3, padding=int((3 - 1) / 2)),
+            nn.Conv1d(in_channels=d * 4, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
+            nn.BatchNorm1d(d),
+            nn.Softmax(dim=-1), ).to(device)
+
         self.norm = nn.LayerNorm(d)
 
         self.mean_module = gpytorch.means.ConstantMean()
@@ -311,7 +318,9 @@ class process_model(nn.Module):
 
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
-        y = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+        z = mu + torch.exp(sigma*0.5) * torch.randn_like(sigma, device=self.device)
+
+        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
 
         output = self.norm(y + x)
 
