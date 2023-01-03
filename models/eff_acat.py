@@ -330,9 +330,6 @@ class process_model(nn.Module):
         sigma = torch.flatten(torch.mean(sigma, dim=-1), start_dim=1)
 
         kl_loss = normal_kl(mean, co_var, mu, sigma).mean()
-        rec_loss = nn.MSELoss()(x, y)
-
-        kl_loss += rec_loss
 
         return output, kl_loss
 
