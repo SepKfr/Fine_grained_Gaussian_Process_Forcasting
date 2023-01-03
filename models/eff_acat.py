@@ -301,9 +301,12 @@ class process_model(nn.Module):
 
         if self.gp:
             b, s, _ = x.shape
-            mean = self.mean_module(x).unsqueeze(-1)
+            mean = self.mean_module(x)
+            co_var = self.covar_module(x)
 
-            co_var = self.covar_module(x).diagonal().unsqueeze(-1)
+            dist = gpytorch.distributions.MultivariateNormal(mean, co_var)
+            mean = dist.mean.unsqueeze(-1)
+            co_var = dist.variance.unsqueeze(-1)
 
             eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
             x_noisy = x.add_(eps)
