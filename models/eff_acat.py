@@ -287,6 +287,8 @@ class process_model(nn.Module):
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.mean_module_t = gpytorch.means.ConstantMean()
+        self.covar_module_t = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
         if self.gp:
             self.gp_proj_mean = nn.Linear(1, d)
@@ -295,9 +297,18 @@ class process_model(nn.Module):
         self.d = d
         self.device = device
 
-    def forward(self, x):
+    def forward(self, x, target=None):
 
         eps = torch.randn_like(x)
+
+        if target is not None:
+
+            mean_t = self.mean_module_t(x)
+            co_var_t = self.covar_module_t(x)
+
+            dist = gpytorch.distributions.MultivariateNormal(mean_t, co_var_t)
+            mean_t = dist.mean.unsqueeze(-1)
+            co_var_t = dist.variance.unsqueeze(-1)
 
         if self.gp:
             b, s, _ = x.shape
@@ -313,8 +324,8 @@ class process_model(nn.Module):
 
         else:
 
-            mean = torch.zeros_like(x)
-            co_var = torch.ones_like(x) * 0.1
+            mean_t = torch.zeros_like(target)
+            co_var_t = torch.ones_like(target) * 0.1
             x_noisy = x.add_(eps * 0.1)
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
@@ -327,12 +338,16 @@ class process_model(nn.Module):
 
         output = self.norm(y + x)
 
-        mean = torch.flatten(torch.mean(mean, dim=-1), start_dim=1)
-        co_var = torch.flatten(torch.mean(co_var, dim=-1), start_dim=1)
-        mu = torch.flatten(torch.mean(mu, dim=-1), start_dim=1)
-        sigma = torch.flatten(torch.mean(sigma, dim=-1), start_dim=1)
+        if target is not None:
+            mean_t = torch.flatten(torch.mean(mean_t, dim=-1), start_dim=1)
+            co_var_t = torch.flatten(torch.mean(co_var_t, dim=-1), start_dim=1)
+            mu = torch.flatten(torch.mean(mu, dim=-1), start_dim=1)
+            sigma = torch.flatten(torch.mean(sigma, dim=-1), start_dim=1)
 
-        kl_loss = normal_kl(mean, co_var, mu, sigma).mean()
+            kl_loss = normal_kl(mean_t, co_var_t, mu, sigma).mean()
+
+        else:
+            kl_loss = 0
 
         return output, kl_loss
 
@@ -372,7 +387,7 @@ class Transformer(nn.Module):
         self.pred_len = pred_len
         self.device = device
 
-    def forward(self, enc_inputs, dec_inputs):
+    def forward(self, enc_inputs, dec_inputs, target=None):
 
         enc_outputs = self.enc_embedding(enc_inputs)
         dec_outputs = self.dec_embedding(dec_inputs)
@@ -382,7 +397,7 @@ class Transformer(nn.Module):
 
         if self.p_model:
 
-            outputs, kl_loss = self.process(dec_outputs)
+            outputs, kl_loss = self.process(dec_outputs, target)
             outputs = self.projection(outputs[:, -self.pred_len:, :])
             return outputs, kl_loss
 
