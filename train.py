@@ -175,7 +175,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 if self.dae:
-                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
                     loss = nn.MSELoss()(output, train_y.to(self.device)) + kl_loss * 0.005
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
