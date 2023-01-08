@@ -22,8 +22,9 @@ class ConvAttn(nn.Module):
         self.conv_k = nn.Conv1d(in_channels=d_k * h, out_channels=d_k * h,
                                 kernel_size=kernel,
                                 padding=int(kernel / 2), bias=False).to(device)
+
         self.norm = nn.BatchNorm1d(h * d_k).to(device)
-        self.activation = nn.ELU().to(device)
+        self.activation = nn.ReLU().to(device)
 
     def forward(self, Q, K, V, attn_mask):
 
