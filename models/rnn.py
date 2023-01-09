@@ -1,13 +1,18 @@
 import random
+
+import gpytorch
 import numpy as np
 import torch
 from torch import nn
 
+from models.eff_acat import process_model
+
 
 class RNN(nn.Module):
     def __init__(self, n_layers, hidden_size,
-                 src_input_size,
-                 device, d_r, seed, pred_len):
+                 src_input_size, device,
+                 d_r, seed, pred_len,
+                 dae, gp):
 
         super(RNN, self).__init__()
 
@@ -24,7 +29,11 @@ class RNN(nn.Module):
         self.device = device
         self.pred_len = pred_len
 
-    def forward(self, x_en, x_de, hidden=None):
+        self.dae = dae
+        if self.dae:
+            self.process = process_model(gp, hidden_size, device)
+
+    def forward(self, x_en, x_de, target=None, hidden=None):
 
         x = torch.cat((x_en, x_de), dim=1).permute(1, 0, 2)
 
@@ -32,11 +41,19 @@ class RNN(nn.Module):
             hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
 
         outputs, _ = self.lstm(x, (hidden, hidden))
+        outputs = outputs.transpose(0, 1)
 
-        output = self.linear2(outputs).transpose(0, 1)
-        output = output[:, -self.pred_len:, :]
+        if self.dae:
 
-        return output
+            outputs, kl_loss = self.process(outputs, target)
+            output = self.linear2(outputs)
+            output = output[:, -self.pred_len:, :]
+            return output, kl_loss
+
+        else:
+            output = self.linear2(outputs)
+            output = output[:, -self.pred_len:, :]
+            return output
 
 
 
