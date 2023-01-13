@@ -71,6 +71,8 @@ mse = nn.MSELoss()
 mae = nn.L1Loss()
 stack_size = 1
 
+p_model = True if args.dae == "True" else False
+gp = True if args.gp == "True" else False
 
 for i, seed in enumerate([4293, 1692, 3029]):
     for d in d_model:
@@ -78,21 +80,19 @@ for i, seed in enumerate([4293, 1692, 3029]):
             try:
                 d_k = int(d / n_heads)
 
-                if args.name == "lstm":
+                if "LSTM" in args.name:
                     p_model = False
                     model = RNN(n_layers=stack_size,
-                                hidden_size=d,
+                                hidden_size=d_model,
                                 src_input_size=src_input_size,
-                                tgt_input_size=tgt_input_size,
-                                rnn_type="lstm",
                                 device=device,
                                 d_r=0,
                                 seed=seed,
-                                pred_len=pred_len)
+                                pred_len=pred_len,
+                                dae=p_model,
+                                gp=gp)
                 else:
 
-                    p_model = True if args.dae == "True" else False
-                    gp = True if args.gp == "True" else False
                     model = Transformer(src_input_size=src_input_size,
                                         tgt_input_size=tgt_input_size,
                                         pred_len=pred_len,
