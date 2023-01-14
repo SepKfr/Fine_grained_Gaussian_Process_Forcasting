@@ -42,7 +42,7 @@ class RNN(nn.Module):
 
         if self.dae:
 
-            outputs_2, kl_loss = self.process(outputs, target)
+            outputs_2, kl_loss = self.process(outputs.clone(), target)
             output = self.linear2(outputs_2)
             output = output[:, -self.pred_len:, :]
             return output, kl_loss
