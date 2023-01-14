@@ -33,12 +33,11 @@ class RNN(nn.Module):
         if self.dae:
             self.process = process_model(gp, hidden_size, device)
 
-    def forward(self, x_en, x_de, target=None, hidden=None):
+    def forward(self, x_en, x_de, target=None):
 
         x = torch.cat((x_en, x_de), dim=1).permute(1, 0, 2)
 
-        if hidden is None:
-            hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
+        hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
 
         outputs, _ = self.lstm(x, (hidden, hidden))
         outputs = outputs.transpose(0, 1)
