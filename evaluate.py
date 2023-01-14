@@ -81,7 +81,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 d_k = int(d / n_heads)
 
                 if "LSTM" in args.name:
-                    p_model = False
+
                     model = RNN(n_layers=stack_size,
                                 hidden_size=d_model,
                                 src_input_size=src_input_size,
