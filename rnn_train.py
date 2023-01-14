@@ -106,7 +106,6 @@ class Train:
         val_loss = 1e10
         train_enc, train_dec, _ = next(iter(self.train))
         src_input_size = train_enc.shape[2]
-        tgt_input_size = train_dec.shape[2]
 
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
@@ -120,24 +119,15 @@ class Train:
             self.n_distinct_trial += 1
         self.param_history.append(d_model)
 
-        if self.name == "DeepAr":
-            model = DeepAr(n_layers=stack_size,
-                           hidden_size=d_model,
-                           src_input_size=src_input_size,
-                           device=self.device,
-                           d_r=0,
-                           seed=self.seed,
-                           pred_len=self.pred_len)
-        else:
-            model = RNN(n_layers=stack_size,
-                        hidden_size=d_model,
-                        src_input_size=src_input_size,
-                        device=self.device,
-                        d_r=0,
-                        seed=self.seed,
-                        pred_len=self.pred_len,
-                        dae=self.dae,
-                        gp=self.gp)
+        model = RNN(n_layers=stack_size,
+                    hidden_size=d_model,
+                    src_input_size=src_input_size,
+                    device=self.device,
+                    d_r=0,
+                    seed=self.seed,
+                    pred_len=self.pred_len,
+                    dae=self.dae,
+                    gp=self.gp)
 
         model.to(self.device)
 
@@ -153,24 +143,12 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                if self.name == "DeepAr":
-                    loss = 0
-                    for t in range(self.pred_len):
-
-                        x = torch.cat((train_enc, train_dec), dim=1)
-                        output, mu, sigma = model(x[:, t:t+1, :].to(self.device))
-                        distribution = torch.distributions.normal.Normal(mu, sigma)
-                        likelihood = distribution.log_prob(train_y[:, t:t+1, :].to(self.device))
-                        loss_in = -torch.mean(likelihood)
-                        loss += loss_in
-
+                if self.dae:
+                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = self.criterion(output, train_y.to(self.device)) + kl_loss * 0.005
                 else:
-                    if self.dae:
-                        output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                        loss = self.criterion(output, train_y.to(self.device)) + kl_loss * 0.005
-                    else:
-                        output = model(train_enc.to(self.device), train_dec.to(self.device))
-                        loss = self.criterion(output, train_y.to(self.device))
+                    output = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss = self.criterion(output, train_y.to(self.device))
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -183,24 +161,13 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                if self.name == "DeepAr":
-                    loss = 0
-                    for t in range(self.pred_len):
-                        x = torch.cat((valid_enc, valid_dec), dim=1)
-                        output, mu, sigma = model(x[:, t:t+1, :].to(self.device))
-                        distribution = torch.distributions.normal.Normal(mu, sigma)
-                        likelihood = distribution.log_prob(valid_y[:, t:t+1, :].to(self.device))
-                        loss_in = -torch.mean(likelihood)
-                        loss += loss_in
+                if self.dae:
+                    output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device)) + kl_loss * 0.005
 
                 else:
-                    if self.dae:
-                        output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                        loss = nn.MSELoss()(output, valid_y.to(self.device)) + kl_loss * 0.005
-
-                    else:
-                        output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                        loss = nn.MSELoss()(output, valid_y.to(self.device))
+                    output = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
@@ -233,14 +200,8 @@ class Train:
         j = 0
 
         for test_enc, test_dec, test_y in self.test:
-            if self.name == "DeepAr":
-                x = torch.cat((test_enc, test_enc), dim=1)
-                output = torch.zeros_like(test_y, device=self.device)
-                for t in range(self.pred_len):
-                    hidd , _, _ = self.best_model(x[:, t:t+1, :].to(self.device))
-                    output[:, t, :] = hidd.squeeze(1)
-            else:
-                output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+
+            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
@@ -281,7 +242,7 @@ class Train:
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--name", type=str, default="lstm")
+    parser.add_argument("--name", type=str, default="LSTM_gp")
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
