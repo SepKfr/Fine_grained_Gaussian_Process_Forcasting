@@ -36,8 +36,8 @@ class Train:
         config = ExperimentConfig(pred_len, args.exp_name)
         self.data = data
         self.len_data = len(data)
-        self.dae = args.dae
-        self.gp = args.gp
+        self.dae = True if args.dae == "True" else False
+        self.gp = True if args.gp == "True" else False
         self.formatter = config.make_data_formatter()
         self.params = self.formatter.get_experiment_params()
         self.total_time_steps = self.params['total_time_steps']
