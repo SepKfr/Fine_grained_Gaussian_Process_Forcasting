@@ -19,7 +19,7 @@ from data.data_loader import ExperimentConfig
 from Utils.base_train import batching, batch_sampled_data, inverse_output
 from models.rnn import RNN
 from models.deepar import DeepAr
-
+torch.autograd.set_detect_anomaly(True)
 
 class ModelData:
 
