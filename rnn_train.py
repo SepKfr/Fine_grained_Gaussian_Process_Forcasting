@@ -248,7 +248,7 @@ def main():
     parser.add_argument("--seed", type=int, default=21)
     parser.add_argument("--n_trials", type=int, default=5)
     parser.add_argument("--dae", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--DataParallel", type=bool, default=False)
     args = parser.parse_args()
 
