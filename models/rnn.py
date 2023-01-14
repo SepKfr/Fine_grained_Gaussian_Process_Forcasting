@@ -37,9 +37,7 @@ class RNN(nn.Module):
 
         x = torch.cat((x_en, x_de), dim=1).permute(1, 0, 2)
 
-        hidden = torch.zeros(self.n_layers, x.shape[1], self.hidden_size).to(self.device)
-
-        outputs, _ = self.lstm(x, (hidden, hidden))
+        outputs, _ = self.lstm(x)
         outputs = outputs.transpose(0, 1)
 
         if self.dae:
