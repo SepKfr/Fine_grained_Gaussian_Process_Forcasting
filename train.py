@@ -272,7 +272,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
     parser.add_argument("--attn_type", type=str, default='autoformer')
-    parser.add_argument("--name", type=str, default="autoformer_gp")
+    parser.add_argument("--name", type=str, default="autoformer_random")
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
