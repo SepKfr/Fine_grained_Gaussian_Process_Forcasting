@@ -143,12 +143,9 @@ class Train:
 
         n_heads = self.model_params['num_heads']
 
-        kernel = [9] if self.attn_type == "conv_attn" else [1]
-        kernel = trial.suggest_categorical("kernel", kernel)
-
-        if [d_model, kernel, stack_size, w_steps] in self.param_history:
+        if [d_model, stack_size, w_steps] in self.param_history:
             raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, kernel, stack_size, w_steps])
+        self.param_history.append([d_model, stack_size, w_steps])
 
         d_k = int(d_model / n_heads)
         assert d_model % d_k == 0
@@ -162,7 +159,7 @@ class Train:
                             n_layers=stack_size, src_pad_index=0,
                             tgt_pad_index=0, device=self.device,
                             attn_type=self.attn_type,
-                            seed=self.seed, kernel=kernel, gp=self.gp, p_model=self.dae)
+                            seed=self.seed, gp=self.gp, p_model=self.dae)
         model.to(self.device)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
