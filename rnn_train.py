@@ -19,6 +19,8 @@ from data.data_loader import ExperimentConfig
 from Utils.base_train import batching, batch_sampled_data, inverse_output
 from models.rnn import RNN
 from models.deepar import DeepAr
+from train import NoamOpt
+
 torch.autograd.set_detect_anomaly(True)
 
 class ModelData:
@@ -111,13 +113,14 @@ class Train:
             os.makedirs(self.model_path)
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
+        w_steps = trial.suggest_categorical("w_steps", [4000])
         stack_size = self.model_params['stack_size'][0]
 
-        if d_model in self.param_history or self.n_distinct_trial > 4:
+        if [d_model, w_steps] in self.param_history or self.n_distinct_trial > 4:
             raise optuna.exceptions.TrialPruned()
         else:
             self.n_distinct_trial += 1
-        self.param_history.append(d_model)
+        self.param_history.append([d_model, w_steps])
 
         model = RNN(n_layers=stack_size,
                     hidden_size=d_model,
@@ -131,7 +134,7 @@ class Train:
 
         model.to(self.device)
 
-        optimizer = Adam(model.parameters(), lr=1e-4)
+        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         epoch_start = 0
 
@@ -144,7 +147,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 if self.dae:
-                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
+                    output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
                     loss = self.criterion(output, train_y.to(self.device)) + kl_loss * 0.005
                 else:
                     output = model(train_enc.to(self.device), train_dec.to(self.device))
@@ -152,7 +155,7 @@ class Train:
 
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                optimizer.step_and_update_lr()
                 total_loss += loss.item()
 
             print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
