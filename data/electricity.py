@@ -230,7 +230,7 @@ class ElectricityFormatter(GenericDataFormatter):
             'total_time_steps': 8 * 24 + self.pred_len,
             'num_encoder_steps': 4 * 24,
             'num_decoder_steps': self.pred_len,
-            'num_epochs': 50,
+            'num_epochs': 80,
             'early_stopping_patience': 5,
             'multiprocessing_workers': 5
         }
