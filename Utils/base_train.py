@@ -56,7 +56,7 @@ def batching(batch_size, x_en, x_de, y_t, test_id):
     return X_en, X_de, Y_t, tst_id
 
 
-def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_len, column_definition):
+def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_len, column_definition, tgt_all=False):
 
     id_col = utils.get_single_col_by_input_type(InputTypes.ID, column_definition)
     time_col = utils.get_single_col_by_input_type(InputTypes.TIME, column_definition)
@@ -117,7 +117,7 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
         'inputs': inputs,
         'enc_inputs': enc_inputs,
         'dec_inputs': dec_inputs,
-        'outputs': outputs[:, -pred_len:, :],
+        'outputs': outputs if tgt_all else outputs[:, -pred_len:, :],
         'input_arima': outputs[:, :-pred_len, :],
         'active_entries': np.ones_like(outputs[:, num_encoder_steps:, :]),
         'time': time,
@@ -129,7 +129,7 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
 
 def batch_sampled_data(data, train_percent, max_samples, time_steps,
                        num_encoder_steps, pred_len,
-                       column_definition, batch_size):
+                       column_definition, batch_size, tgt_all=False):
     """Samples segments into a compatible format.
     Args:
       seed:
@@ -162,7 +162,7 @@ def batch_sampled_data(data, train_percent, max_samples, time_steps,
 
     sample_train = sample_train_val_test(train, train_max, time_steps, num_encoder_steps, pred_len, column_definition)
     sample_valid = sample_train_val_test(valid, valid_max, time_steps, num_encoder_steps, pred_len, column_definition)
-    sample_test = sample_train_val_test(test, valid_max, time_steps, num_encoder_steps, pred_len, column_definition)
+    sample_test = sample_train_val_test(test, valid_max, time_steps, num_encoder_steps, pred_len, column_definition, tgt_all)
 
     train_data = TensorDataset(torch.FloatTensor(sample_train['enc_inputs']),
                                torch.FloatTensor(sample_train['dec_inputs']),
