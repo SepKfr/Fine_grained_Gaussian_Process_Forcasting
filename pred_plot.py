@@ -154,9 +154,9 @@ ind = 0
 
 for j in range(total_b*batch_size):
 
-    gp_loss = mse(preds_gp[j], tgt[j]).item()
-    random_loss = mse(preds_random[j], tgt[j]).item()
-    pred_loss = mse(preds[j], tgt[j]).item()
+    gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
+    random_loss = mse(preds_random[j, -pred_len], tgt[j]).item()
+    pred_loss = mse(preds[j], tgt[j, -pred_len]).item()
 
     if gp_loss < random_loss and gp_loss < pred_loss:
         if random_loss - gp_loss > diff_1:
