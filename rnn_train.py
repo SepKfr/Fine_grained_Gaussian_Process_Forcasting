@@ -113,7 +113,7 @@ class Train:
             os.makedirs(self.model_path)
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
-        w_steps = trial.suggest_categorical("w_steps", [8000])
+        w_steps = trial.suggest_categorical("w_steps", [1000])
         stack_size = self.model_params['stack_size'][0]
 
         if [d_model, w_steps] in self.param_history or self.n_distinct_trial > 4:
