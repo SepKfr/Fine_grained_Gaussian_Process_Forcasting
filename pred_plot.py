@@ -148,7 +148,20 @@ preds_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
 preds_random, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
 preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
-ind = random.randint(0, total_b*batch_size)
+
+diff_1 = 0
+ind = 0
+
+for j in range(total_b*batch_size):
+
+    gp_loss = mse(preds_gp[j], tgt[j]).item()
+    random_loss = mse(preds_random[j], tgt[j]).item()
+    pred_loss = mse(preds[j], tgt[j]).item()
+
+    if gp_loss < random_loss and gp_loss < pred_loss:
+        if random_loss - gp_loss > diff_1:
+            diff_1 = random_loss - gp_loss
+            ind = j
 
 plt.plot(np.arange(total_steps), tgt[ind], color="gray")
 plt.plot(np.arange(total_steps-pred_len, total_steps), preds[ind], color="lime")
