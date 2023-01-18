@@ -25,7 +25,6 @@ parser.add_argument("--gp", type=str, default="False")
 
 args = parser.parse_args()
 
-kernel = [1, 3, 6, 9]
 n_heads = 8
 d_model = [16, 32]
 batch_size = 256
@@ -76,7 +75,6 @@ gp = True if args.gp == "True" else False
 
 for i, seed in enumerate([4293, 1692, 3029]):
     for d in d_model:
-        for k in kernel:
             try:
                 d_k = int(d / n_heads)
 
@@ -102,7 +100,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                                         n_layers=stack_size, src_pad_index=0,
                                         tgt_pad_index=0, device=device,
                                         attn_type=args.attn_type,
-                                        seed=seed, kernel=k,
+                                        seed=seed,
                                         p_model=p_model, gp=gp)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
