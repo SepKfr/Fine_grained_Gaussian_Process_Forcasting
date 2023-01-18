@@ -175,6 +175,6 @@ for i in range(0, 5):
     plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
     if not os.path.exists("prediction_plots"):
         os.mkdir("prediction_plots")
-    plt.savefig(os.path.join("prediction_plots", "autoformer_{}.pdf".format(i)), dpi=1000)
+    plt.savefig(os.path.join("prediction_plots", "autoformer", "{}.pdf".format(i+1)), dpi=1000)
     plt.close()
 
