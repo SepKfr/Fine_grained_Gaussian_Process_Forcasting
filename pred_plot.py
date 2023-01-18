@@ -23,7 +23,7 @@ parser.add_argument("--attn_type", type=str, default='autoformer')
 parser.add_argument("--name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--cuda", type=str, default="cuda:0")
-parser.add_argument("--pred_len", type=int, default=24)
+parser.add_argument("--pred_len", type=int, default=96)
 parser.add_argument("--dae", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 
