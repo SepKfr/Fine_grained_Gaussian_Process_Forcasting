@@ -150,27 +150,30 @@ preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
 
 diff_1 = 0
-ind = 0
+inds = []
 
 for j in range(total_b*batch_size):
 
     gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
-    random_loss = mse(preds_random[j, -pred_len], tgt[j]).item()
-    pred_loss = mse(preds[j], tgt[j, -pred_len]).item()
+    random_loss = mse(preds_random[j, -pred_len:], tgt[j]).item()
+    pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
     if gp_loss < random_loss and gp_loss < pred_loss:
         if random_loss - gp_loss > diff_1:
             diff_1 = random_loss - gp_loss
-            ind = j
+            inds.append(j)
 
-plt.plot(np.arange(total_steps), tgt[ind], color="gray")
-plt.plot(np.arange(total_steps-pred_len, total_steps), preds[ind], color="lime")
-plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[ind], color="orchid")
-plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[ind], color="darkblue")
+inds.sort(reverse=True)
 
-plt.axvline(x=total_steps-pred_len, color="black")
-plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
-if not os.path.exists("prediction_plots"):
-    os.mkdir("prediction_plots")
-plt.savefig(os.path.join("prediction_plots", "autoformer.pdf"), dpi=1000)
+for i in range(0, 5):
+    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue")
+
+    plt.axvline(x=total_steps-pred_len, color="black")
+    plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
+    if not os.path.exists("prediction_plots"):
+        os.mkdir("prediction_plots")
+    plt.savefig(os.path.join("prediction_plots", "autoformer_{}.pdf".format(i)), dpi=1000)
 
