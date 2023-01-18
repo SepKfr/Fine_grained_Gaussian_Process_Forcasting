@@ -78,7 +78,7 @@ stack_size = 1
 
 def get_pred_tgt(p_model, gp, name):
 
-    for i, seed in enumerate([21]):
+    for i, seed in enumerate([4293, 1692, 3029]):
         for d in d_model:
             try:
                 d_k = int(d / n_heads)
