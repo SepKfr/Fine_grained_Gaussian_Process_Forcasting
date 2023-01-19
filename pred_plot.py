@@ -151,6 +151,7 @@ preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
 diff_1 = 0
 inds = []
+best_loss = 1e10
 
 for j in range(total_b*batch_size):
 
@@ -159,8 +160,8 @@ for j in range(total_b*batch_size):
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
     if gp_loss < random_loss and gp_loss < pred_loss:
-        if random_loss - gp_loss > diff_1:
-            diff_1 = random_loss - gp_loss
+        if gp_loss < best_loss:
+            best_loss = gp_loss
             inds.append(j)
 
 inds.sort(reverse=True)
