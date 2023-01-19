@@ -165,7 +165,7 @@ for j in range(total_b*batch_size):
 
 inds.sort(reverse=True)
 
-for i in range(0, max(5, len(inds))):
+for i in range(0, min(5, len(inds))):
 
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
