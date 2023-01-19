@@ -49,7 +49,7 @@ max_samples = (train_max, valid_max)
 _, _, test = batch_sampled_data(data, 0.8, max_samples, params['total_time_steps'],
                                         params['num_encoder_steps'], pred_len,
                                         params["column_definition"],
-                                        batch_size, True)
+                                        batch_size)
 
 test_enc, test_dec, test_y = next(iter(test))
 total_b = len(list(iter(test)))
