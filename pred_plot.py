@@ -173,7 +173,7 @@ for i in range(0, 5):
 
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
-    direc = os.path.join("prediction_plots", "{}".format(args.name))
+    direc = os.path.join("{}".format(args.exp_name), "prediction_plots", "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
     plt.savefig(os.path.join(direc, "{}.pdf".format(i+1)), dpi=1000)
