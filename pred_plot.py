@@ -166,6 +166,7 @@ for j in range(total_b*batch_size):
 inds.sort(reverse=True)
 
 for i in range(0, max(5, len(inds))):
+
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid")
@@ -173,7 +174,7 @@ for i in range(0, max(5, len(inds))):
 
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
-    direc = os.path.join("prediction_plots", "{}".format(args.exp_name), "{}".format(args.name))
+    direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
     plt.savefig(os.path.join(direc, "{}.pdf".format(i+1)), dpi=1000)
