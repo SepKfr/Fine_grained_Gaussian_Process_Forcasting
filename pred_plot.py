@@ -172,9 +172,9 @@ inds.sort(reverse=True)
 
 n = min(5, len(inds))
 
-for i in inds[:n]:
+for i in range(0, n):
 
-    loss_tuple = mses.get(i)
+    loss_tuple = mses.get(inds[i])
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid")
