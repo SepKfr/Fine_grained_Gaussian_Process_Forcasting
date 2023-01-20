@@ -151,6 +151,7 @@ preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
 diff_1 = 0
 inds = []
+mses = dict()
 best_loss = 1e10
 
 for j in range(total_b*batch_size):
@@ -162,19 +163,27 @@ for j in range(total_b*batch_size):
     if gp_loss < random_loss and gp_loss < pred_loss:
         if gp_loss < best_loss:
             best_loss = gp_loss
+            losses = [gp_loss, random_loss, pred_loss]
+            mses[j] = losses
             inds.append(j)
+
 
 inds.sort(reverse=True)
 
-for i in range(0, min(5, len(inds))):
+n = min(5, len(inds))
 
+for i in inds[:n]:
+
+    loss_tuple = mses.get(i)
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid")
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue")
 
     plt.axvline(x=total_steps-pred_len, color="black")
-    plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
+    plt.legend(["ground-truth", "Prediction:MSE={.3f}".format(loss_tuple[-1]),
+                "Isotropic Denoised:MSE={.3f}".format(loss_tuple[1]),
+                "GP Denoised:MSE={.3f}".format(loss_tuple[-1])])
     direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
