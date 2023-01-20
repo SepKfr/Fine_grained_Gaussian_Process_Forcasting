@@ -183,7 +183,7 @@ for i in range(0, n):
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction:MSE={:.3f}".format(loss_tuple[-1]),
                 "Isotropic Denoised:MSE={:.3f}".format(loss_tuple[1]),
-                "GP Denoised:MSE={:.3f}".format(loss_tuple[-1])])
+                "GP Denoised:MSE={:.3f}".format(loss_tuple[0])])
     direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
