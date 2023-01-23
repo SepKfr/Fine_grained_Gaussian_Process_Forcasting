@@ -160,8 +160,8 @@ for j in range(total_b*batch_size):
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
-    if gp_loss < random_loss and gp_loss < pred_loss:
-        if gp_loss < best_loss:
+    if gp_loss < best_loss:
+        if gp_loss < random_loss and gp_loss < pred_loss:
             best_loss = gp_loss
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
@@ -175,10 +175,10 @@ n = min(5, len(inds))
 for i in range(0, n):
 
     loss_tuple = mses.get(inds[i])
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray", alpha=0.5)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.5)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.5)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.5)
+    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray", alpha=0.6)
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.6)
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.6)
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
 
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction:MSE={:.3f}".format(loss_tuple[-1]),
