@@ -61,4 +61,4 @@ class AirQualityFormatter(ElectricityFormatter):
             return 32000, 32000
 
         else:
-            return num_train, 12800
+            return num_train, 256

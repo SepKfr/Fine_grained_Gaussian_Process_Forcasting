@@ -154,6 +154,8 @@ diff_1 = 0
 inds = []
 mses = dict()
 best_loss = 1e10
+diff1 = 0
+diff2 = 0
 
 for j in range(total_b*batch_size):
 
@@ -165,7 +167,9 @@ for j in range(total_b*batch_size):
 
         best_loss = gp_loss
 
-        if gp_loss - random_loss < -0.05 and gp_loss - pred_loss < -0.05:
+        if gp_loss - random_loss < diff1 and gp_loss - pred_loss < diff2:
+            diff1 = gp_loss - random_loss
+            diff2 = gp_loss - pred_loss
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
             inds.append(j)
@@ -183,10 +187,6 @@ for i in range(0, n):
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.6)
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.6)
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
-
-    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std[inds[i]], std[inds[i]], color="lime", alpha=0.2)
-    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std_r[inds[i]], std_r[inds[i]], color="orchid", alpha=0.2)
-    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std_gp[inds[i]], std_gp[inds[i]], color="darkblue", alpha=0.2)
 
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction:MSE={:.3f}".format(loss_tuple[-1]),
