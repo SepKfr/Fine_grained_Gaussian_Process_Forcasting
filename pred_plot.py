@@ -23,7 +23,7 @@ parser.add_argument("--attn_type", type=str, default='autoformer')
 parser.add_argument("--name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--cuda", type=str, default="cuda:0")
-parser.add_argument("--pred_len", type=int, default=96)
+parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--dae", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 
@@ -78,7 +78,7 @@ stack_size = 1
 
 def get_pred_tgt(p_model, gp, name):
 
-    for i, seed in enumerate([4293, 1692, 3029]):
+    for i, seed in enumerate([21]):
         for d in d_model:
             try:
                 d_k = int(d / n_heads)
@@ -141,12 +141,13 @@ def get_pred_tgt(p_model, gp, name):
                 pass
 
         preds = torch.from_numpy(np.mean(predictions, axis=0))
-        return preds.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
+        stdev = torch.from_numpy(np.std(predictions, axis=0))
+        return preds.reshape(total_b*batch_size, -1), stdev.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
 
-preds_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
-preds_random, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
-preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
+preds_gp, std_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
+preds_random, std_r, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
+preds, std, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
 
 diff_1 = 0
@@ -174,6 +175,7 @@ inds.sort(reverse=True)
 
 n = min(5, len(inds))
 
+
 for i in range(0, n):
 
     loss_tuple = mses.get(inds[i])
@@ -182,11 +184,15 @@ for i in range(0, n):
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.6)
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
 
+    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std[inds[i]], std[inds[i]], color="lime", alpha=0.2)
+    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std_r[inds[i]], std_r[inds[i]], color="orchid", alpha=0.2)
+    plt.fill_between(np.arange(total_steps - pred_len, total_steps), -std_gp[inds[i]], std_gp[inds[i]], color="darkblue", alpha=0.2)
+
     plt.axvline(x=total_steps-pred_len, color="black")
     plt.legend(["ground-truth", "Prediction:MSE={:.3f}".format(loss_tuple[-1]),
                 "Isotropic Denoised:MSE={:.3f}".format(loss_tuple[1]),
                 "GP Denoised:MSE={:.3f}".format(loss_tuple[0])])
-    direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
+    direc = os.path.join("prediction_plots_h", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
     plt.savefig(os.path.join(direc, "{}.pdf".format(i+1)), dpi=1000)
