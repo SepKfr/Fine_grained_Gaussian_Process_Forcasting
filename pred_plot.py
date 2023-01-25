@@ -183,7 +183,7 @@ for i in range(0, n):
     plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
 
     plt.axvline(x=total_steps-pred_len, color="black")
-    plt.legend([r"$\oberset{*}{Y}$", "No:MSE={:.3f}".format(loss_tuple[-1]),
+    plt.legend([r"${Y}^{*}$", "No:MSE={:.3f}".format(loss_tuple[-1]),
                 "Iso:MSE={:.3f}".format(loss_tuple[1]),
                 "GP:MSE={:.3f}".format(loss_tuple[0])])
     direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
