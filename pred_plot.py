@@ -15,15 +15,15 @@ from data.data_loader import ExperimentConfig
 from models.eff_acat import Transformer
 from models.rnn import RNN
 
-plt.rc('font', size=8)
-plt.rc('axes', titlesize=8)
+plt.rc('font', size=10)
+plt.rc('axes', titlesize=10)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--attn_type", type=str, default='autoformer')
 parser.add_argument("--name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--cuda", type=str, default="cuda:0")
-parser.add_argument("--pred_len", type=int, default=24)
+parser.add_argument("--pred_len", type=int, default=96)
 parser.add_argument("--dae", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 
@@ -141,18 +141,16 @@ def get_pred_tgt(p_model, gp, name):
                 pass
 
         preds = torch.from_numpy(np.mean(predictions, axis=0))
-        stdev = torch.from_numpy(np.std(predictions, axis=0))
-        return preds.reshape(total_b*batch_size, -1), stdev.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
+        return preds.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
 
-preds_gp, std_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
-preds_random, std_r, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
-preds, std, _ = get_pred_tgt(False, False, "{}".format(args.name))
+preds_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
+preds_random, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
+preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
 
 
 diff_1 = 0
 inds = []
-mses = dict()
 best_loss = 1e10
 
 for j in range(total_b*batch_size):
@@ -161,34 +159,23 @@ for j in range(total_b*batch_size):
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
-    if gp_loss < best_loss:
-
-        best_loss = gp_loss
-
-        if gp_loss < random_loss and gp_loss < pred_loss:
-            losses = [gp_loss, random_loss, pred_loss]
-            mses[j] = losses
+    if gp_loss < random_loss and gp_loss < pred_loss:
+        if gp_loss < best_loss:
+            best_loss = gp_loss
             inds.append(j)
-
 
 inds.sort(reverse=True)
 
-n = min(5, len(inds))
+for i in range(0, min(5, len(inds))):
 
-
-for i in range(0, n):
-
-    loss_tuple = mses.get(inds[i])
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
+    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid")
+    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue")
 
     plt.axvline(x=total_steps-pred_len, color="black")
-    plt.legend(["ground-truth", "Prediction:MSE={:.3f}".format(loss_tuple[-1]),
-                "Isotropic Denoised:MSE={:.3f}".format(loss_tuple[1]),
-                "GP Denoised:MSE={:.3f}".format(loss_tuple[0])])
-    direc = os.path.join("prediction_plots_h", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
+    plt.legend(["ground-truth", "Prediction", "Isotropic Prediction Denoised", "GP Prediction denoised"])
+    direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
     if not os.path.exists(direc):
         os.makedirs(direc)
     plt.savefig(os.path.join(direc, "{}.pdf".format(i+1)), dpi=1000)
