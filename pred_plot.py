@@ -154,8 +154,6 @@ diff_1 = 0
 inds = []
 mses = dict()
 best_loss = 1e10
-diff1 = 0
-diff2 = 0
 
 for j in range(total_b*batch_size):
 
@@ -167,9 +165,7 @@ for j in range(total_b*batch_size):
 
         best_loss = gp_loss
 
-        if gp_loss - random_loss < diff1 and gp_loss - pred_loss < diff2:
-            diff1 = gp_loss - random_loss
-            diff2 = gp_loss - pred_loss
+        if gp_loss < random_loss and gp_loss < pred_loss:
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
             inds.append(j)
