@@ -17,7 +17,7 @@ from models.rnn import RNN
 
 plt.rc('font', size=12)
 plt.rc('axes', titlesize=12)
-plt.rcParams["figure.figsize"] = (12,4)
+plt.rcParams["figure.figsize"] = (12,6)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--attn_type", type=str, default='autoformer')
@@ -183,21 +183,21 @@ for i in range(0, n):
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend([r"${Y}^{*}$", "No", "No:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.legend([r"${Y}^{*}$", "No:MSE={:.3f}".format(loss_tuple[-1])])
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "No")), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend([r"${Y}^{*}$", "Iso", "No:MSE={:.3f}".format(loss_tuple[1])])
+    plt.legend([r"${Y}^{*}$", "Iso:MSE={:.3f}".format(loss_tuple[1])])
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "iso")), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend([r"${Y}^{*}$", "GP", "No:MSE={:.3f}".format(loss_tuple[0])])
+    plt.legend([r"${Y}^{*}$", "GP:MSE={:.3f}".format(loss_tuple[0])])
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "GP")), dpi=1000)
     plt.close()
 
