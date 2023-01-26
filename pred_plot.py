@@ -15,8 +15,8 @@ from data.data_loader import ExperimentConfig
 from models.eff_acat import Transformer
 from models.rnn import RNN
 
-plt.rc('font', size=8)
-plt.rc('axes', titlesize=8)
+plt.rc('font', size=12)
+plt.rc('axes', titlesize=12)
 plt.rcParams["figure.figsize"] = (12,4)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
