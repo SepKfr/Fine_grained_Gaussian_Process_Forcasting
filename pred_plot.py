@@ -161,11 +161,9 @@ for j in range(total_b*batch_size):
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
-    if gp_loss < best_loss:
-
-        best_loss = gp_loss
-
-        if gp_loss - random_loss < -0.03 and gp_loss - pred_loss < -0.03:
+    if gp_loss < random_loss and gp_loss < pred_loss:
+        if gp_loss < best_loss:
+            best_loss = gp_loss
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
             inds.append(j)
@@ -175,21 +173,43 @@ inds.sort(reverse=True)
 
 n = min(5, len(inds))
 
+direc = os.path.join("prediction_plots_sec", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
+if not os.path.exists(direc):
+    os.makedirs(direc)
 for i in range(0, n):
 
     loss_tuple = mses.get(inds[i])
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.6)
-    plt.plot(np.arange(total_steps-pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.6)
+    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
+    plt.axvline(x=total_steps - pred_len, color="black")
+    plt.legend([r"${Y}^{*}$"])
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "ground-truth")), dpi=1000)
+    plt.close()
 
-    plt.axvline(x=total_steps-pred_len, color="black")
-    plt.legend([r"${Y}^{*}$", "No:MSE={:.3f}".format(loss_tuple[-1]),
-                "Iso:MSE={:.3f}".format(loss_tuple[1]),
-                "GP:MSE={:.3f}".format(loss_tuple[0])])
-    direc = os.path.join("prediction_plots", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
-    if not os.path.exists(direc):
-        os.makedirs(direc)
-    plt.savefig(os.path.join(direc, "{}.pdf".format(i+1)), dpi=1000)
+    plt.plot(np.arange(total_steps), tgt[inds[i], :-pred_len], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds[inds[i]], color="lime")
+    plt.axvline(x=total_steps - pred_len, color="black")
+    plt.legend(["No", "No:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "No")), dpi=1000)
+    plt.close()
+
+    plt.plot(np.arange(total_steps), tgt[inds[i], :-pred_len], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds[inds[i]], color="lime")
+    plt.axvline(x=total_steps - pred_len, color="black")
+    plt.legend(["No", "No:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "No")), dpi=1000)
+    plt.close()
+
+    plt.plot(np.arange(total_steps), tgt[inds[i], :-pred_len], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[inds[i]], color="orchid")
+    plt.axvline(x=total_steps - pred_len, color="black")
+    plt.legend(["Iso", "No:MSE={:.3f}".format(loss_tuple[1])])
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "iso")), dpi=1000)
+    plt.close()
+
+    plt.plot(np.arange(total_steps), tgt[inds[i], :-pred_len], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[inds[i]], color="darkblue")
+    plt.axvline(x=total_steps - pred_len, color="black")
+    plt.legend(["GP", "No:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "GP")), dpi=1000)
     plt.close()
 
