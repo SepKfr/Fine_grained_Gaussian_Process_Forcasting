@@ -15,9 +15,9 @@ from data.data_loader import ExperimentConfig
 from models.eff_acat import Transformer
 from models.rnn import RNN
 
-plt.rc('font', size=20)
-plt.rc('axes', titlesize=20)
-plt.rcParams["figure.figsize"] = (14,8)
+plt.rc('font', size=22)
+plt.rc('axes', titlesize=22)
+plt.rcParams["figure.figsize"] = (12,8)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--attn_type", type=str, default='autoformer')
