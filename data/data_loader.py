@@ -86,11 +86,7 @@ class ExperimentConfig(object):
             'traffic': traffic.TrafficFormatter,
             'air_quality': air_quality.AirQualityFormatter,
             'watershed': watershed.WatershedFormatter,
-            'solar': solar.SolarFormatter,
-            'ETTm2': ett.ETTFormatter,
-            'weather': weather.weatherFormatter,
-            'camel': camel.camelFormatter,
-            'covid': covid.CovidFormatter
+            'solar': solar.SolarFormatter
         }
 
         return data_formatter_class[self.experiment](self.pred_len)
