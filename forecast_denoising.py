@@ -43,7 +43,7 @@ class Forecast_denoising(nn.Module):
         self.denoise = denoise
         self.final_projection = nn.Linear(d_model, 1)
 
-    def forward(self, enc_inputs, dec_inputs, target):
+    def forward(self, enc_inputs, dec_inputs, target=None):
 
         outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
