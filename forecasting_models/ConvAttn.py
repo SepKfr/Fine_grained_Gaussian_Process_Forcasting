@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import random
 
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+
 
 class ConvAttn(nn.Module):
 

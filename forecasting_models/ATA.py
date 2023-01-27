@@ -1,14 +1,16 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import math
 import random
 
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
 
-class KittyCatConv(nn.Module):
-    def __init__(self, d_k, device, h, l_k, seed):
 
-        super(KittyCatConv, self).__init__()
+class ATA(nn.Module):
+    def __init__(self, d_k, device, h, seed):
+
+        super(ATA, self).__init__()
 
         torch.manual_seed(seed)
         random.seed(seed)

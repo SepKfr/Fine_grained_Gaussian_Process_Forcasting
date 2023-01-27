@@ -1,7 +1,4 @@
-from torch.optim.lr_scheduler import OneCycleLR
-
-from models.ACAT_diffusion.ACAT_diff_network import ACATTrainingNetwork
-from models.eff_acat import Transformer
+from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
 import numpy as np
@@ -10,56 +7,22 @@ import argparse
 import json
 import os
 import torch.nn.functional as F
-import itertools
 import random
 import pandas as pd
-from tqdm import tqdm
 import optuna
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
-
 from data.data_loader import ExperimentConfig
-from Utils.base_train import batching, batch_sampled_data, inverse_output, ModelData
+from Utils.base_train import batch_sampled_data
 import time
-
-class NoamOpt:
-
-    def __init__(self, optimizer, lr_mul, d_model, n_warmup_steps):
-        self._optimizer = optimizer
-        self.lr_mul = lr_mul
-        self.d_model = d_model
-        self.n_warmup_steps = n_warmup_steps
-        self.n_steps = 0
-
-    def step_and_update_lr(self):
-        "Step with the inner optimizer"
-        self._update_learning_rate()
-        self._optimizer.step()
-
-    def zero_grad(self):
-        "Zero out the gradients with the inner optimizer"
-        self._optimizer.zero_grad()
-
-    def _get_lr_scale(self):
-        d_model = self.d_model
-        n_steps, n_warmup_steps = self.n_steps, self.n_warmup_steps
-        return (d_model ** -0.5) * min(n_steps ** (-0.5), n_steps * n_warmup_steps ** (-1.5))
-
-    def _update_learning_rate(self):
-        ''' Learning rate scheduling per step '''
-
-        self.n_steps += 1
-        lr = self.lr_mul * self._get_lr_scale()
-
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
+from modules.opt_model import NoamOpt
 
 
 class Train:
     def __init__(self, data, args, pred_len):
 
         config = ExperimentConfig(pred_len, args.exp_name)
-        self.dae = True if args.dae == "True" else False
+        self.denoising = True if args.denoising == "True" else False
         self.gp = True if args.gp == "True" else False
         self.data = data
         self.len_data = len(data)
@@ -88,6 +51,16 @@ class Train:
         self.train, self.valid, self.test = self.split_data()
         self.run_optuna(args)
         self.evaluate()
+
+    def get_forecasting_denoising_model(self, config: tuple):
+
+        model = Forecast_denoising(name=self.name,
+                                   config=config,
+                                   gp=self.gp,
+                                   denoise=self.denoising,
+                                   device=self.device)
+
+        return model
 
     def split_data(self):
 
@@ -137,8 +110,10 @@ class Train:
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
+        # hyperparameters
+
         d_model = trial.suggest_categorical("d_model", [16, 32])
-        w_steps = trial.suggest_categorical("w_steps", [8000])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
@@ -148,19 +123,12 @@ class Train:
         self.param_history.append([d_model, stack_size, w_steps])
 
         d_k = int(d_model / n_heads)
+
         assert d_model % d_k == 0
 
-        model = Transformer(src_input_size=src_input_size,
-                            tgt_input_size=tgt_input_size,
-                            pred_len=self.pred_len,
-                            d_model=d_model,
-                            d_ff=d_model * 4,
-                            d_k=d_k, d_v=d_k, n_heads=n_heads,
-                            n_layers=stack_size, src_pad_index=0,
-                            tgt_pad_index=0, device=self.device,
-                            attn_type=self.attn_type,
-                            seed=self.seed, gp=self.gp, p_model=self.dae)
-        model.to(self.device)
+        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
+
+        model = self.get_forecasting_denoising_model(config)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -171,7 +139,7 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                if self.dae:
+                if self.denoising:
                     output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
                     loss = nn.MSELoss()(output, train_y.to(self.device)) + kl_loss * 0.005
                 else:
@@ -188,7 +156,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                if self.dae:
+                if self.denoising:
                     output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
                     loss = nn.MSELoss()(output, valid_y.to(self.device)) + kl_loss * 0.005
 
@@ -229,7 +197,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            if self.dae:
+            if self.denoising:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
                 output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
@@ -274,8 +242,8 @@ class Train:
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='autoformer')
-    parser.add_argument("--name", type=str, default="autoformer_random")
+    parser.add_argument("--attn_type", type=str, default='')
+    parser.add_argument("--name", type=str, default="LSTM")
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=21)
