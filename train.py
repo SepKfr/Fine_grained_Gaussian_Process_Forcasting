@@ -137,7 +137,7 @@ class Train:
 
         val_loss = 1e10
         for epoch in range(self.num_epochs):
-            start = time.time()
+
             total_loss = 0
             model.train()
             for train_enc, train_dec, train_y in self.train:
@@ -180,9 +180,6 @@ class Train:
                     self.best_model = model
                     torch.save({'model_state_dict': self.best_model.state_dict()},
                                os.path.join(self.model_path, "{}_{}".format(self.name, self.seed)))
-
-            end = time.time()
-            print("{:.3f}".format(start - end))
 
         return val_loss
 
