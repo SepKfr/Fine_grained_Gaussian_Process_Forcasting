@@ -14,6 +14,8 @@ class Forecast_denoising(nn.Module):
 
         src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
+        self.pred_len = pred_len
+
         if name == "LSTM":
 
             self.forecasting_model = RNN(n_layers=stack_size,
