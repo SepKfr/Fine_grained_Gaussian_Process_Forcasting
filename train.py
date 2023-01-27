@@ -58,7 +58,10 @@ class Train:
                                    config=config,
                                    gp=self.gp,
                                    denoise=self.denoising,
-                                   device=self.device)
+                                   device=self.device,
+                                   seed=self.seed,
+                                   pred_len=self.pred_len,
+                                   attn_type=self.attn_type)
 
         return model
 
