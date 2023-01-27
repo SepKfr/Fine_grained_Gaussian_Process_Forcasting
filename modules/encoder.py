@@ -23,7 +23,7 @@ class EncoderLayer(nn.Module):
         out = self.layer_norm(out + enc_inputs)
         out_2 = self.pos_ffn(out)
         out_2 = self.layer_norm(out_2 + out)
-        return out_2, attn
+        return out_2
 
 
 class Encoder(nn.Module):

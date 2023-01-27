@@ -29,7 +29,7 @@ class DecoderLayer(nn.Module):
         out2 = self.layer_norm(out + out2)
         out3 = self.pos_ffn(out2)
         out3 = self.layer_norm(out2 + out3)
-        return out3, dec_self_attn, dec_enc_attn
+        return out3
 
 
 class Decoder(nn.Module):
