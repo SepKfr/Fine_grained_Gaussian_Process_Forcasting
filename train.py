@@ -61,7 +61,7 @@ class Train:
                                    device=self.device,
                                    seed=self.seed,
                                    pred_len=self.pred_len,
-                                   attn_type=self.attn_type)
+                                   attn_type=self.attn_type).to(self.device)
 
         return model
 
