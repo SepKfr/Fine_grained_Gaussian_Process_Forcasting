@@ -250,7 +250,7 @@ def main():
     parser.add_argument("--pr", type=float, default=0.8)
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--DataParallel", type=bool, default=True)
-    parser.add_argument("--dae", type=str, default="True")
+    parser.add_argument("--denoising", type=str, default="True")
     parser.add_argument("--gp", type=str, default="False")
 
     args = parser.parse_args()
