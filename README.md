@@ -19,7 +19,7 @@ numpy >= 1.23.5
 ```
 
 ## How to run:
-$\textcolor{green}{command line arguments}$
+$${\color{red}Red}$$
 ```
 exp_name: str # the name of the dataset
 model_name:str # name of the end-to-end forecasting model (for saving model purpose)
