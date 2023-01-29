@@ -20,8 +20,8 @@ numpy >= 1.23.5
 
 ## How to run:
 ```
-Command line argument 
-exp_name: str  ```the name of the dataset```
+Command line arguments:
+exp_name: str  # the name of the dataset
 model_name:str # name of the end-to-end forecasting model (for saving model purpose)
 attn_type:str # the type of the attention model (ATA, autofomer, informer, conv_attn)
 denoising:bool # whether to use denoising
