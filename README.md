@@ -18,10 +18,10 @@ gpytorch >= 1.9.0
 numpy >= 1.23.5
 ```
 
-## Data Loading
+## Data Loading 
 
 ```
-python 
+python data_loader.py --expt_name traffic
 ```
 
 ## How to run:
