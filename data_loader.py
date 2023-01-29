@@ -29,7 +29,7 @@ import glob
 from tqdm import tqdm
 
 
-import air_quality, electricity, traffic, watershed, solar
+from data import air_quality, electricity, traffic, watershed, solar
 
 
 class ExperimentConfig(object):
