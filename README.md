@@ -16,5 +16,4 @@ torch >= 1.13.0
 optuna >= 3.0.4
 gpytorcj >= 1.9.0
 numpy >= 1.23.5
-
 ```
