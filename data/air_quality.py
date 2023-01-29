@@ -15,7 +15,7 @@
 
 # Lint as: python3
 
-import Utils.base as base
+from Utils import base
 import electricity
 
 
