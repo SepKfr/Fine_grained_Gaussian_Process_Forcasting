@@ -7,3 +7,9 @@ Most commonly, scaled isotropic Gaussian noise is used as a corruption process. 
 
 Instead, we propose to substitute the isotropic Gaussian noise with a Gaussian Process for generating corrupted time series that are smoothly-correlated across time. We hypothesize that a model that is able to denoise such smooth, yet erroneous behavior will be a more resilient forecasting model.
 Our extensive experiments demonstrate that our proposed corruption-resilient forecasting approach is able to improve the forecasting accuracy of several state-of-the-art time series forecasting models in 74\% of the cases. 
+
+## Requirements
+
+```
+python >= 3.10
+```
