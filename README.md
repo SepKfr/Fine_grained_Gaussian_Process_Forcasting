@@ -14,6 +14,6 @@ Our extensive experiments demonstrate that our proposed corruption-resilient for
 python >= 3.10.4
 torch >= 1.13.0
 optuna >= 3.0.4
-gpytorcj >= 1.9.0
+gpytorch >= 1.9.0
 numpy >= 1.23.5
 ```
