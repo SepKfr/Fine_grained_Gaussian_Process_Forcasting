@@ -17,3 +17,19 @@ optuna >= 3.0.4
 gpytorch >= 1.9.0
 numpy >= 1.23.5
 ```
+
+## How to run:
+
+```
+# command line arguments
+exp_name: str # the name of the dataset
+model_name:str # name of the end-to-end forecasting model (for saving model purpose)
+attn_type:str # the type of the attention model (ATA, autofomer, informer, conv_attn)
+denoising:bool # whether to use denoising
+gp:bool # whether to use our proposed GP noise model 
+seed:int # random seed value
+cuda:str # which GPU
+
+# one example 
+python train.py --exp_name traffic --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
+```
