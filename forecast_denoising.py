@@ -6,7 +6,7 @@ from modules.transformer import Transformer
 
 
 class Forecast_denoising(nn.Module):
-    def __init__(self, name:str, config: tuple, gp: bool,
+    def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str):
 
@@ -16,7 +16,7 @@ class Forecast_denoising(nn.Module):
 
         self.pred_len = pred_len
 
-        if name == "LSTM":
+        if model_name == "LSTM":
 
             self.forecasting_model = RNN(n_layers=stack_size,
                                          hidden_size=d_model,

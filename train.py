@@ -41,7 +41,7 @@ class Train:
         self.criterion = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
         self.num_epochs = self.params['num_epochs']
-        self.name = args.name
+        self.model_name = args.model_name
         self.best_val = 1e10
         self.pr = args.pr
         self.param_history = []
@@ -54,7 +54,7 @@ class Train:
 
     def get_forecasting_denoising_model(self, config: tuple):
 
-        model = Forecast_denoising(name=self.name,
+        model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
                                    gp=self.gp,
                                    denoise=self.denoising,
@@ -81,7 +81,7 @@ class Train:
 
     def run_optuna(self, args):
 
-        study = optuna.create_study(study_name=args.name,
+        study = optuna.create_study(study_name=args.model_name,
                                     direction="minimize", pruner=optuna.pruners.HyperbandPruner(),
                                     sampler=TPESampler(seed=1234))
         study.optimize(self.objective, n_trials=args.n_trials)
@@ -179,7 +179,7 @@ class Train:
                     self.best_val = val_loss
                     self.best_model = model
                     torch.save({'model_state_dict': self.best_model.state_dict()},
-                               os.path.join(self.model_path, "{}_{}".format(self.name, self.seed)))
+                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
 
         return val_loss
 
@@ -218,19 +218,19 @@ class Train:
 
         print("test loss {:.4f}".format(test_loss))
 
-        self.erros["{}_{}".format(self.name, self.seed)] = list()
-        self.erros["{}_{}".format(self.name, self.seed)].append(float("{:.5f}".format(test_loss)))
-        self.erros["{}_{}".format(self.name, self.seed)].append(float("{:.5f}".format(mae_loss)))
+        self.erros["{}_{}".format(self.model_name, self.seed)] = list()
+        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
+        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
 
         error_path = "errors_{}_{}.json".format(self.exp_name, self.pred_len)
 
         if os.path.exists(error_path):
             with open(error_path) as json_file:
                 json_dat = json.load(json_file)
-                if json_dat.get("{}_{}".format(self.name, self.seed)) is None:
-                    json_dat["{}_{}".format(self.name, self.seed)] = list()
-                json_dat["{}_{}".format(self.name, self.seed)].append(float("{:.5f}".format(test_loss)))
-                json_dat["{}_{}".format(self.name, self.seed)].append(float("{:.5f}".format(mae_loss)))
+                if json_dat.get("{}_{}".format(self.model_name, self.seed)) is None:
+                    json_dat["{}_{}".format(self.model_name, self.seed)] = list()
+                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
+                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
 
             with open(error_path, "w") as json_file:
                 json.dump(json_dat, json_file)
