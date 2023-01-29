@@ -16,7 +16,7 @@
 # Lint as: python3
 
 import sklearn.preprocessing
-from Utils import utils, base
+from ..Utils import utils, base
 
 GenericDataFormatter = base.GenericDataFormatter
 DataTypes = base.DataTypes

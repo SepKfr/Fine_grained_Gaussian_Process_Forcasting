@@ -15,8 +15,8 @@
 
 # Lint as: python3
 
-from Utils import base, utils
-from data.electricity import ElectricityFormatter
+from ..Utils import base, utils
+from electricity import ElectricityFormatter
 import pandas as pd
 
 DataFormatter = ElectricityFormatter
