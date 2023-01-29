@@ -18,6 +18,12 @@ gpytorch >= 1.9.0
 numpy >= 1.23.5
 ```
 
+## Data Loading
+
+```
+python 
+```
+
 ## How to run:
 ```
 Command line arguments:
