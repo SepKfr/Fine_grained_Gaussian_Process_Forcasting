@@ -15,6 +15,10 @@
 
 # Lint as: python3
 
+import sys
+
+sys.path.append(__file__.rsplit("/", 1)[0])
+
 from Utils import base
 import electricity
 
