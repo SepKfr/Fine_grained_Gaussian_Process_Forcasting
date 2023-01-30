@@ -33,14 +33,16 @@ After running the above python script, a csv file containing the traffic dataset
 ## How to run:
 ```
 Command line arguments:
-exp_name: str  the name of the dataset
+
+exp_name: str   the name of the dataset
 model_name:str  name of the end-to-end forecasting model (for saving model purpose)
-attn_type:str  the type of the attention model (ATA, autofomer, informer, conv_attn)
+attn_type:str   the type of the attention model (ATA, autofomer, informer, conv_attn)
 denoising:bool  whether to use denoising
-gp:bool  whether to use our proposed GP noise model 
-seed:int  random seed value
-cuda:str  which GPU
+gp:bool         whether to use our proposed GP noise model 
+seed:int        random seed value
+cuda:str        which GPU
 
 # one example with traffic dataset and ATA forecasting model when apply corruption and denoising with out proposed GP model 
+
 python train.py --exp_name traffic --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
