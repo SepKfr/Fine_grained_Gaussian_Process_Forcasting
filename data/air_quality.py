@@ -16,15 +16,14 @@
 # Lint as: python3
 
 from Utils import base
-import electricity
+from data.electricity import ElectricityFormatter
 
-
-ElectricityFormatter = electricity.ElectricityFormatter
+DataFormatter = ElectricityFormatter
 DataTypes = base.DataTypes
 InputTypes = base.InputTypes
 
 
-class AirQualityFormatter(ElectricityFormatter):
+class AirQualityFormatter(DataFormatter):
 
     _column_definition = [
         ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.TIME),
