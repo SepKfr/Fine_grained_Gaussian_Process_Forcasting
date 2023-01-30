@@ -1,5 +1,7 @@
 # Corruption-resilient Forecasting Models
 
+This repository contains the code and instrauction on how to run of our Corruption-resilient Forecasting Models paper submitted to ICML 2023.
+
 ## Abstract 
 
 Challenges in time series forecasting arise due to the existence of complex dependencies on different time scales and the effect of unseen external factors. Despite the recent advances, the existence of erroneous predictions is inevitable, and can only be reduced with additional training data (which is a limited resource). We are building on the recent success of denoising approaches for image generation, and explore the utility of such approaches for time series forecasting. 
@@ -39,6 +41,6 @@ gp:bool  whether to use our proposed GP noise model
 seed:int  random seed value
 cuda:str  which GPU
 
-# one example 
+# one example with traffic dataset and ATA forecasting model when apply corruption and denoising with out proposed GP model 
 python train.py --exp_name traffic --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
