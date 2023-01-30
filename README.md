@@ -1,6 +1,6 @@
 # Corruption-resilient Forecasting Models
 
-This repository contains the code and instrauction on how to run of our Corruption-resilient Forecasting Models paper submitted to ICML 2023.
+This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to ICML 2023.
 
 ## Abstract 
 
