@@ -104,7 +104,7 @@ def unzip(zip_path, output_file, data_folder):
     """Unzips files and checks successful completion."""
 
     print('Unzipping file: {}'.format(zip_path))
-    pyunpack.Archive(zip_path).extractall(data_folder)
+    pyunpack.Archive(zip_path).extractall(os.path.join(data_folder, output_file))
 
     # Checks if unzip was successful
     '''if not os.path.exists(output_file):
