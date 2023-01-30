@@ -37,7 +37,7 @@ class ExperimentConfig(object):
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
                            'covid']
 
-    def __init__(self, experiment='covid', root_folder=None):
+    def __init__(self, pred_len=24,experiment='covid', root_folder=None):
 
         if experiment not in self.default_experiments:
             raise ValueError('Unrecognised experiment={}'.format(experiment))
@@ -50,7 +50,7 @@ class ExperimentConfig(object):
         self.root_folder = root_folder
         self.experiment = experiment
         self.data_folder = os.path.join(root_folder, '', experiment)
-        #self.pred_len = pred_len
+        self.pred_len = pred_len
 
         for relevant_directory in [
             self.root_folder, self.data_folder
@@ -103,8 +103,12 @@ def download_from_url(url, output_path):
 def unzip(zip_path, output_file, data_folder):
     """Unzips files and checks successful completion."""
 
+    if not os.path.exists(output_file):
+        os.makedirs(output_file)
+
     print('Unzipping file: {}'.format(zip_path))
-    pyunpack.Archive(zip_path).extractall(os.path.join(data_folder))
+
+    pyunpack.Archive(zip_path).extractall(output_file)
 
     # Checks if unzip was successful
     '''if not os.path.exists(output_file):
@@ -439,7 +443,7 @@ def download_solar(args):
 
     url = 'https://www.nrel.gov/grid/assets/downloads/al-pv-2006.zip'
     data_folder = args.data_folder
-    csv_path = data_folder
+    csv_path = os.path.join(data_folder, 'al-pv-2006')
     zip_path = csv_path + '.zip'
 
     download_and_unzip(url, zip_path, csv_path, data_folder)
@@ -855,7 +859,7 @@ def process_favorita(config):
 def main(expt_name, force_download, output_folder):
 
     print('#### Running download script ###')
-    expt_config = ExperimentConfig(expt_name, output_folder)
+    expt_config = ExperimentConfig(experiment=expt_name, root_folder=output_folder)
 
     if os.path.exists(expt_config.data_csv_path) and not force_download:
         print('Data has been processed for {}. Skipping download...'.format(
