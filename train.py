@@ -42,7 +42,6 @@ class Train:
         self.num_epochs = self.params['num_epochs']
         self.model_name = args.model_name
         self.best_val = 1e10
-        self.pr = args.pr
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
