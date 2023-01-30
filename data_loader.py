@@ -37,7 +37,7 @@ class ExperimentConfig(object):
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
                            'covid']
 
-    def __init__(self, pred_len=24, experiment='covid', root_folder=None):
+    def __init__(self, experiment='covid', root_folder=None):
 
         if experiment not in self.default_experiments:
             raise ValueError('Unrecognised experiment={}'.format(experiment))
@@ -50,7 +50,7 @@ class ExperimentConfig(object):
         self.root_folder = root_folder
         self.experiment = experiment
         self.data_folder = os.path.join(root_folder, '', experiment)
-        self.pred_len = pred_len
+        #self.pred_len = pred_len
 
         for relevant_directory in [
             self.root_folder, self.data_folder
