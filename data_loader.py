@@ -104,7 +104,7 @@ def unzip(zip_path, output_file, data_folder):
     """Unzips files and checks successful completion."""
 
     print('Unzipping file: {}'.format(zip_path))
-    pyunpack.Archive(zip_path).extractall(os.path.join(data_folder, output_file))
+    pyunpack.Archive(zip_path).extractall(os.path.join(data_folder))
 
     # Checks if unzip was successful
     '''if not os.path.exists(output_file):
@@ -439,7 +439,7 @@ def download_solar(args):
 
     url = 'https://www.nrel.gov/grid/assets/downloads/al-pv-2006.zip'
     data_folder = args.data_folder
-    csv_path = os.path.join(data_folder, 'al-pv-2006')
+    csv_path = data_folder
     zip_path = csv_path + '.zip'
 
     download_and_unzip(url, zip_path, csv_path, data_folder)
