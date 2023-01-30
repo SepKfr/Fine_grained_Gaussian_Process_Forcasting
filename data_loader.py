@@ -50,7 +50,7 @@ class ExperimentConfig(object):
         self.root_folder = root_folder
         self.experiment = experiment
         self.data_folder = os.path.join(root_folder, '', experiment)
-        self.pred_len = pred_len
+        #self.pred_len = pred_len
 
         for relevant_directory in [
             self.root_folder, self.data_folder
