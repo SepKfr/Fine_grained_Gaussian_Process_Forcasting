@@ -70,7 +70,7 @@ class Train:
         train_max, valid_max = self.formatter.get_num_samples_for_calibration()
         max_samples = (train_max, valid_max)
 
-        train, valid, test = batch_sampled_data(data, self.pr, max_samples, self.params['total_time_steps'],
+        train, valid, test = batch_sampled_data(data, 0.8, max_samples, self.params['total_time_steps'],
                                                 self.params['num_encoder_steps'], self.pred_len,
                                                 self.params["column_definition"],
                                                 self.batch_size)
