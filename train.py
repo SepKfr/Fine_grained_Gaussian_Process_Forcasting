@@ -12,7 +12,7 @@ import pandas as pd
 import optuna
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
-from data.data_loader import ExperimentConfig
+from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
 

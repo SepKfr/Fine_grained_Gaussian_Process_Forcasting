@@ -15,13 +15,11 @@
 
 # Lint as: python3
 
-from Utils import base, utils
+from Utils.base import DataTypes, InputTypes
 from data.electricity import ElectricityFormatter
 import pandas as pd
 
 DataFormatter = ElectricityFormatter
-DataTypes = base.DataTypes
-InputTypes = base.InputTypes
 
 
 class WatershedFormatter(DataFormatter):

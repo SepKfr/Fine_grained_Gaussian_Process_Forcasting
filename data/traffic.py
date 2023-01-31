@@ -16,11 +16,7 @@
 # Lint as: python3
 
 import sklearn.preprocessing
-from Utils import utils, base
-
-GenericDataFormatter = base.GenericDataFormatter
-DataTypes = base.DataTypes
-InputTypes = base.InputTypes
+from Utils.base import GenericDataFormatter, DataTypes, InputTypes
 
 
 class TrafficFormatter(GenericDataFormatter):

@@ -15,12 +15,10 @@
 
 # Lint as: python3
 
-from Utils import base
+from Utils.base import DataTypes, InputTypes
 from data.electricity import ElectricityFormatter
 
 DataFormatter = ElectricityFormatter
-DataTypes = base.DataTypes
-InputTypes = base.InputTypes
 
 
 class SolarFormatter(ElectricityFormatter):

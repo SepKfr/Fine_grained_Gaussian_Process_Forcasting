@@ -44,7 +44,7 @@ class ExperimentConfig(object):
 
         if root_folder is None:
             root_folder = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), '', 'outputs')
+                os.path.dirname(os.path.realpath(__file__)), '', 'data/outputs')
             print('Using root folder {}'.format(root_folder))
 
         self.root_folder = root_folder
