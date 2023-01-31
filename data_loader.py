@@ -346,14 +346,14 @@ def download_air_quality(args):
 
     url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00501/PRSA2017_Data_20130301-20170228.zip'
     data_folder = args.data_folder
-    data_path = os.path.join(data_folder, 'PRSA2017_Data_20130301-20170228')
-    zip_path = data_folder + '.zip'
+    data_path = data_folder
+    zip_path = data_path + '.zip'
     download_and_unzip(url, zip_path, data_path, data_folder)
     df_list = []
 
     for i, site in enumerate(os.listdir(data_path)):
 
-        df = pd.read_csv(os.path.join(data_path, site), index_col=0, sep=',')
+        df = pd.read_csv(os.path.join(data_path, 'PRSA2017_Data_20130301-20170228', site), index_col=0, sep=',')
         df_list.append(df)
 
     output = pd.concat(df_list, axis=0)
