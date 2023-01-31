@@ -42,7 +42,7 @@ gp:bool          whether to use our proposed GP noise model
 seed:int         random seed value
 cuda:str         which GPU
 
-# one example with traffic dataset and ATA forecasting model when apply corruption and denoising with out proposed GP model 
+# one example with traffic dataset and ATA forecasting model when apply corruption and denoising with our proposed GP model 
 
 python train.py --exp_name solar --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
