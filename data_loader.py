@@ -353,7 +353,7 @@ def download_air_quality(args):
 
     for i, site in enumerate(os.listdir(data_path)):
 
-        df = pd.read_csv(site, index_col=0, sep=',')
+        df = pd.read_csv(os.path.join(data_path, site), index_col=0, sep=',')
         df_list.append(df)
 
     output = pd.concat(df_list, axis=0)
