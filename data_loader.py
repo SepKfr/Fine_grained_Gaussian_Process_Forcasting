@@ -681,7 +681,7 @@ def download_traffic(args):
         sliced['prev_values'] = sliced['values'].shift(1)
         sliced['next_values'] = sliced['values'].shift(-1)
 
-        flat_df = flat_df.concat(sliced.dropna(), ignore_index=True, sort=False)
+        flat_df = flat_df.append(sliced.dropna(), ignore_index=True, sort=False)
 
     # Filter to match range used by other academic papers
     index = flat_df['sensor_day']
