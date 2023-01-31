@@ -28,7 +28,7 @@ numpy >= 1.23.5
 python data_loader.py --expt_name solar
 ```
 
-After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from {traffic, electricity, air_quality, solar, watershed}.
+After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from ```{traffic, electricity, air_quality, solar, watershed}```.
 
 ## How to run:
 ```
@@ -48,3 +48,5 @@ python train.py --exp_name solar --model_name ATA_gp --attn_type ATA --denoising
 ```
 
 The notebook file ```example_run.ipynb``` is an example of how to load data as well as training and evaluating three different corruption models 1. GP: our Gaussian-Process-based corruption model 2. Iso: isotropic Gaussian corruptio 3. no: no corruption (only forecasting).
+
+## 
