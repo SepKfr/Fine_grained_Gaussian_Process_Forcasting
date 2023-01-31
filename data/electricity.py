@@ -17,6 +17,8 @@
 
 import pandas as pd
 import sklearn.preprocessing
+
+from Utils import utils
 from Utils.base import GenericDataFormatter, DataTypes, InputTypes
 
 GenericDataFormatter = GenericDataFormatter
