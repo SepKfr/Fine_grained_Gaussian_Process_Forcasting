@@ -25,10 +25,10 @@ numpy >= 1.23.5
 ## Data Loading 
 
 ```
-python data_loader.py --expt_name traffic
+python data_loader.py --expt_name solar
 ```
 
-After running the above python script, a csv file containing the traffic dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from {traffic, electricity, air_quality, solar, watershed}.
+After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from {traffic, electricity, air_quality, solar, watershed}.
 
 ## How to run:
 ```
@@ -44,5 +44,7 @@ cuda:str         which GPU
 
 # one example with traffic dataset and ATA forecasting model when apply corruption and denoising with out proposed GP model 
 
-python train.py --exp_name traffic --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
+python train.py --exp_name solar --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
+
+The notebook file ```example_run.ipynb``` is an example of how to load data as well as training and evaluating three different corruption models 1. GP: our Gaussian-Process-based corruption model 2. Iso: isotropic Gaussian corruptio 3. no: no corruption (only forecasting).
