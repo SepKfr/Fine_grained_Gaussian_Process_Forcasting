@@ -553,6 +553,7 @@ def download_traffic(args):
     data_folder = args.data_folder
     csv_path = os.path.join(data_folder, 'PEMS_train')
     zip_path = os.path.join(data_folder, 'PEMS-SF.zip')
+    data_folder = csv_path
 
     download_and_unzip(url, zip_path, csv_path, data_folder)
 
