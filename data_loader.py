@@ -351,7 +351,7 @@ def download_air_quality(args):
     download_and_unzip(url, zip_path, data_path, data_folder)
     df_list = []
 
-    folder = os.path.join(data_path, 'PRSA2017_Data_20130301-20170228')
+    folder = os.path.join(data_path, 'PRSA_Data_20130301-20170228')
 
     for i, site in enumerate(os.listdir(folder)):
 
