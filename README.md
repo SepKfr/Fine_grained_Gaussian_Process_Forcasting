@@ -47,6 +47,6 @@ cuda:str         which GPU
 python train.py --exp_name solar --model_name ATA_gp --attn_type ATA --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
 
-The notebook file ```example_run.ipynb``` is an example of how to load data as well as training and evaluating three different corruption models 1. GP: our Gaussian-Process-based corruption model 2. Iso: isotropic Gaussian corruptio 3. no: no corruption (only forecasting).
+The notebook file [example_run.ipynb(https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/example_run.ipynb) is an example of how to load data as well as training and evaluating three different corruption models 1. GP: our Gaussian-Process-based corruption model 2. Iso: isotropic Gaussian corruptio 3. no: no corruption (only forecasting).
 
 ## 
