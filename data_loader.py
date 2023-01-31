@@ -347,6 +347,7 @@ def download_air_quality(args):
     url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00501/PRSA2017_Data_20130301-20170228.zip'
     data_folder = args.data_folder
     data_path = data_folder
+    print(data_path)
     zip_path = data_path + '.zip'
     download_and_unzip(url, zip_path, data_path, data_folder)
     df_list = []
