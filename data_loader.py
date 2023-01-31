@@ -37,14 +37,14 @@ class ExperimentConfig(object):
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
                            'covid']
 
-    def __init__(self, pred_len=24,experiment='covid', root_folder=None):
+    def __init__(self, pred_len=24, experiment='covid', root_folder=None):
 
         if experiment not in self.default_experiments:
             raise ValueError('Unrecognised experiment={}'.format(experiment))
 
         if root_folder is None:
             root_folder = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), '', 'data/outputs')
+                os.path.dirname(os.path.realpath(__file__)), '', 'outputs')
             print('Using root folder {}'.format(root_folder))
 
         self.root_folder = root_folder
