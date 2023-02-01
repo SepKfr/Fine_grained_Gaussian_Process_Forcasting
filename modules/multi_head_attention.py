@@ -49,7 +49,7 @@ class MultiHeadAttention(nn.Module):
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
-            context, attn = AutoCorrelation()(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
+            context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
                                               attn_mask)
 
         # CNN-trans forecasting model
