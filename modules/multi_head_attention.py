@@ -1,3 +1,7 @@
+import random
+
+import numpy as np
+import torch
 import torch.nn as nn
 from forecasting_models.ATA import ATA
 from forecasting_models.ConvAttn import ConvAttn
@@ -10,6 +14,10 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_k, d_v, n_heads, device, attn_type, seed):
 
         super(MultiHeadAttention, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
 
         self.WQ = nn.Linear(d_model, d_k * n_heads, bias=False)
         self.WK = nn.Linear(d_model, d_k * n_heads, bias=False)

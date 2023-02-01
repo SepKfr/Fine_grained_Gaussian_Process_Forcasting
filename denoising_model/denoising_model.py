@@ -1,12 +1,19 @@
+import random
+
 import gpytorch
+import numpy as np
 import torch
 import torch.nn as nn
 from modules.losses import normal_kl
 
 
 class denoise_model(nn.Module):
-    def __init__(self, gp, d, device):
+    def __init__(self, gp, d, device, seed):
         super(denoise_model, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
 
         self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
                                      nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),

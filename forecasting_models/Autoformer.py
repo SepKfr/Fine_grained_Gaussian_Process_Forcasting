@@ -1,3 +1,6 @@
+import random
+
+import numpy as np
 import torch
 import torch.nn as nn
 import math
@@ -10,8 +13,14 @@ class AutoCorrelation(nn.Module):
     (2) time delay aggregation
     This block can replace the self-attention family mechanism seamlessly.
     """
-    def __init__(self, mask_flag=True, factor=1, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, seed, mask_flag=True, factor=1, scale=None, attention_dropout=0.1, output_attention=False):
+
         super(AutoCorrelation, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
         self.factor = factor
         self.scale = scale
         self.mask_flag = mask_flag

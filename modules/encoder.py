@@ -1,3 +1,7 @@
+import random
+
+import numpy as np
+import torch
 import torch.nn as nn
 from modules.multi_head_attention import MultiHeadAttention
 from modules.feedforward import PoswiseFeedForwardNet
@@ -9,12 +13,17 @@ class EncoderLayer(nn.Module):
     def __init__(self, d_model, d_ff, d_k, d_v, n_heads,
                  device, attn_type, seed):
         super(EncoderLayer, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
         self.enc_self_attn = MultiHeadAttention(
             d_model=d_model, d_k=d_k,
             d_v=d_v, n_heads=n_heads, device=device,
             attn_type=attn_type, seed=seed)
         self.pos_ffn = PoswiseFeedForwardNet(
-            d_model=d_model, d_ff=d_ff)
+            d_model=d_model, d_ff=d_ff, seed=seed)
         self.layer_norm = nn.LayerNorm(d_model, elementwise_affine=False)
 
     def forward(self, enc_inputs, enc_self_attn_mask=None):
@@ -32,6 +41,11 @@ class Encoder(nn.Module):
                  n_layers, pad_index, device,
                  attn_type, seed):
         super(Encoder, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
         self.device = device
         self.pad_index = pad_index
         self.attn_type = attn_type

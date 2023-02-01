@@ -1,3 +1,6 @@
+import random
+
+import numpy as np
 import torch
 import torch.nn as nn
 from denoising_model.denoising_model import denoise_model
@@ -11,6 +14,10 @@ class Forecast_denoising(nn.Module):
                  seed: int, pred_len: int, attn_type: str):
 
         super(Forecast_denoising, self).__init__()
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
 
         src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
@@ -39,7 +46,7 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model(gp, d_model, device)
+        self.de_model = denoise_model(gp, d_model, device, seed)
         self.denoise = denoise
         self.final_projection = nn.Linear(d_model, 1)
 

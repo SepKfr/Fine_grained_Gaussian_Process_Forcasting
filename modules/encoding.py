@@ -5,6 +5,7 @@ import torch
 class PositionalEncoding(nn.Module):
     """Positional encoding."""
     def __init__(self, d_hid, device, max_len=1000):
+
         super(PositionalEncoding, self).__init__()
         # Create a long enough `P`
         self.P = torch.zeros((1, max_len, d_hid)).to(device)
