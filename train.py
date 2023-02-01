@@ -39,7 +39,7 @@ class Train:
         self.attn_type = args.attn_type
         self.criterion = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
-        self.num_epochs = self.params['num_epochs']
+        self.num_epochs = args.num_epochs
         self.model_name = args.model_name
         self.best_val = 1e10
         self.param_history = []
@@ -248,6 +248,7 @@ def main():
     parser.add_argument("--n_trials", type=int, default=3)
     parser.add_argument("--denoising", type=str, default="True")
     parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--num_epochs", type=int, default=50)
 
     args = parser.parse_args()
 
