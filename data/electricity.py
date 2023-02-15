@@ -168,7 +168,7 @@ class ElectricityFormatter(GenericDataFormatter):
         for col in categorical_inputs:
 
             string_df = df[col].apply(str)
-            output[col] = self._cat_scalers.loc[:len(string_df),col].transform(string_df)
+            output[col] = self._cat_scalers[col].transform(string_df[:len(output)])
 
         return output
 
