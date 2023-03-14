@@ -7,6 +7,9 @@ from denoising_model.denoising_model import denoise_model
 from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
 
+import warnings
+warnings.filterwarnings("ignore")
+
 
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
