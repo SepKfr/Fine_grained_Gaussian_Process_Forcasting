@@ -11,7 +11,7 @@ from modules.transformer import Transformer
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
-                 seed: int, pred_len: int, attn_type: str):
+                 seed: int, pred_len: int, attn_type: str, no_noise: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -46,7 +46,7 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model(gp, d_model, device, seed)
+        self.de_model = denoise_model(gp, d_model, device, seed, n_noise=no_noise)
         self.denoise = denoise
         self.final_projection = nn.Linear(d_model, 1)
 

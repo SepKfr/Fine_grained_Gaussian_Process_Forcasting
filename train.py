@@ -23,6 +23,7 @@ class Train:
         config = ExperimentConfig(pred_len, args.exp_name)
         self.denoising = True if args.denoising == "True" else False
         self.gp = True if args.gp == "True" else False
+        self.no_noise = True if args.no_noise == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -59,7 +60,8 @@ class Train:
                                    device=self.device,
                                    seed=self.seed,
                                    pred_len=self.pred_len,
-                                   attn_type=self.attn_type).to(self.device)
+                                   attn_type=self.attn_type,
+                                   no_noise=self.no_noise).to(self.device)
 
         return model
 
@@ -236,6 +238,7 @@ def main():
     parser.add_argument("--n_trials", type=int, default=3)
     parser.add_argument("--denoising", type=str, default="False")
     parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--no-noise", type=str, default="True")
     parser.add_argument("--num_epochs", type=int, default=50)
 
     args = parser.parse_args()
