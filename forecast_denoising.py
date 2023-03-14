@@ -54,13 +54,6 @@ class Forecast_denoising(nn.Module):
 
         outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
-        if self.denoise:
-
-            outputs, kl_loss = self.de_model(outputs.clone(), target)
-            outputs = self.final_projection(outputs[:, -self.pred_len:, :])
-            return outputs, kl_loss
-
-        else:
-
-            outputs = self.final_projection(outputs[:, -self.pred_len:, :])
-            return outputs
+        outputs, kl_loss = self.de_model(outputs.clone(), target)
+        outputs = self.final_projection(outputs[:, -self.pred_len:, :])
+        return outputs, kl_loss
