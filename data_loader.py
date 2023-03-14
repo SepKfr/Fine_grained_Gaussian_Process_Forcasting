@@ -472,9 +472,8 @@ def download_solar(args):
             date - earliest_time).days * 24
     output['days_from_start'] = (date - earliest_time).days
     output['categorical_id'] = output['id']
-    final = output.loc[output["Power(MW)"] > 0]
 
-    final.to_csv("solar.csv")
+    output.to_csv("solar.csv")
 
     print('Done.')
 

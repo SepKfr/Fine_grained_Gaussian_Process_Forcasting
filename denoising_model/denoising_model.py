@@ -45,7 +45,7 @@ class denoise_model(nn.Module):
 
     def forward(self, x, target=None):
 
-        eps = torch.randn_like(x)
+        '''eps = torch.randn_like(x)
 
         if target is not None:
             s_len = target.shape[1]
@@ -69,9 +69,9 @@ class denoise_model(nn.Module):
             x_noisy = x.add_(eps)
 
         else:
-            x_noisy = x.add_(eps * 0.1)
+            x_noisy = x.add_(eps * 0.1)'''
 
-        musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
+        musig = self.musig(self.encoder(x.permute(0, 2, 1)).permute(0, 2, 1))
 
         mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
 
@@ -81,18 +81,7 @@ class denoise_model(nn.Module):
 
         output = self.norm(y + x)
 
-        if target is not None:
-
-            mean_t = torch.flatten(torch.mean(mean_t, dim=-1), start_dim=1)
-            co_var_t = torch.flatten(torch.mean(co_var_t, dim=-1), start_dim=1)
-
-            mu = torch.flatten(torch.mean(mu[:, -s_len:, :], dim=-1), start_dim=1)
-            sigma = torch.flatten(torch.mean(sigma[:, -s_len:, :], dim=-1), start_dim=1)
-
-            kl_loss = normal_kl(mean_t, co_var_t, mu, sigma).mean()
-
-        else:
-            kl_loss = 0
+        kl_loss = 0
 
         return output, kl_loss
 
