@@ -63,11 +63,8 @@ class denoise_model(nn.Module):
             co_var = self.covar_module(x)
 
             dist = gpytorch.distributions.MultivariateNormal(mean, co_var)
-            mean = dist.mean.unsqueeze(-1)
-            co_var = dist.variance.unsqueeze(-1)
-
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.05
-            x_noisy = x.add_(eps)
+            eps = self.gp_proj_mean(dist.sample().unsqueeze(-1))
+            x_noisy = x.add_(eps * 0.05)
 
         elif self.n_noise:
 
