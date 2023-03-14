@@ -66,7 +66,7 @@ class denoise_model(nn.Module):
             mean = dist.mean.unsqueeze(-1)
             co_var = dist.variance.unsqueeze(-1)
 
-            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.1
+            eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps * 0.05
             x_noisy = x.add_(eps)
 
         elif self.n_noise:
@@ -74,7 +74,7 @@ class denoise_model(nn.Module):
             x_noisy = x
 
         else:
-            x_noisy = x.add_(eps * 0.1)
+            x_noisy = x.add_(eps * 0.05)
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
