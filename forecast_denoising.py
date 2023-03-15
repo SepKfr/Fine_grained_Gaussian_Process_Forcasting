@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
-                 seed: int, pred_len: int, attn_type: str, no_noise: bool):
+                 seed: int, pred_len: int, attn_type: str, no_noise: bool, residual: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -49,14 +49,23 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model(gp, d_model, device, seed, n_noise=no_noise)
+        self.de_model = denoise_model(gp, d_model, device, seed, n_noise=no_noise, residual=residual)
         self.denoise = denoise
+        self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
+        self.enc_embedding = nn.Linear(src_input_size, d_model)
+        self.dec_embedding = nn.Linear(tgt_input_size, d_model)
 
     def forward(self, enc_inputs, dec_inputs, target=None):
 
+        enc_inputs = self.enc_embedding(enc_inputs)
+        dec_inputs = self.dec_embedding(dec_inputs)
+
         outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
-        outputs, kl_loss = self.de_model(outputs.clone(), target)
+        if self.residual:
+            outputs, kl_loss = self.de_model(outputs.clone(), target, dec_inputs - outputs)
+        else:
+            outputs, kl_loss = self.de_model(outputs.clone(), target)
         outputs = self.final_projection(outputs[:, -self.pred_len:, :])
         return outputs, kl_loss

@@ -31,18 +31,13 @@ class Transformer(nn.Module):
             device=device,
             attn_type=attn_type, seed=seed)
 
-        self.enc_embedding = nn.Linear(src_input_size, d_model)
-        self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.attn_type = attn_type
         self.pred_len = pred_len
         self.device = device
 
     def forward(self, enc_inputs, dec_inputs):
 
-        enc_outputs = self.enc_embedding(enc_inputs)
-        dec_outputs = self.dec_embedding(dec_inputs)
-
-        enc_outputs = self.encoder(enc_outputs)
-        dec_outputs = self.decoder(dec_outputs, enc_outputs)
+        enc_outputs = self.encoder(enc_inputs)
+        dec_outputs = self.decoder(dec_inputs, enc_outputs)
 
         return dec_outputs

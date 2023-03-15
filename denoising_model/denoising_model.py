@@ -8,7 +8,7 @@ from modules.losses import normal_kl
 
 
 class denoise_model(nn.Module):
-    def __init__(self, gp, d, device, seed, n_noise=False):
+    def __init__(self, gp, d, device, seed, n_noise=False, residual=False):
         super(denoise_model, self).__init__()
 
         np.random.seed(seed)
@@ -35,6 +35,7 @@ class denoise_model(nn.Module):
         self.mean_module_t = gpytorch.means.ConstantMean()
         self.covar_module_t = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
+        self.residual = residual
 
         if self.gp:
             self.gp_proj = nn.Sequential(
@@ -46,8 +47,9 @@ class denoise_model(nn.Module):
         self.d = d
         self.device = device
         self.n_noise = n_noise
+        self.residual = residual
 
-    def forward(self, x, target=None):
+    def forward(self, x, target=None, residual=None):
 
         eps = torch.randn_like(x)
 
@@ -72,6 +74,10 @@ class denoise_model(nn.Module):
         elif self.n_noise:
 
             x_noisy = x
+
+        elif self.residual:
+
+            x_noisy = residual
 
         else:
             x_noisy = x.add_(eps * 0.05)

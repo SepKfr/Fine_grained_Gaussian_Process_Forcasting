@@ -24,6 +24,7 @@ class Train:
         self.denoising = True if args.denoising == "True" else False
         self.gp = True if args.gp == "True" else False
         self.no_noise = True if args.no_noise == "True" else False
+        self.residual = True if args.residual == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -61,7 +62,8 @@ class Train:
                                    seed=self.seed,
                                    pred_len=self.pred_len,
                                    attn_type=self.attn_type,
-                                   no_noise=self.no_noise).to(self.device)
+                                   no_noise=self.no_noise,
+                                   residual=self.residual).to(self.device)
 
         return model
 
@@ -155,7 +157,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                output, kl_loss= model(valid_enc.to(self.device), valid_dec.to(self.device))
+                output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
@@ -236,8 +238,9 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=3)
-    parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--denoising", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--residual", type=str, default="True")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=50)
 
