@@ -81,7 +81,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
             try:
                 d_k = int(d / n_heads)
 
-                config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
+                config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size
 
                 model = Forecast_denoising(model_name=args.name,
                                            config=config,
