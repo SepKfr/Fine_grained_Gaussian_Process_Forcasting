@@ -39,8 +39,8 @@ class denoise_model(nn.Module):
 
         if self.gp:
             self.gp_proj = nn.Sequential(
-                nn.Conv1d(in_channels=1, out_channels=2*d, kernel_size=3, padding=int((3 - 1) / 2)),
-                nn.Conv1d(in_channels=2*d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
+                nn.Conv1d(in_channels=1, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
+                nn.Conv1d(in_channels=d, out_channels=d, kernel_size=9, padding=int((9 - 1) / 2)),
                 nn.BatchNorm1d(d),
                 nn.Softmax(dim=-1), ).to(device)
 
