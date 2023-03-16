@@ -22,6 +22,7 @@ parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--dae", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 parser.add_argument("--no_noise", type=str, default="False")
+parser.add_argument("--residual", type=str, default="False")
 
 args = parser.parse_args()
 
@@ -73,6 +74,7 @@ stack_size = 1
 denoising = True if args.dae == "True" else False
 gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
+residual = True if args.residual == "True" else False
 
 
 for i, seed in enumerate([4293, 1692, 3029]):
@@ -91,7 +93,8 @@ for i, seed in enumerate([4293, 1692, 3029]):
                                            seed=seed,
                                            pred_len=pred_len,
                                            attn_type=args.attn_type,
-                                           no_noise=no_noise).to(device)
+                                           no_noise=no_noise,
+                                           residual=residual).to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)))
@@ -111,7 +114,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
                     j += 1
 
             except RuntimeError as e:
-                print(e)
+                pass
 
 predictions = torch.from_numpy(np.mean(predictions, axis=0))
 
