@@ -74,7 +74,7 @@ class denoise_model(nn.Module):
             dist = gpytorch.distributions.MultivariateNormal(mean, co_var)
             eps = self.gp_proj_mean(dist.mean.unsqueeze(-1).permute(0, 2, 1)).permute(0, 2, 1) + \
                   self.gp_proj_var(dist.variance.unsqueeze(-1).permute(0, 2, 1)).permute(0, 2, 1) * eps
-            x_noisy = self.norm(x + eps)
+            x_noisy = x + eps * 0.1
 
         elif self.n_noise:
 
@@ -85,7 +85,7 @@ class denoise_model(nn.Module):
             x_noisy = residual
 
         else:
-            x_noisy = x.add_(eps * 0.05)
+            x_noisy = x.add_(eps * 0.1)
 
         musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
 
