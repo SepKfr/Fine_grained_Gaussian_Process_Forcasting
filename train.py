@@ -145,7 +145,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.05 * kl_loss
 
                 total_loss += loss.item()
 
@@ -158,7 +158,7 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = nn.MSELoss()(output, valid_y.to(self.device))
+                loss = nn.MSELoss()(output, valid_y.to(self.device)) + 0.05 * kl_loss
 
                 test_loss += loss.item()
 
