@@ -31,22 +31,17 @@ class denoise_model(nn.Module):
         self.norm = nn.LayerNorm(d)
 
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5))
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.mean_module_t = gpytorch.means.ConstantMean()
-        self.covar_module_t = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5))
+        self.covar_module_t = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
         self.gp = gp
         self.residual = residual
 
         if self.gp:
-            self.gp_proj_mean = nn.Sequential(
-                nn.Conv1d(in_channels=1, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-                nn.BatchNorm1d(d),
-                nn.Softmax(dim=-1)).to(device)
-            self.gp_proj_var = nn.Sequential(
-                nn.Conv1d(in_channels=1, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-                nn.BatchNorm1d(d),
-                nn.Softmax(dim=-1),
-            ).to(device)
+            self.gp_proj_mean = nn.Sequential(nn.Linear(1, d, device=device),
+                                              nn.ReLU())
+            self.gp_proj_var = nn.Sequential(nn.Linear(1, d, device=device),
+                                             nn.ReLU())
 
         self.d = d
         self.device = device
