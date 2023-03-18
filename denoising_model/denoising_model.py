@@ -40,7 +40,6 @@ class denoise_model(nn.Module):
         if self.gp:
             self.gp_proj_mean = nn.Sequential(
                 nn.Conv1d(in_channels=1, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-                nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
                 nn.BatchNorm1d(d),
                 nn.Softmax(dim=-1)).to(device)
 
@@ -69,7 +68,7 @@ class denoise_model(nn.Module):
 
             dist = gpytorch.distributions.MultivariateNormal(mean, co_var)
             eps = self.gp_proj_mean(dist.sample().unsqueeze(-1).permute(0, 2, 1)).permute(0, 2, 1)
-            x_noisy = x + eps
+            x_noisy = self.norm(x + eps)
 
         elif self.n_noise:
 
