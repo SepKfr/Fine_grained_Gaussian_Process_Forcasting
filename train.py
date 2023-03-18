@@ -210,7 +210,7 @@ class Train:
 
         for j in range(self.pred_len):
             results[0, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
-            results[1, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
+            results[1, j] = F.l1_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
 
         df = pd.DataFrame(results.detach().cpu().numpy())
         df.to_csv("{}_{}_{}.csv".format(self.exp_name, self.model_name, self.pred_len))
