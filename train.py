@@ -145,7 +145,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                loss = nn.MSELoss()(output, train_y.to(self.device)) + kl_loss * 0.05
 
                 total_loss += loss.item()
 
@@ -158,7 +158,7 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = nn.MSELoss()(output, valid_y.to(self.device))
+                loss = nn.MSELoss()(output, valid_y.to(self.device)) + kl_loss * 0.05
 
                 test_loss += loss.item()
 
@@ -205,6 +205,15 @@ class Train:
 
         mae_loss = F.l1_loss(predictions, test_y).item()
         mae_loss = mae_loss / normaliser
+
+        results = torch.zeros(2, self.pred_len)
+
+        for j in range(self.pred_len):
+            results[0, j] = F.mse_loss(predictions[:, :, j], test_y_tot[:, :, j]).item() / normaliser
+            results[1, j] = F.mse_loss(predictions[:, :, j], test_y_tot[:, :, j]).item() / normaliser
+
+        df = pd.DataFrame(results.detach().cpu().numpy())
+        df.to_csv("{}_{}_{}.csv".format(self.exp_name, self.model_name, self.pred_len))
 
         print("test loss {:.4f}".format(test_loss))
 
