@@ -209,8 +209,8 @@ class Train:
         results = torch.zeros(2, self.pred_len)
 
         for j in range(self.pred_len):
-            results[0, j] = F.mse_loss(predictions[:, :, j], test_y_tot[:, :, j]).item() / normaliser
-            results[1, j] = F.mse_loss(predictions[:, :, j], test_y_tot[:, :, j]).item() / normaliser
+            results[0, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
+            results[1, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
 
         df = pd.DataFrame(results.detach().cpu().numpy())
         df.to_csv("{}_{}_{}.csv".format(self.exp_name, self.model_name, self.pred_len))
@@ -251,7 +251,7 @@ def main():
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=50)
+    parser.add_argument("--num_epochs", type=int, default=1)
 
     args = parser.parse_args()
 
