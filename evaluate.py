@@ -117,13 +117,13 @@ for i, seed in enumerate([4293, 1692, 3029]):
                 pass
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
-mse_std = np.zeros(3, args.pred_len)
+mse_std = torch.zeros(3, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, j], test_y_tot[:, :, j]).item()
 
-mse_std = mse_std.std(axis=0)
+mse_std = torch.std_mean(mse_std, dim=0)
 
 results = torch.zeros(3, args.pred_len)
 normaliser = test_y_tot.abs().mean()
