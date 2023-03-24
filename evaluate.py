@@ -118,7 +118,7 @@ for i, seed in enumerate([4293, 1692]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(3, args.pred_len)
+mse_std = torch.zeros(2, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
