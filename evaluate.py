@@ -116,18 +116,26 @@ for i, seed in enumerate([4293, 1692, 3029]):
             except RuntimeError as e:
                 pass
 
-predictions = torch.from_numpy(np.mean(predictions, axis=0))
+predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
+mse_std = np.zeros(3, args.pred_len)
 
-results = torch.zeros(2, args.pred_len)
+for i in range(3):
+    for j in range(args.pred_len):
+        mse_std[i, j] = mse(predictions[i, :, j], test_y_tot[:, :, j]).item()
+
+mse_std = mse_std.std(axis=0)
+
+results = torch.zeros(3, args.pred_len)
 normaliser = test_y_tot.abs().mean()
 
-test_loss = mse(predictions, test_y_tot).item() / normaliser
-mae_loss = mae(predictions, test_y_tot).item() / normaliser
+test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
+mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 
 for j in range(args.pred_len):
 
-    results[0, j] = mse(predictions[:, :, j], test_y_tot[:, :, j]).item()
-    results[1, j] = mae(predictions[:, :, j], test_y_tot[:, :, j]).item()
+    results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
+    results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
+    results[2] = mse_std
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 df.to_csv("{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len))
