@@ -122,7 +122,7 @@ mse_std = torch.zeros(3, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
-        mse_std[i, j] = mse(predictions[i, :, j], test_y_tot[:, :, j]).item()
+        mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 mse_std = torch.std_mean(mse_std, dim=0)
 
