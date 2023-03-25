@@ -132,7 +132,6 @@ normaliser = test_y_tot.abs().mean()
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-mse_mean = torch.mean(mse_mean).item() / normaliser
 
 for j in range(args.pred_len):
 
