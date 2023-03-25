@@ -127,7 +127,7 @@ for i in range(4):
 mse_mean = mse_std.mean(dim=0)
 
 
-results = torch.zeros(2, args.pred_len)
+results = torch.zeros(3, args.pred_len)
 normaliser = test_y_tot.abs().mean()
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
