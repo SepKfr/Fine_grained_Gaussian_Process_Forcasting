@@ -77,7 +77,7 @@ no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 
 
-for i, seed in enumerate([4293, 1692]):
+for i, seed in enumerate([4293, 1692, 3029]):
     for d in d_model:
         for k in kernel:
             try:
@@ -125,6 +125,7 @@ for i in range(2):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 mse_mean = mse_std.mean(dim=0)
+mse_std = mse_std.std(dim=0) / np.sqrt(2)
 
 results = torch.zeros(2, args.pred_len)
 normaliser = test_y_tot.abs().mean()
@@ -146,6 +147,7 @@ erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
 error_path = "final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
@@ -157,6 +159,7 @@ if os.path.exists(error_path):
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
     with open(error_path, "w") as json_file:
         json.dump(json_dat, json_file)
