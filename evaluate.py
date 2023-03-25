@@ -125,7 +125,7 @@ for i in range(4):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 mse_mean = mse_std.mean(dim=0)
-mse_std = mse_std.std(dim=0) / np.sqrt(2)
+
 
 results = torch.zeros(2, args.pred_len)
 normaliser = test_y_tot.abs().mean()
@@ -139,6 +139,7 @@ for j in range(args.pred_len):
 
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
+    results[2, j] = mse_mean
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 df.to_csv("{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len))
