@@ -125,7 +125,7 @@ for i in range(3):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 mse_mean = mse_std.mean(dim=0)
-mse_std = mse_std.std(dim=0) / np.sqrt(2)
+mse_std = mse_std.std(dim=0).item() / np.sqrt(2)
 
 results = torch.zeros(2, args.pred_len)
 normaliser = test_y_tot.abs().mean()
