@@ -118,7 +118,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(2, args.pred_len)
+mse_std = torch.zeros(3, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
@@ -126,7 +126,7 @@ for i in range(3):
 
 mse_mean = mse_std.mean(dim=0)
 
-results = torch.zeros(3, args.pred_len)
+results = torch.zeros(2, args.pred_len)
 normaliser = test_y_tot.abs().mean()
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
