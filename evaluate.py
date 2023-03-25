@@ -118,7 +118,7 @@ for i, seed in enumerate([4293, 1692, 3029]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(3, args.pred_len)
+mse_std = torch.zeros(2, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
@@ -137,7 +137,6 @@ for j in range(args.pred_len):
 
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
-    results[2] = mse_mean
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 df.to_csv("{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len))
