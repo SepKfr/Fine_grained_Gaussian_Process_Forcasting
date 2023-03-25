@@ -131,6 +131,7 @@ normaliser = test_y_tot.abs().mean()
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
+mse_mean = torch.mean(mse_mean).item() / normaliser
 
 for j in range(args.pred_len):
 
@@ -145,6 +146,7 @@ erros = dict()
 erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
 
 error_path = "final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
@@ -155,6 +157,7 @@ if os.path.exists(error_path):
             json_dat["{}".format(args.name)] = list()
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
 
     with open(error_path, "w") as json_file:
         json.dump(json_dat, json_file)
