@@ -143,7 +143,7 @@ mae_std = torch.mean(mae_std.std(dim=0)).item() / 2
 results = torch.zeros(4, args.pred_len)
 
 
-test_loss = torch.sqrt(mse(predictions_mean, test_y_tot)).item()/ normaliser
+test_loss = torch.sqrt(mse(predictions_mean, test_y_tot)).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 
 for j in range(args.pred_len):
@@ -166,6 +166,7 @@ erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
 
 error_path = "final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
@@ -179,6 +180,7 @@ if os.path.exists(error_path):
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
 
     with open(error_path, "w") as json_file:
         json.dump(json_dat, json_file)
