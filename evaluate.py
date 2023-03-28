@@ -124,17 +124,24 @@ for i, seed in enumerate([7631, 9873, 5249, 2498, 1346]):
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
 mse_std = torch.zeros(5, args.pred_len)
+mae_std = torch.zeros(5, args.pred_len)
 
 for i in range(5):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+        mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+
+normaliser = test_y_tot.abs().mean()
 
 mse_mean = mse_std.mean(dim=0)
-m_mse_men = torch.mean(mse_mean).item()
+m_mse_men = torch.mean(mse_mean).item() / normaliser
+mae_mean = mae_std.mean(dim=0)
+m_mae_men = torch.mean(mae_mean).item() / normaliser
 mse_std = torch.mean(mse_std.std(dim=0)).item() / 2
+mae_std = torch.mean(mae_std.std(dim=0)).item() / 2
 
-results = torch.zeros(3, args.pred_len)
-normaliser = test_y_tot.abs().mean()
+results = torch.zeros(4, args.pred_len)
+
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
@@ -144,6 +151,7 @@ for j in range(args.pred_len):
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[2] = mse_mean
+    results[2] = mae_mean
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 if not os.path.exists("predictions"):
@@ -156,6 +164,7 @@ erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
 error_path = "final_errors_{}_{}.json".format(args.exp_name, pred_len)
@@ -168,6 +177,7 @@ if os.path.exists(error_path):
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
     with open(error_path, "w") as json_file:
