@@ -137,8 +137,8 @@ mse_mean = mse_std.mean(dim=0)
 m_mse_men = torch.mean(mse_mean).item() / normaliser
 mae_mean = mae_std.mean(dim=0)
 m_mae_men = torch.mean(mae_mean).item() / normaliser
-mse_std = torch.mean(mse_std.std(dim=0)).item() / 2
-mae_std = torch.mean(mae_std.std(dim=0)).item() / 2
+mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(5)
+mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(5)
 
 results = torch.zeros(4, args.pred_len)
 
