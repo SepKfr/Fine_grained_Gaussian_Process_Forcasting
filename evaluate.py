@@ -63,7 +63,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((4, total_b, test_y.shape[0], test_y.shape[1]))
+predictions = np.zeros((5, total_b, test_y.shape[0], test_y.shape[1]))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], test_y.shape[1]))
 n_batches_test = test_enc.shape[0]
 
@@ -77,10 +77,15 @@ no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 
 
-for i, seed in enumerate([4293, 1692, 4876, 9158]):
+for i, seed in enumerate([7631, 9873, 5249, 2498, 1346]):
     for d in d_model:
         for k in kernel:
             try:
+
+                np.random.seed(seed)
+                random.seed(seed)
+                torch.manual_seed(seed)
+
                 d_k = int(d / n_heads)
 
                 config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size
@@ -118,9 +123,9 @@ for i, seed in enumerate([4293, 1692, 4876, 9158]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(4, args.pred_len)
+mse_std = torch.zeros(5, args.pred_len)
 
-for i in range(4):
+for i in range(5):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
@@ -140,12 +145,16 @@ for j in range(args.pred_len):
     results[2] = mse_mean
 
 df = pd.DataFrame(results.detach().cpu().numpy())
-df.to_csv("{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len))
+if not os.path.exists("predictions"):
+    os.makedirs("predictions")
+
+df.to_csv(os.path.join("predictions", "{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len)))
 
 erros = dict()
 erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
 error_path = "final_errors_{}_{}.json".format(args.exp_name, pred_len)
@@ -157,6 +166,7 @@ if os.path.exists(error_path):
             json_dat["{}".format(args.name)] = list()
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_mean)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 
     with open(error_path, "w") as json_file:
