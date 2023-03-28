@@ -128,7 +128,7 @@ mae_std = torch.zeros(5, args.pred_len)
 
 for i in range(5):
     for j in range(args.pred_len):
-        mse_std[i, j] = torch.sqrt(mse(predictions[i, :, :, j], test_y_tot[:, :, j])).item()
+        mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
         mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 normaliser = test_y_tot.abs().mean()
@@ -148,7 +148,7 @@ mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 
 for j in range(args.pred_len):
 
-    results[0, j] = torch.sqrt(mse(predictions_mean[:, :, j], test_y_tot[:, :, j])).item()
+    results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[2] = mse_mean
     results[2] = mae_mean
