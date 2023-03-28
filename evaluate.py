@@ -143,7 +143,7 @@ mae_std = torch.mean(mae_std.std(dim=0)).item() / 2
 results = torch.zeros(4, args.pred_len)
 
 
-test_loss = torch.sqrt(mse(predictions_mean, test_y_tot)).item() / normaliser
+test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 
 for j in range(args.pred_len):
