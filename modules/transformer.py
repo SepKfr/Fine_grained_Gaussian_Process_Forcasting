@@ -40,4 +40,4 @@ class Transformer(nn.Module):
         enc_outputs = self.encoder(enc_inputs)
         dec_outputs = self.decoder(dec_inputs, enc_outputs)
 
-        return dec_outputs
+        return enc_outputs, dec_outputs

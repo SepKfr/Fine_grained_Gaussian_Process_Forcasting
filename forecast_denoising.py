@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
-from denoising_model.denoising_model import denoise_model
+from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
 
@@ -49,23 +49,26 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model(gp, d_model, device, seed, n_noise=no_noise, residual=residual)
+        self.de_model = denoise_model_2(self.forecasting_model, gp, d_model, device, seed, n_noise=no_noise, residual=residual)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
 
-    def forward(self, enc_inputs, dec_inputs, target=None):
+    def forward(self, enc_inputs, dec_inputs):
 
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
-        outputs = self.forecasting_model(enc_inputs, dec_inputs)
+        enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         if self.residual:
-            outputs, kl_loss = self.de_model(outputs.clone(), target, dec_inputs - outputs)
+            residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
         else:
-            outputs, kl_loss = self.de_model(outputs.clone(), target)
-        outputs = self.final_projection(outputs[:, -self.pred_len:, :])
-        return outputs, kl_loss
+            residual = None
+
+        enc_outputs, dec_outputs, loss = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+
+        outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+        return outputs, loss
