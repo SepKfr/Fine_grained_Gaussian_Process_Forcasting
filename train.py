@@ -124,9 +124,9 @@ class Train:
 
         n_heads = self.model_params['num_heads']
 
-        if [d_model, stack_size, w_steps] in self.param_history:
+        if [d_model, stack_size, w_steps, nu] in self.param_history:
             raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, stack_size, w_steps])
+        self.param_history.append([d_model, stack_size, w_steps, nu])
 
         d_k = int(d_model / n_heads)
 
