@@ -119,6 +119,7 @@ class Train:
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
         w_steps = trial.suggest_categorical("w_steps", [1000])
+        nu = trial.suggest_categorical("nu", [0.5, 1.5, 2.5]) if self.gp else 1
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
@@ -131,7 +132,7 @@ class Train:
 
         assert d_model % d_k == 0
 
-        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
+        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size, nu
 
         model = self.get_forecasting_denoising_model(config)
 
@@ -246,7 +247,7 @@ def main():
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
-    parser.add_argument("--n_trials", type=int, default=3)
+    parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")

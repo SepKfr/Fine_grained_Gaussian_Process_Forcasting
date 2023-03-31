@@ -6,7 +6,7 @@ import random
 
 
 class denoise_model_2(nn.Module):
-    def __init__(self, model, gp, d, device, seed, n_noise=False, residual=False):
+    def __init__(self, model, gp, d, device, seed, nu=0.5, n_noise=False, residual=False):
         super(denoise_model_2, self).__init__()
 
         np.random.seed(seed)
@@ -16,7 +16,7 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.covar_module = gpytorch.kernels.MaternKernel(nu=nu)
 
         self.gp = gp
         self.residual = residual
