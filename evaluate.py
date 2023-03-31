@@ -63,7 +63,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((5, total_b, test_y.shape[0], test_y.shape[1]))
+predictions = np.zeros((3, total_b, test_y.shape[0], test_y.shape[1]))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], test_y.shape[1]))
 n_batches_test = test_enc.shape[0]
 
@@ -77,7 +77,7 @@ no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 
 
-for i, seed in enumerate([7631, 9873, 5249, 2498, 1346]):
+for i, seed in enumerate([7631, 9873, 5249]):
     for d in d_model:
         for k in kernel:
             try:
@@ -123,10 +123,10 @@ for i, seed in enumerate([7631, 9873, 5249, 2498, 1346]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(5, args.pred_len)
-mae_std = torch.zeros(5, args.pred_len)
+mse_std = torch.zeros(3, args.pred_len)
+mae_std = torch.zeros(3, args.pred_len)
 
-for i in range(5):
+for i in range(3):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
         mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
