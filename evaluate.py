@@ -27,6 +27,7 @@ parser.add_argument("--residual", type=str, default="False")
 args = parser.parse_args()
 
 kernel = [1, 3, 6, 9]
+nu_ls = [0.5, 1.5, 2.5]
 n_heads = 8
 d_model = [16, 32]
 batch_size = 256
@@ -80,46 +81,46 @@ residual = True if args.residual == "True" else False
 for i, seed in enumerate([7631, 9873, 5249]):
     for d in d_model:
         for k in kernel:
-            try:
+            for nu in nu_ls:
+                try:
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    torch.manual_seed(seed)
 
-                np.random.seed(seed)
-                random.seed(seed)
-                torch.manual_seed(seed)
+                    d_k = int(d / n_heads)
 
-                d_k = int(d / n_heads)
+                    config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size, nu
 
-                config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size
+                    model = Forecast_denoising(model_name=args.name,
+                                               config=config,
+                                               gp=gp,
+                                               denoise=denoising,
+                                               device=device,
+                                               seed=seed,
+                                               pred_len=pred_len,
+                                               attn_type=args.attn_type,
+                                               no_noise=no_noise,
+                                               residual=residual).to(device)
 
-                model = Forecast_denoising(model_name=args.name,
-                                           config=config,
-                                           gp=gp,
-                                           denoise=denoising,
-                                           device=device,
-                                           seed=seed,
-                                           pred_len=pred_len,
-                                           attn_type=args.attn_type,
-                                           no_noise=no_noise,
-                                           residual=residual).to(device)
+                    checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
+                                            "{}_{}".format(args.name, seed)))
+                    state_dict = checkpoint['model_state_dict']
+                    model.load_state_dict(state_dict)
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
-                                        "{}_{}".format(args.name, seed)))
-                state_dict = checkpoint['model_state_dict']
-                model.load_state_dict(state_dict)
+                    model.eval()
+                    model.to(device)
 
-                model.eval()
-                model.to(device)
+                    j = 0
+                    for test_enc, test_dec, test_y in test:
+                        output, _ = model(test_enc.to(device), test_dec.to(device))
 
-                j = 0
-                for test_enc, test_dec, test_y in test:
-                    output, _ = model(test_enc.to(device), test_dec.to(device))
+                        predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
+                        if i == 0:
+                            test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
+                        j += 1
 
-                    predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
-                    if i == 0:
-                        test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
-                    j += 1
-
-            except RuntimeError as e:
-                pass
+                except RuntimeError as e:
+                    pass
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
