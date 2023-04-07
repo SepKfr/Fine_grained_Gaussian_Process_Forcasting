@@ -78,7 +78,7 @@ no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 
 
-for i, seed in enumerate([7631, 9873, 2772]):
+for i, seed in enumerate([7631, 9873, 2722]):
     for d in d_model:
         for k in kernel:
             for nu in nu_ls:
