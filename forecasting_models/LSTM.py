@@ -25,9 +25,9 @@ class RNN(nn.Module):
 
     def forward(self, x_en, x_de):
 
-        enc_outputs, _ = self.lstm(x_en)
+        enc_outputs, _ = self.enc_lstm(x_en)
         enc_outputs = enc_outputs.transpose(0, 1)
-        dec_outputs, _ = self.lstm(x_de)
+        dec_outputs, _ = self.dec_lstm(x_de)
         dec_outputs = enc_outputs.transpose(0, 1)
 
         return enc_outputs, dec_outputs
