@@ -119,7 +119,7 @@ class Train:
 
         d_model = trial.suggest_categorical("d_model", [16, 32])
         w_steps = trial.suggest_categorical("w_steps", [1000])
-        nu = trial.suggest_categorical("nu", [0.5, 1.5, 2.5] if self.gp else [0.5])
+        nu = trial.suggest_categorical("nu", [0.5, 1.5] if self.gp else [0.5])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
