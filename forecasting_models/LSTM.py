@@ -15,8 +15,8 @@ class RNN(nn.Module):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        self.enc_lstm = nn.LSTM(src_input_size, hidden_size, n_layers, dropout=d_r)
-        self.dec_lstm = nn.LSTM(src_input_size, hidden_size, n_layers, dropout=d_r)
+        self.enc_lstm = nn.LSTM(hidden_size, hidden_size, n_layers, dropout=d_r)
+        self.dec_lstm = nn.LSTM(hidden_size, hidden_size, n_layers, dropout=d_r)
         self.n_layers = n_layers
         self.hidden_size = hidden_size
 
