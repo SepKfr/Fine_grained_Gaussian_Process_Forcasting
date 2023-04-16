@@ -18,7 +18,7 @@ class denoise_model_2(nn.Module):
         self.mean_module = gpytorch.means.ConstantMean()
         covar_module_a = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=nu))
         covar_module_b = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(lengthscale_prior=
-                                                                                 gpytorch.priors.SmoothedBoxPrior(0.001, 1.0, sigma=0.1)))
+                                                                                 gpytorch.priors.SmoothedBoxPrior(0.001, 1.0, sigma=0.05)))
         self.covar_module = covar_module_a + covar_module_b
 
         self.gp = gp
