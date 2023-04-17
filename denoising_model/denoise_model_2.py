@@ -44,7 +44,7 @@ class denoise_model_2(nn.Module):
         co_var = dist.variance.unsqueeze(-1)
 
         eps = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
-        x_noisy = x.add_(eps)
+        x_noisy = x.add_(eps * 0.05)
 
         return x_noisy
 
