@@ -16,9 +16,10 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.mean_module = gpytorch.means.ConstantMean()
-        covar_module_a = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=nu))
-        covar_module_b = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-        self.covar_module = covar_module_a + covar_module_b
+        covar_module_a = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=0.5)) + \
+                         gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5)) + \
+                         gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=2.5))
+        self.covar_module = covar_module_a
 
         self.gp = gp
         self.residual = residual
@@ -44,7 +45,7 @@ class denoise_model_2(nn.Module):
         co_var = dist.variance.unsqueeze(-1)
 
         eps_gp = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
-        x_noisy = x.add_(eps_gp * 0.05)
+        x_noisy = x.add_(eps_gp)
 
         return x_noisy
 
