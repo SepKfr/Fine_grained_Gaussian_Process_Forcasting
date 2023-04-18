@@ -119,20 +119,19 @@ class Train:
 
         d_model = trial.suggest_categorical("d_model", [32])
         w_steps = trial.suggest_categorical("w_steps", [1000])
-        nu = trial.suggest_categorical("nu", [0.5, 1.5] if self.gp else [0.5])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
         n_heads = self.model_params['num_heads']
 
-        if [d_model, stack_size, w_steps, nu] in self.param_history:
+        if [d_model, stack_size, w_steps] in self.param_history:
             raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, stack_size, w_steps, nu])
+        self.param_history.append([d_model, stack_size, w_steps])
 
         d_k = int(d_model / n_heads)
 
         assert d_model % d_k == 0
 
-        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size, nu
+        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
         model = self.get_forecasting_denoising_model(config)
 

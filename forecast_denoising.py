@@ -23,7 +23,7 @@ class Forecast_denoising(nn.Module):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size, nu = config
+        src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
         self.pred_len = pred_len
 
@@ -50,7 +50,7 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model_2(self.forecasting_model, gp, d_model, device, seed, nu=nu, n_noise=no_noise, residual=residual)
+        self.de_model = denoise_model_2(self.forecasting_model, gp, d_model, device, seed, n_noise=no_noise, residual=residual)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
