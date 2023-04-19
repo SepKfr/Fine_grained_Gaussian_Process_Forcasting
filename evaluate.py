@@ -27,7 +27,6 @@ parser.add_argument("--residual", type=str, default="False")
 args = parser.parse_args()
 
 kernel = [1, 3, 6, 9]
-nu_ls = [0.5, 1.5, 2.5]
 n_heads = 8
 d_model = [16, 32]
 batch_size = 256
@@ -81,7 +80,6 @@ residual = True if args.residual == "True" else False
 for i, seed in enumerate([7631, 9873, 5249]):
     for d in d_model:
         for k in kernel:
-            for nu in nu_ls:
                 try:
                     np.random.seed(seed)
                     random.seed(seed)
@@ -89,7 +87,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
 
                     d_k = int(d / n_heads)
 
-                    config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size, nu
+                    config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size
 
                     model = Forecast_denoising(model_name=args.name,
                                                config=config,
