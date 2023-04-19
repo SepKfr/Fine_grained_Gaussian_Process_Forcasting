@@ -212,9 +212,6 @@ class Train:
             results[0, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
             results[1, j] = F.l1_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
 
-        df = pd.DataFrame(results.detach().cpu().numpy())
-        df.to_csv("{}_{}_{}_{}.csv".format(self.exp_name, self.model_name, self.pred_len, self.seed))
-
         print("test loss {:.4f}".format(test_loss))
 
         self.erros["{}_{}".format(self.model_name, self.seed)] = list()
