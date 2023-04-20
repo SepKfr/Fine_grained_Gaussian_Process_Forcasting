@@ -26,9 +26,9 @@ parser.add_argument("--residual", type=str, default="False")
 
 args = parser.parse_args()
 
-kernel = [1, 3, 6, 9]
+kernel = [9]
 n_heads = 8
-d_model = [16, 32]
+d_model = [32]
 batch_size = 256
 
 config = ExperimentConfig(args.pred_len, args.exp_name)
@@ -118,7 +118,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                     j += 1
 
             except RuntimeError as e:
-                pass
+                print(e)
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
