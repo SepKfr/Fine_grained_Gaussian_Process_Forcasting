@@ -46,8 +46,9 @@ class denoise_model_2(nn.Module):
 
         eps_gp = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
         x_noisy = x.add_(eps_gp)
+        x_out = self.norm(x + x_noisy)
 
-        return x_noisy
+        return x_out
 
     def forward(self, enc_inputs, dec_inputs, residual=None):
 
@@ -70,8 +71,8 @@ class denoise_model_2(nn.Module):
             dec_noisy = residual[1]
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.05)
-            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
+            enc_noisy = self.norm(enc_inputs.add_(eps_enc * 0.05) + enc_inputs)
+            dec_noisy = self.norm(dec_inputs.add_(eps_dec * 0.05) + dec_inputs)
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
