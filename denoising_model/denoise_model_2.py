@@ -63,7 +63,7 @@ class denoise_model_2(nn.Module):
 
         elif self.residual:
 
-            dec_noisy = residual[1]
+            dec_noisy = residual
 
         else:
             dec_noisy = dec_inputs.add_(eps_dec * 0.05)
