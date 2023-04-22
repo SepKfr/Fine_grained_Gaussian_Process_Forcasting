@@ -45,42 +45,34 @@ class denoise_model_2(nn.Module):
         co_var = dist.variance.unsqueeze(-1)
 
         eps_gp = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
-        x_noisy = self.norm(x.add_(eps_gp) + x)
+        x_noisy = x.add_(eps_gp)
 
         return x_noisy
 
-    def forward(self, enc_inputs, dec_inputs, residual=None):
+    def forward(self, dec_inputs, residual=None):
 
-        eps_enc = torch.randn_like(enc_inputs)
         eps_dec = torch.randn_like(dec_inputs)
 
         if self.gp:
 
-            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc)
             dec_noisy = self.add_gp_noise(dec_inputs, eps_dec)
 
         elif self.n_noise:
 
-            enc_noisy = enc_inputs
             dec_noisy = dec_inputs
 
         elif self.residual:
 
-            enc_noisy = residual[0]
             dec_noisy = residual[1]
 
         else:
-            enc_noisy = self.norm(enc_inputs.add_(eps_enc * 0.05) + enc_inputs)
-            dec_noisy = self.norm(dec_inputs.add_(eps_dec * 0.05) + dec_inputs)
+            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
 
-        enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
+        dec_rec = self.denoising_model(dec_noisy)
 
-        loss = nn.MSELoss()(enc_rec, enc_inputs) + nn.MSELoss()(dec_rec, dec_inputs)
-
-        enc_output = self.norm(enc_rec + enc_inputs)
         dec_output = self.norm(dec_rec + dec_inputs)
 
-        return enc_output, dec_output, loss
+        return dec_output
 
 
 

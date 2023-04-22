@@ -53,15 +53,13 @@ class Denoising(nn.Module):
     def __init__(self, d, device, seed):
         super(Denoising, self).__init__()
 
-        self.denoising_enc = denoising_layer(d, device, seed)
         self.denoising_dec = denoising_layer(d, device, seed)
 
-    def forward(self, x_en, x_de):
+    def forward(self, x_de):
 
-        out_en = self.denoising_enc(x_en)
         out_de = self.denoising_dec(x_de)
 
-        return out_en, out_de
+        return out_de
 
 
 class Forecast_denoising(nn.Module):
@@ -121,12 +119,12 @@ class Forecast_denoising(nn.Module):
         loss = 0.0
 
         if self.residual:
-            residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
+            residual = dec_outputs - dec_inputs
         else:
             residual = None
 
         if self.denoise:
-            enc_outputs, dec_outputs, loss = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            dec_outputs = self.de_model(dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
         return outputs, loss
