@@ -11,57 +11,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-class denoising_layer(nn.Module):
-
-    def __init__(self, d, device, seed):
-        super(denoising_layer, self).__init__()
-
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.manual_seed(seed)
-
-        self.d = d
-        self.device = device
-
-        self.encoder = nn.Sequential(nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-                                     nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-                                     nn.BatchNorm1d(d),
-                                     nn.Softmax(dim=-1)).to(device)
-
-        self.musig = nn.Linear(d, 2 * d, device=device)
-
-        self.decoder = nn.Sequential(
-            nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-            nn.Conv1d(in_channels=d, out_channels=d, kernel_size=3, padding=int((3 - 1) / 2)),
-            nn.BatchNorm1d(d),
-            nn.Softmax(dim=-1), ).to(device)
-
-    def forward(self, x_noisy):
-
-        musig = self.musig(self.encoder(x_noisy.permute(0, 2, 1)).permute(0, 2, 1))
-
-        mu, sigma = musig[:, :, :self.d], musig[:, :, -self.d:]
-
-        z = mu + torch.exp(sigma * 0.5) * torch.randn_like(sigma, device=self.device)
-
-        y = self.decoder(z.permute(0, 2, 1)).permute(0, 2, 1)
-
-        return y
-
-
-class Denoising(nn.Module):
-    def __init__(self, d, device, seed):
-        super(Denoising, self).__init__()
-
-        self.denoising_dec = denoising_layer(d, device, seed)
-
-    def forward(self, x_de):
-
-        out_de = self.denoising_dec(x_de)
-
-        return out_de
-
-
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
@@ -77,7 +26,6 @@ class Forecast_denoising(nn.Module):
         src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
         self.pred_len = pred_len
-        self.denoise_model = Denoising(d_model, device, seed)
 
         if "LSTM" in model_name:
 
@@ -102,7 +50,7 @@ class Forecast_denoising(nn.Module):
                                                  attn_type=attn_type,
                                                  seed=seed)
 
-        self.de_model = denoise_model_2(self.denoise_model, gp, d_model, device, seed, n_noise=no_noise, residual=residual)
+        self.de_model = denoise_model_2(self.forecasting_model, gp, d_model, device, seed, n_noise=no_noise, residual=residual)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
@@ -119,12 +67,12 @@ class Forecast_denoising(nn.Module):
         loss = 0.0
 
         if self.residual:
-            residual = dec_outputs - dec_inputs
+            residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
         else:
             residual = None
 
         if self.denoise:
-            dec_outputs = self.de_model(dec_outputs.clone(), residual)
+            enc_outputs, dec_outputs, loss = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
         return outputs, loss
