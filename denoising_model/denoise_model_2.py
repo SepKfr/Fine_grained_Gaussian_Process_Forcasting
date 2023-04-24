@@ -56,8 +56,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
 
-            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc)
-            dec_noisy = self.add_gp_noise(dec_inputs, eps_dec)
+            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc) + enc_inputs
+            dec_noisy = self.add_gp_noise(dec_inputs, eps_dec) + dec_inputs
 
         elif self.n_noise:
 
@@ -70,8 +70,8 @@ class denoise_model_2(nn.Module):
             dec_noisy = residual[1]
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.05)
-            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
+            enc_noisy = enc_inputs.add_(eps_enc * 0.05) + enc_inputs
+            dec_noisy = dec_inputs.add_(eps_dec * 0.05) + enc_inputs
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 

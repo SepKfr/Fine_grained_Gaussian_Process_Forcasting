@@ -15,7 +15,6 @@ from optuna.trial import TrialState
 from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
-import pysdtw
 
 
 class Train:
@@ -48,8 +47,6 @@ class Train:
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
-        fun = pysdtw.distance.pairwise_l2_squared
-        self.sdtw = pysdtw.SoftDTW(gamma=0.5, dist_func=fun, use_cuda=True)
         self.best_model = nn.Module()
         self.train, self.valid, self.test = self.split_data()
         self.run_optuna(args)
@@ -148,7 +145,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = self.sdtw(output, train_y.to(self.device)).sum()
+                loss = nn.MSELoss()(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
@@ -161,7 +158,7 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = self.sdtw(output, valid_y.to()).sum()
+                loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
 
