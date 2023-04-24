@@ -49,7 +49,7 @@ class Train:
         self.erros = dict()
         self.exp_name = args.exp_name
         fun = pysdtw.distance.pairwise_l2_squared
-        self.sdtw = pysdtw.SoftDTW(gamma=0.5, dist_func=fun, use_cuda=False)
+        self.sdtw = pysdtw.SoftDTW(gamma=0.5, dist_func=fun, use_cuda=True)
         self.best_model = nn.Module()
         self.train, self.valid, self.test = self.split_data()
         self.run_optuna(args)
@@ -161,7 +161,7 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = self.sdtw(output, valid_y.to(self.device)).sum()
+                loss = self.sdtw(output, valid_y.to()).sum()
 
                 test_loss += loss.item()
 
