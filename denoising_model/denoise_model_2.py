@@ -56,8 +56,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
 
-            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc) + enc_inputs
-            dec_noisy = self.add_gp_noise(dec_inputs, eps_dec) + dec_inputs
+            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc)
+            dec_noisy = self.add_gp_noise(dec_inputs, eps_dec)
 
         elif self.n_noise:
 
@@ -70,15 +70,20 @@ class denoise_model_2(nn.Module):
             dec_noisy = residual[1]
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.05) + enc_inputs
-            dec_noisy = dec_inputs.add_(eps_dec * 0.05) + enc_inputs
+            enc_noisy = enc_inputs.add_(eps_enc * 0.1)
+            dec_noisy = dec_inputs.add_(eps_dec * 0.1)
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        loss = nn.MSELoss()(enc_rec, enc_inputs) + nn.MSELoss()(dec_rec, dec_inputs)
+        loss = 0
 
-        enc_output = self.norm(enc_rec + enc_inputs)
-        dec_output = self.norm(dec_rec + dec_inputs)
+        enc_res = enc_rec - enc_inputs
+        dec_res = dec_rec - dec_inputs
+
+        enc_res, dec_res = self.denoising_model(enc_res, dec_res)
+
+        enc_output = enc_inputs + enc_res
+        dec_output = dec_inputs + dec_res
 
         return enc_output, dec_output, loss
 
