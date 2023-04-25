@@ -16,18 +16,15 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.mean_module = gpytorch.means.ConstantMean()
-        covar_module_a = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=0.5)) + \
-                         gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=1.5)) + \
-                         gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel(nu=2.5))
-        self.covar_module = covar_module_a
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
 
         self.gp = gp
         self.residual = residual
         self.norm = nn.LayerNorm(d)
 
         if self.gp:
-            self.gp_proj_mean = nn.Linear(1, d)
-            self.gp_proj_var = nn.Linear(1, d)
+            self.gp_proj_mean = nn.ReLU()(nn.Linear(1, d))
+            self.gp_proj_var = nn.ReLU()(nn.Linear(1, d))
 
         self.d = d
         self.device = device
@@ -77,16 +74,7 @@ class denoise_model_2(nn.Module):
 
         loss = 0
 
-        enc_res = enc_rec - enc_inputs
-        dec_res = dec_rec - dec_inputs
-
-        enc_res, dec_res = self.denoising_model(enc_res, dec_res)
-
-        enc_output = enc_inputs + enc_res
-        dec_output = dec_inputs + dec_res
+        enc_output = enc_inputs + enc_rec
+        dec_output = dec_inputs + dec_rec
 
         return enc_output, dec_output, loss
-
-
-
-
