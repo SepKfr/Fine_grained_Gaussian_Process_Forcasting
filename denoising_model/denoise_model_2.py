@@ -23,8 +23,8 @@ class denoise_model_2(nn.Module):
         self.norm = nn.LayerNorm(d)
 
         if self.gp:
-            self.gp_proj_mean = nn.ReLU()(nn.Linear(1, d))
-            self.gp_proj_var = nn.ReLU()(nn.Linear(1, d))
+            self.gp_proj_mean = nn.Linear(1, d)
+            self.gp_proj_var = nn.Linear(1, d)
 
         self.d = d
         self.device = device
@@ -41,7 +41,7 @@ class denoise_model_2(nn.Module):
         mean = dist.mean.unsqueeze(-1)
         co_var = dist.variance.unsqueeze(-1)
 
-        eps_gp = self.gp_proj_mean(mean) + self.gp_proj_var(co_var) * eps
+        eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
         x_noisy = x.add_(eps_gp)
 
         return x_noisy
