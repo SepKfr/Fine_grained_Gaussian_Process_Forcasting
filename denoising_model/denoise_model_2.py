@@ -21,7 +21,10 @@ class GPModel(ApproximateGP):
                                                    learn_inducing_locations=True)
         super(GPModel, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = SoftplusRBFKernel()
+        self.covar_module = gpytorch.kernels.AdditiveStructureKernel(
+            gpytorch.kernels.MaternKernel(nu=2.5, ard_num_dims=4),
+            num_dims=4
+        )
 
     def forward(self, x):
 
