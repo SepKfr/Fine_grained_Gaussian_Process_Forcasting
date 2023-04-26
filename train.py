@@ -171,7 +171,7 @@ class Train:
                                               train_y.to(self.device)], dim=1)).mean()
                 else:
                     loss_gp = 0
-                loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.01 * loss_gp.to(self.device)
+                loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.005 * loss_gp.to(self.device)
 
                 total_loss += loss.item()
 
