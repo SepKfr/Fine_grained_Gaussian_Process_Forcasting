@@ -17,14 +17,14 @@ class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
 
 class GPModel(ApproximateGP):
     def __init__(self, inducing_points):
-        prior_constraint = gpytorch.priors.SmoothedBoxPrior(1e-3, 1e10, sigma=0.1)
 
         variational_distribution = gpytorch.variational.CholeskyVariationalDistribution(inducing_points.size(1))
         variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution,
                                                    learn_inducing_locations=True)
         super(GPModel, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.RBFKernel(lengthscale_prior=prior_constraint)
+        jitter_val = 1e-2
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(), outputscale=torch.tensor(jitter_val))
 
     def forward(self, x):
 
