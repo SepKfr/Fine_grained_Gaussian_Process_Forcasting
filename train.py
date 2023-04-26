@@ -152,7 +152,7 @@ class Train:
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
         mll = gpytorch.mlls.VariationalELBO(likelihood, model.de_model.gp_model, num_data=train_y.size(0))
 
         val_loss = 1e10
@@ -163,14 +163,12 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                dist.mean.cpu()
-                dist.variance.cpu()
                 if dist is not None:
                     loss_gp = -mll(dist,
                                    torch.cat([torch.zeros(self.batch_size,
                                                           self.params['total_time_steps'] - 2*self.pred_len, 1,
-                                                          ),
-                                              train_y.cpu()], dim=1)).mean()
+                                                          device=self.device),
+                                              train_y.to(self.device)], dim=1)).mean()
                 else:
                     loss_gp = 0
                 loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.05 * loss_gp.to(self.device)
