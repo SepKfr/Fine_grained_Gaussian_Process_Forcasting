@@ -25,8 +25,7 @@ class GPModel(ApproximateGP):
 
         super(GPModel, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
-        jitter_val = 1e-2
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(), outputscale=torch.tensor(jitter_val))
+        self.covar_module = gpytorch.kernels.ScaleKernel(SoftplusRBFKernel())
 
     def forward(self, x):
 
