@@ -8,6 +8,12 @@ from gpytorch.variational import CholeskyVariationalDistribution
 from gpytorch.variational import VariationalStrategy
 
 
+class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
+    def forward(self, x1, x2, **params):
+        covar = super().forward(x1, x2, **params)
+        return torch.nn.functional.softplus(covar)
+
+
 class GPModel(ApproximateGP):
     def __init__(self, inducing_points):
         variational_distribution = CholeskyVariationalDistribution(inducing_points.size(1))
@@ -15,7 +21,7 @@ class GPModel(ApproximateGP):
                                                    learn_inducing_locations=True)
         super(GPModel, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.covar_module = gpytorch.kernels.ScaleKernel(SoftplusRBFKernel())
 
     def forward(self, x):
 
