@@ -41,7 +41,7 @@ class GPModel(ApproximateGP):
         mean_x = mean_x.reshape(batch_size, num_points)
         covar_x = covar_x.reshape(batch_size, num_points, num_points)
 
-        return gpytorch.distributions.MultivariateNormal(mean_x.cpu(), covar_x.cpu())
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
 class denoise_model_2(nn.Module):

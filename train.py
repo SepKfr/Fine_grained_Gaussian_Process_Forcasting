@@ -163,6 +163,8 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                dist.mean.cpu()
+                dist.variance.cpu()
                 if dist is not None:
                     loss_gp = -mll(dist,
                                    torch.cat([torch.zeros(self.batch_size,
