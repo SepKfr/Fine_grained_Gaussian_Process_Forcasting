@@ -3,10 +3,14 @@ import torch.nn as nn
 import numpy as np
 import torch
 import random
+
+from gpytorch.kernels import ScaleKernel, RBFKernel
+from gpytorch.means import ConstantMean
 from gpytorch.models import ApproximateGP
+from gpytorch.priors import GammaPrior
 from gpytorch.variational import MeanFieldVariationalDistribution
 from gpytorch.variational import VariationalStrategy
-from gpytorch.constraints import GreaterThan
+from gpytorch.constraints import GreaterThan, Positive, Interval
 
 
 class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
@@ -24,6 +28,24 @@ class GPModel(ApproximateGP):
                                                    learn_inducing_locations=True)
 
         super(GPModel, self).__init__(variational_strategy)
+
+        covar_module = ScaleKernel(
+            base_kernel=RBFKernel(
+                lengthscale_prior=GammaPrior(3.0, 6.0),
+                lengthscale_constraint=Positive(),
+            ),
+            outputscale_prior=GammaPrior(2.0, 0.15),
+            outputscale_constraint=Interval(1e-4, 1e2),
+        )
+
+        variational_strategy.model.covar_module = covar_module
+        variational_strategy.model.mean_module = ConstantMean()
+
+        # Set softplus constraint on the variational distribution
+        variational_distribution.variational_mean_constraint = gpytorch.constraints.Interval(1e-6, 1e6)
+        variational_distribution.variational_covar_constraint = gpytorch.constraints.Interval(1e-6, 1e6)
+        variational_distribution.stddev_constraint = gpytorch.constraints.Positive()
+
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(SoftplusRBFKernel())
 
