@@ -167,7 +167,7 @@ class Train:
                     loss_gp = -mll(dist,
                                    torch.cat([torch.zeros(self.batch_size,
                                                           self.params['total_time_steps'] - 2*self.pred_len, 1),
-                                              train_y], dim=1)).mean()
+                                              train_y.to(self.device)], dim=1)).mean()
                 else:
                     loss_gp = 0
                 loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.05 * loss_gp
