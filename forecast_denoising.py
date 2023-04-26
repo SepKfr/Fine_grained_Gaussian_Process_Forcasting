@@ -68,7 +68,7 @@ class Forecast_denoising(nn.Module):
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
-        loss = 0.0
+        dist = None
 
         if self.residual:
             residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
@@ -76,7 +76,7 @@ class Forecast_denoising(nn.Module):
             residual = None
 
         if self.denoise:
-            enc_outputs, dec_outputs, loss = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
-        return outputs, loss
+        return outputs, dist

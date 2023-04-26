@@ -162,8 +162,15 @@ class Train:
             model.train()
             for train_enc, train_dec, train_y in self.train:
 
-                output, kl_loss = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                if dist is not None:
+                    loss_gp = -mll(dist,
+                                   torch.cat([torch.zeros(self.batch_size,
+                                                          self.params['total_time_steps'] - 2*self.pred_len, 1),
+                                              train_y], dim=1)).mean()
+                else:
+                    loss_gp = 0
+                loss = nn.MSELoss()(output, train_y.to(self.device)) + 0.05 * loss_gp
 
                 total_loss += loss.item()
 
@@ -175,7 +182,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                output, kl_loss = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
