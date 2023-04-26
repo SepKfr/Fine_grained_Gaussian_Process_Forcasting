@@ -1,3 +1,5 @@
+import gpytorch
+
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -48,11 +50,22 @@ class Train:
         self.erros = dict()
         self.exp_name = args.exp_name
         self.best_model = nn.Module()
-        self.train, self.valid, self.test = self.split_data()
+        self.train, self.valid, self.test, self.n_batches = self.split_data()
         self.run_optuna(args)
         self.evaluate()
 
     def get_forecasting_denoising_model(self, config: tuple):
+
+        tot_time_steps = self.params['total_time_steps'] - self.pred_len
+        inducing_points = torch.zeros(self.n_batches, self.batch_size, tot_time_steps, config[0])
+        for i in range(self.n_batches):
+            enc_inputs, dec_inputs, _ = next(iter(self.train))
+            inducing_points[i] = torch.cat([enc_inputs, dec_inputs], dim=1)
+
+        indicies = np.random.randint(0, self.n_batches, 3)
+        inducing_points = inducing_points[indicies]
+        inducing_points = inducing_points.reshape(-1, tot_time_steps, config[0])
+        inducing_points = inducing_points.permute(1, 0, 2)
 
         model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
@@ -63,7 +76,8 @@ class Train:
                                    pred_len=self.pred_len,
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
-                                   residual=self.residual).to(self.device)
+                                   residual=self.residual,
+                                   inducing_points=inducing_points).to(self.device)
 
         return model
 
@@ -72,6 +86,7 @@ class Train:
         data = self.formatter.transform_data(self.data)
 
         train_max, valid_max = self.formatter.get_num_samples_for_calibration()
+        n_batches = int(train_max / self.batch_size)
         max_samples = (train_max, valid_max)
 
         train, valid, test = batch_sampled_data(data, 0.8, max_samples, self.params['total_time_steps'],
@@ -79,7 +94,7 @@ class Train:
                                                 self.params["column_definition"],
                                                 self.batch_size)
 
-        return train, valid, test
+        return train, valid, test, n_batches
 
     def run_optuna(self, args):
 
@@ -107,7 +122,7 @@ class Train:
 
     def objective(self, trial):
 
-        train_enc, train_dec, _ = next(iter(self.train))
+        train_enc, train_dec, train_y = next(iter(self.train))
 
         src_input_size = train_enc.shape[2]
         tgt_input_size = train_dec.shape[2]
@@ -136,6 +151,9 @@ class Train:
         model = self.get_forecasting_denoising_model(config)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+
+        likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        mll = gpytorch.mlls.VariationalELBO(likelihood, model.de_model.gp_model, num_data=train_y.size(0))
 
         val_loss = 1e10
         for epoch in range(self.num_epochs):
@@ -238,8 +256,8 @@ class Train:
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='ATA')
-    parser.add_argument("--model_name", type=str, default="ATA")
+    parser.add_argument("--attn_type", type=str, default='autoformer')
+    parser.add_argument("--model_name", type=str, default="autoformer")
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)

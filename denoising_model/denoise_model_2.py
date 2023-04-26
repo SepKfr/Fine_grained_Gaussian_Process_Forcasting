@@ -3,10 +3,40 @@ import torch.nn as nn
 import numpy as np
 import torch
 import random
+from gpytorch.models import ApproximateGP
+from gpytorch.variational import CholeskyVariationalDistribution
+from gpytorch.variational import VariationalStrategy
+
+
+class GPModel(ApproximateGP):
+    def __init__(self, inducing_points):
+        variational_distribution = CholeskyVariationalDistribution(inducing_points.size(1))
+        variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution,
+                                                   learn_inducing_locations=True)
+        super(GPModel, self).__init__(variational_strategy)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+
+    def forward(self, x):
+
+        batch_size = x.size(0)
+        num_points = x.size(1)
+
+        # Flatten the batch and num_points dimensions into a single batch dimension
+
+        # Compute the mean and covariance using the GP model
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+
+        # Reshape the mean and covariance to have shape (batch_size, num_points)
+        mean_x = mean_x.reshape(batch_size, num_points)
+        covar_x = covar_x.reshape(batch_size, num_points, num_points)
+
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
 class denoise_model_2(nn.Module):
-    def __init__(self, model, gp, d, device, seed, n_noise=False, residual=False):
+    def __init__(self, model, gp, d, device, seed, inducing_points=None, n_noise=False, residual=False):
         super(denoise_model_2, self).__init__()
 
         np.random.seed(seed)
@@ -15,14 +45,14 @@ class denoise_model_2(nn.Module):
 
         self.denoising_model = model
 
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-
         self.gp = gp
+        self.gp_model = GPModel(inducing_points)
         self.residual = residual
         self.norm = nn.LayerNorm(d)
 
         if self.gp:
+            self.proj = nn.Linear(d, 4)
+            self.proj_back = nn.Linear(4, d)
             self.gp_proj_mean = nn.Linear(1, d)
             self.gp_proj_var = nn.Linear(1, d)
 
@@ -34,14 +64,16 @@ class denoise_model_2(nn.Module):
     def add_gp_noise(self, x, eps):
 
         b, s, _ = x.shape
-        mean = self.mean_module(x)
-        co_var = self.covar_module(x)
 
-        dist = gpytorch.distributions.MultivariateNormal(mean, co_var)
-        mean = dist.mean.unsqueeze(-1)
-        co_var = dist.variance.unsqueeze(-1)
+        x = self.proj(x)
+        x = x.permute(1, 0, 2)
+        dist = self.gp_model(x)
+
+        mean = dist.mean.unsqueeze(-1).permute(1, 0, 2)
+        co_var = dist.variance.unsqueeze(-1).permute(1, 0, 2)
 
         eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
+        x = self.proj_back(x.permute(1, 0, 2))
         x_noisy = x.add_(eps_gp)
 
         return x_noisy
@@ -52,9 +84,11 @@ class denoise_model_2(nn.Module):
         eps_dec = torch.randn_like(dec_inputs)
 
         if self.gp:
-
-            enc_noisy = self.add_gp_noise(enc_inputs, eps_enc)
-            dec_noisy = self.add_gp_noise(dec_inputs, eps_dec)
+            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
+            eps_inputs = torch.cat([eps_enc, eps_dec], dim=1)
+            input_noisy = self.add_gp_noise(inputs, eps_inputs)
+            enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
+            dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
 
         elif self.n_noise:
 
