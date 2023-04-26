@@ -62,7 +62,7 @@ class Train:
             enc_inputs, dec_inputs, _ = next(iter(self.train))
             inducing_points[i] = torch.cat([enc_inputs, dec_inputs], dim=1)
 
-        indicies = np.random.randint(0, self.n_batches, 2)
+        indicies = np.random.randint(0, self.n_batches, 1)
         inducing_points = inducing_points[indicies]
         inducing_points = inducing_points.reshape(-1, tot_time_steps, config[0])
         inducing_points = inducing_points.permute(1, 0, 2)
