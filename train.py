@@ -160,9 +160,10 @@ class Train:
 
             total_loss = 0
             model.train()
-            for train_enc, train_dec, train_y in self.train:
 
-                output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+            for train_enc, train_dec, train_y in self.train:
+                with gpytorch.settings.cholesky_jitter(1e-1):
+                    output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
                     loss_gp = -mll(dist,
                                    torch.cat([torch.zeros(self.batch_size,

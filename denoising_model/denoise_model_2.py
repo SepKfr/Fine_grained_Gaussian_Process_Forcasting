@@ -11,7 +11,6 @@ from gpytorch.priors import GammaPrior, SmoothedBoxPrior
 from gpytorch.variational import MeanFieldVariationalDistribution
 from gpytorch.variational import VariationalStrategy
 from gpytorch.constraints import GreaterThan, Positive, Interval
-gpytorch.settings.cholesky_jitter(1e-1)
 
 
 class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
@@ -22,8 +21,6 @@ class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
 
 class GPModel(ApproximateGP):
     def __init__(self, inducing_points):
-
-
 
         variational_distribution = gpytorch.variational.CholeskyVariationalDistribution(inducing_points.size(-2),
                                                                                         batch_shape=torch.Size([1]))
