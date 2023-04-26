@@ -41,7 +41,7 @@ class GPModel(ApproximateGP):
         mean_x = mean_x.reshape(batch_size, num_points)
         covar_x = covar_x.reshape(batch_size, num_points, num_points)
 
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+        return gpytorch.distributions.MultivariateNormal(mean_x.cpu(), covar_x.cpu())
 
 
 class denoise_model_2(nn.Module):
@@ -78,8 +78,8 @@ class denoise_model_2(nn.Module):
         x = x.permute(1, 0, 2)
         dist = self.gp_model(x)
 
-        mean = dist.mean.unsqueeze(-1).permute(1, 0, 2)
-        co_var = dist.variance.unsqueeze(-1).permute(1, 0, 2)
+        mean = dist.mean.unsqueeze(-1).permute(1, 0, 2).to(self.device)
+        co_var = dist.variance.unsqueeze(-1).permute(1, 0, 2).to(self.device)
 
         eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
         x = self.proj_back(x.permute(1, 0, 2))
