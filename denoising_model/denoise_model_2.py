@@ -23,8 +23,8 @@ class GPModel(ApproximateGP):
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(
                             gpytorch.kernels.MaternKernel(nu=2.5),
-                            outputscale=torch.tensor(1e-6),
-                            eps=1e-5
+                            outputscale=torch.tensor(1e-3),
+                            eps=1e-1
 )
 
     def forward(self, x):
