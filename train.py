@@ -166,7 +166,8 @@ class Train:
                 if dist is not None:
                     loss_gp = -mll(dist,
                                    torch.cat([torch.zeros(self.batch_size,
-                                                          self.params['total_time_steps'] - 2*self.pred_len, 1),
+                                                          self.params['total_time_steps'] - 2*self.pred_len, 1,
+                                                          device=self.device),
                                               train_y.to(self.device)], dim=1)).mean()
                 else:
                     loss_gp = 0
