@@ -182,13 +182,11 @@ class Train:
             model.train()
 
             for train_enc, train_dec, train_y in self.train:
-
+                optimizer.zero_grad()
                 output_fore_den = model(train_enc.to(self.device), train_dec.to(self.device))
                 loss = nn.MSELoss()(output_fore_den, train_y.to(self.device))
 
                 total_loss += loss.item()
-
-                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step_and_update_lr()
 
