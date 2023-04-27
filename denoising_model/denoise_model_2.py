@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch
 import random
+torch.autograd.set_detect_anomaly(True)
 
 
 class denoise_model_2(nn.Module):
@@ -14,7 +15,7 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        self.mean_gp, self.var_gp = mean_var_gp[0], mean_var_gp[1]
+        self.mean_gp, self.var_gp = mean_var_gp[0].clone(), mean_var_gp[1].clone()
 
         self.gp = gp
 
@@ -39,7 +40,7 @@ class denoise_model_2(nn.Module):
         co_var = self.var_gp.unsqueeze(-1).to(self.device)
 
         eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
-        x_noisy = x.add_(eps_gp)
+        x_noisy = x + eps_gp
 
         return x_noisy
 

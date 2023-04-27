@@ -6,10 +6,7 @@ import torch.nn as nn
 from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
-
-import warnings
-warnings.filterwarnings("ignore")
-
+torch.autograd.set_detect_anomaly(True)
 
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,

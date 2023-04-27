@@ -19,6 +19,8 @@ from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
 
+torch.autograd.set_detect_anomaly(True)
+
 
 class Train:
     def __init__(self, data, args, pred_len):
@@ -145,19 +147,22 @@ class Train:
                 GP_model.train()
                 self.likelihood.train()
                 gp_output = GP_model(train_x_gp)
-                loss = -mll(gp_output, train_y_gp.squeeze(-1)).mean()
-                loss.backward()
+                loss_gp = -mll(gp_output, train_y_gp.squeeze(-1)).mean()
+                loss_gp.backward()
                 if epoch % 5 == 0:
                     print('Iter %d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
-                        epoch + 1, loss.item(),
+                        epoch + 1, loss_gp.item(),
                         GP_model.covar_module.base_kernel.lengthscale.item(),
                         GP_model.likelihood.noise.item()
                     ))
                 optimizer_gp.step_and_update_lr()
 
             output_final_gp = GP_model(train_x_gp)
-            mean_var_gp = [output_final_gp.mean.mean(dim=0).to(self.device).clone(),
-                           output_final_gp.variance.mean(dim=0).to(self.device).clone()]
+
+            mean = torch.mean(output_final_gp.mean.detach(), dim=0).to(self.device)
+            variance = torch.mean(output_final_gp.variance.detach(), dim=0).to(self.device)
+            mean_var_gp = [mean, variance]
+
         else:
             mean_var_gp = None
 
@@ -184,10 +189,10 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
                 optimizer.zero_grad()
                 output_fore_den = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output_fore_den, train_y.to(self.device))
+                loss_train = nn.MSELoss()(output_fore_den, train_y.to(self.device))
 
-                total_loss += loss.item()
-                loss.backward()
+                total_loss += loss_train.item()
+                loss_train.backward()
                 optimizer.step_and_update_lr()
 
             model.eval()
@@ -195,9 +200,9 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
 
                 output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss = nn.MSELoss()(output, valid_y.to(self.device))
+                loss_eval = nn.MSELoss()(output, valid_y.to(self.device))
 
-                test_loss += loss.item()
+                test_loss += loss_eval.item()
 
             if epoch % 5 == 0:
                 print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
@@ -285,7 +290,7 @@ def main():
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--num_epochs", type=int, default=2)
 
     args = parser.parse_args()
 
