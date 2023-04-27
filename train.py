@@ -153,7 +153,7 @@ class Train:
                     optimizer.zero_grad()
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                     loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                                 + 0.05 * -mll(dist, train_y.permute(2, 0, 1)).mean()
+                                 + 0.05 * -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
 
                     total_loss += loss_train.item()
                     loss_train.backward()
