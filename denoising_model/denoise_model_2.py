@@ -4,59 +4,20 @@ import numpy as np
 import torch
 import random
 
-from gpytorch.kernels import ScaleKernel, RBFKernel
-from gpytorch.means import ConstantMean
-from gpytorch.models import ApproximateGP
-from gpytorch.priors import GammaPrior, SmoothedBoxPrior
-from gpytorch.variational import MeanFieldVariationalDistribution
-from gpytorch.variational import VariationalStrategy
-from gpytorch.constraints import GreaterThan, Positive, Interval
-
-
-class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
-    def forward(self, x1, x2, **params):
-        covar = super().forward(x1, x2, **params)
-        return torch.nn.functional.softplus(covar)
-
-
-class GPModel(ApproximateGP):
-    def __init__(self, inducing_points):
-
-        variational_distribution = gpytorch.variational.DeltaVariationalDistribution(inducing_points.size(-2),
-                                                                                        batch_shape=torch.Size([1]))
-        variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution,
-                                                   learn_inducing_locations=True,
-                                                   )
-
-        super(GPModel, self).__init__(variational_strategy)
-
-        covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel()
-        )
-
-        inducing_kernel = gpytorch.kernels.InducingPointKernel(
-            base_kernel=covar_module,
-            inducing_points=inducing_points,
-            likelihood=gpytorch.likelihoods.GaussianLikelihood()
-        )
+class GPModel(nn.Module):
+    def __init__(self):
+        super(GPModel, self).__init__()
 
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = inducing_kernel
+        self.covar_module = gpytorch.kernels.ScaleKernel(
+            gpytorch.kernels.RBFKernel() + gpytorch.kernels.MaternKernel(nu=2.5)
+        )
 
     def forward(self, x):
-
-        batch_size = x.size(0)
-        num_points = x.size(1)
-
-        # Flatten the batch and num_points dimensions into a single batch dimension
 
         # Compute the mean and covariance using the GP model
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
-
-        # Reshape the mean and covariance to have shape (batch_size, num_points)
-        mean_x = mean_x.reshape(batch_size, num_points)
-        covar_x = covar_x.reshape(batch_size, num_points, num_points)
 
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
@@ -72,13 +33,12 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.gp = gp
-        self.gp_model = GPModel(inducing_points)
+        self.gp_model = GPModel()
         self.residual = residual
         self.norm = nn.LayerNorm(d)
 
         if self.gp:
-            self.proj = nn.Linear(d, 4)
-            self.proj_back = nn.Linear(4, d)
+
             self.gp_proj_mean = nn.Linear(1, d)
             self.gp_proj_var = nn.Linear(1, d)
 
@@ -91,15 +51,12 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        x = self.proj(x)
-        x = x.permute(1, 0, 2)
         dist = self.gp_model(x)
 
-        mean = dist.mean.unsqueeze(-1).permute(1, 0, 2).to(self.device)
-        co_var = dist.variance.unsqueeze(-1).permute(1, 0, 2).to(self.device)
+        mean = dist.mean.unsqueeze(-1).to(self.device)
+        co_var = dist.variance.unsqueeze(-1).to(self.device)
 
         eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
-        x = self.proj_back(x.permute(1, 0, 2))
         x_noisy = x.add_(eps_gp)
 
         return x_noisy, dist

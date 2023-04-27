@@ -59,14 +59,6 @@ class Train:
 
         tot_time_steps = self.params['total_time_steps'] - self.pred_len
         inducing_points = torch.zeros(self.n_batches, self.batch_size, tot_time_steps, config[0])
-        for i in range(self.n_batches):
-            enc_inputs, dec_inputs, _ = next(iter(self.train))
-            inducing_points[i] = torch.cat([enc_inputs, dec_inputs], dim=1)
-
-        indicies = np.random.randint(0, self.n_batches, 1)
-        inducing_points = inducing_points[indicies]
-        inducing_points = inducing_points.reshape(-1, tot_time_steps, config[0])
-        inducing_points = inducing_points.permute(1, 0, 2)
 
         model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
@@ -152,9 +144,6 @@ class Train:
         model = self.get_forecasting_denoising_model(config)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
-
-        likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
-        mll = PredictiveLogLikelihood(likelihood, model.de_model.gp_model, num_data=train_y.size(0))
 
         val_loss = 1e10
         for epoch in range(self.num_epochs):
