@@ -34,11 +34,10 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
+        eps_gp = dist.sample()
 
-        mean = self.mean_proj(dist.mean.permute(1, 2, 0))
-        co_var = self.var_proj(dist.variance.permute(1, 2, 0))
+        eps_gp = nn.ReLU()(self.mean_proj(eps_gp.permute(1, 2, 0)))
 
-        eps_gp = nn.ReLU()(mean) + nn.ReLU()(co_var) * eps
         x_noisy = x + eps_gp
 
         return x_noisy, dist
