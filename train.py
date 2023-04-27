@@ -197,14 +197,14 @@ class Train:
         test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
 
         j = 0
+        with gpytorch.settings.num_likelihood_samples(1):
+            for test_enc, test_dec, test_y in self.test:
 
-        for test_enc, test_dec, test_y in self.test:
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
-            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-
-            predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j, :test_y.shape[0], :] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
-            j += 1
+                predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
+                test_y_tot[j, :test_y.shape[0], :] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                j += 1
 
         predictions = torch.from_numpy(predictions)
         test_y = torch.from_numpy(test_y_tot)
@@ -255,7 +255,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=5)
