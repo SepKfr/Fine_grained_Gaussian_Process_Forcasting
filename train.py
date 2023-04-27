@@ -162,17 +162,9 @@ class Train:
             model.train()
 
             for train_enc, train_dec, train_y in self.train:
-                with gpytorch.settings.cholesky_jitter(1e-1):
-                    output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                if dist is not None:
-                    loss_gp = -mll(dist,
-                                   torch.cat([torch.zeros(self.batch_size,
-                                                          self.params['total_time_steps'] - 2*self.pred_len, 1,
-                                                          device=self.device),
-                                              train_y.to(self.device)], dim=1)).mean()
-                else:
-                    loss_gp = 0
-                loss = nn.MSELoss()(output, train_y.to(self.device)) + 1e-6 * loss_gp.to(self.device)
+
+                output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss = nn.MSELoss()(output, train_y.to(self.device))
 
                 total_loss += loss.item()
 
