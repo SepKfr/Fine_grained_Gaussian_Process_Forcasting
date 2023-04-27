@@ -174,9 +174,9 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
-                        output, _ = model(train_enc.to(self.device), train_dec.to(self.device))
+                        output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 else:
-                    output, _ = model(train_enc.to(self.device), train_dec.to(self.device))
+                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
 
                 test_loss += loss_eval.item()
