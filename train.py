@@ -148,41 +148,49 @@ class Train:
 
             total_loss = 0
             model.train()
-            with gpytorch.settings.num_likelihood_samples(1):
-                for train_enc, train_dec, train_y in self.train:
-                    optimizer.zero_grad()
+
+            for train_enc, train_dec, train_y in self.train:
+                optimizer.zero_grad()
+                if self.gp:
+                    with gpytorch.settings.num_likelihood_samples(1):
+                        output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                    if dist is not None:
-                        mll_error = -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
-                    else:
-                        mll_error = 0
-                    loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                                 + 0.05 * mll_error
+                if dist is not None:
+                    mll_error = -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
+                else:
+                    mll_error = 0
 
-                    total_loss += loss_train.item()
-                    loss_train.backward()
-                    optimizer.step_and_update_lr()
+                loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
+                             + 0.05 * mll_error
 
-                model.eval()
-                test_loss = 0
-                for valid_enc, valid_dec, valid_y in self.valid:
+                total_loss += loss_train.item()
+                loss_train.backward()
+                optimizer.step_and_update_lr()
 
-                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
+            model.eval()
+            test_loss = 0
+            for valid_enc, valid_dec, valid_y in self.valid:
+                if self.gp:
+                    with gpytorch.settings.num_likelihood_samples(1):
+                        output, _ = model(train_enc.to(self.device), train_dec.to(self.device))
+                else:
+                    output, _ = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
 
-                    test_loss += loss_eval.item()
+                test_loss += loss_eval.item()
 
-                if epoch % 5 == 0:
-                    print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                    print("val loss: {:.4f}".format(test_loss))
+            if epoch % 5 == 0:
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                print("val loss: {:.4f}".format(test_loss))
 
-                if test_loss < val_loss:
-                    val_loss = test_loss
-                    if val_loss < self.best_val:
-                        self.best_val = val_loss
-                        self.best_model = model
-                        torch.save({'model_state_dict': self.best_model.state_dict()},
-                                   os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
+            if test_loss < val_loss:
+                val_loss = test_loss
+                if val_loss < self.best_val:
+                    self.best_val = val_loss
+                    self.best_model = model
+                    torch.save({'model_state_dict': self.best_model.state_dict()},
+                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
 
         return val_loss
 
@@ -197,11 +205,13 @@ class Train:
         test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
 
         j = 0
-        with gpytorch.settings.num_likelihood_samples(1):
-            for test_enc, test_dec, test_y in self.test:
 
+        for test_enc, test_dec, test_y in self.test:
+            if self.gp:
+                with gpytorch.settings.num_likelihood_samples(1):
+                    output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-
                 predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
                 test_y_tot[j, :test_y.shape[0], :] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
                 j += 1
@@ -211,10 +221,10 @@ class Train:
         normaliser = test_y.abs().mean()
 
         test_loss = F.mse_loss(predictions, test_y).item()
-        test_loss = test_loss / normaliser
+        test_loss = test_loss
 
         mae_loss = F.l1_loss(predictions, test_y).item()
-        mae_loss = mae_loss / normaliser
+        mae_loss = mae_loss
 
         results = torch.zeros(2, self.pred_len)
 
