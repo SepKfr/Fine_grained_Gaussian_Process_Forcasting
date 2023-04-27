@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import random
 import pandas as pd
 import optuna
+from denoising_model.GPModel import ExactGPModel
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from data_loader import ExperimentConfig
@@ -46,6 +47,7 @@ class Train:
         self.mae_loss = nn.L1Loss()
         self.num_epochs = args.num_epochs
         self.model_name = args.model_name
+        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
         self.best_val = 1e10
         self.param_history = []
         self.erros = dict()
@@ -54,25 +56,6 @@ class Train:
         self.train, self.valid, self.test, self.n_batches = self.split_data()
         self.run_optuna(args)
         self.evaluate()
-
-    def get_forecasting_denoising_model(self, config: tuple):
-
-        tot_time_steps = self.params['total_time_steps'] - self.pred_len
-        inducing_points = torch.zeros(self.n_batches, self.batch_size, tot_time_steps, config[0])
-
-        model = Forecast_denoising(model_name=self.model_name,
-                                   config=config,
-                                   gp=self.gp,
-                                   denoise=self.denoising,
-                                   device=self.device,
-                                   seed=self.seed,
-                                   pred_len=self.pred_len,
-                                   attn_type=self.attn_type,
-                                   no_noise=self.no_noise,
-                                   residual=self.residual,
-                                   inducing_points=inducing_points).to(self.device)
-
-        return model
 
     def split_data(self):
 
@@ -141,7 +124,54 @@ class Train:
 
         config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
-        model = self.get_forecasting_denoising_model(config)
+        if self.gp:
+
+            train_x = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, config[0])
+            train_y = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, 1)
+
+            for i in range(self.n_batches):
+                train_enc, train_dec, train_y[i, :, -self.pred_len:, :] = next(iter(self.train))
+                train_x[i] = torch.cat([train_enc, train_dec], dim=1)
+
+            GP_model = ExactGPModel(train_x, train_y, self.likelihood)
+
+            optimizer_gp = NoamOpt(Adam(GP_model.parameters(),
+                                        lr=0, betas=(0.9, 0.98), eps=1e-9),
+                                   2, d_model, w_steps)
+            mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, GP_model)
+
+            for epoch in range(self.num_epochs):
+
+                optimizer_gp.zero_grad()
+                GP_model.train()
+                self.likelihood.train()
+                output = GP_model(train_x)
+                loss = -mll(output, train_y.squeeze(-1)).mean()
+                loss.backward()
+                if epoch % 5 == 0:
+                    print('Iter %d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
+                        epoch + 1, loss.item(),
+                        GP_model.covar_module.base_kernel.lengthscale.item(),
+                        GP_model.likelihood.noise.item()
+                    ))
+                optimizer_gp.step_and_update_lr()
+
+            output = GP_model(train_x)
+            mean_var_gp = [output.mean.mean(dim=0).to(self.device), output.variance.mean(dim=0).to(self.device)]
+        else:
+            mean_var_gp = None
+
+        model = Forecast_denoising(model_name=self.model_name,
+                                   config=config,
+                                   gp=self.gp,
+                                   denoise=self.denoising,
+                                   device=self.device,
+                                   seed=self.seed,
+                                   pred_len=self.pred_len,
+                                   attn_type=self.attn_type,
+                                   no_noise=self.no_noise,
+                                   residual=self.residual,
+                                   mean_var_gp=mean_var_gp).to(self.device)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -153,7 +183,7 @@ class Train:
 
             for train_enc, train_dec, train_y in self.train:
 
-                output, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                output = model(train_enc.to(self.device), train_dec.to(self.device))
                 loss = nn.MSELoss()(output, train_y.to(self.device))
 
                 total_loss += loss.item()
@@ -166,7 +196,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
 
-                output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                output = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 loss = nn.MSELoss()(output, valid_y.to(self.device))
 
                 test_loss += loss.item()
@@ -199,7 +229,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
@@ -257,7 +287,7 @@ def main():
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=50)
+    parser.add_argument("--num_epochs", type=int, default=1)
 
     args = parser.parse_args()
 
