@@ -145,7 +145,7 @@ class Train:
                 GP_model.train()
                 self.likelihood.train()
                 gp_output = GP_model(train_x_gp)
-                loss = -mll(gp_output, train_y.squeeze(-1)).mean()
+                loss = -mll(gp_output, train_y_gp.squeeze(-1)).mean()
                 loss.backward()
                 if epoch % 5 == 0:
                     print('Iter %d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
