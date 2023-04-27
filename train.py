@@ -125,14 +125,14 @@ class Train:
 
         if self.gp:
 
-            train_x = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, config[0])
-            train_y = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, 1)
+            train_x_gp = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, config[0])
+            train_y_gp = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, 1)
 
             for i in range(self.n_batches):
-                train_enc, train_dec, train_y[i, :, -self.pred_len:, :] = next(iter(self.train))
-                train_x[i] = torch.cat([train_enc, train_dec], dim=1)
+                train_enc, train_dec, train_y_gp[i, :, -self.pred_len:, :] = next(iter(self.train))
+                train_x_gp[i] = torch.cat([train_enc, train_dec], dim=1)
 
-            GP_model = ExactGPModel(train_x, train_y, self.likelihood)
+            GP_model = ExactGPModel(train_x_gp, train_y_gp, self.likelihood)
 
             optimizer_gp = NoamOpt(Adam(GP_model.parameters(),
                                         lr=0, betas=(0.9, 0.98), eps=1e-9),
@@ -144,8 +144,8 @@ class Train:
                 optimizer_gp.zero_grad()
                 GP_model.train()
                 self.likelihood.train()
-                output = GP_model(train_x)
-                loss = -mll(output, train_y.squeeze(-1)).mean()
+                gp_output = GP_model(train_x_gp)
+                loss = -mll(gp_output, train_y.squeeze(-1)).mean()
                 loss.backward()
                 if epoch % 5 == 0:
                     print('Iter %d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
@@ -155,8 +155,9 @@ class Train:
                     ))
                 optimizer_gp.step_and_update_lr()
 
-            output = GP_model(train_x)
-            mean_var_gp = [output.mean.mean(dim=0).to(self.device), output.variance.mean(dim=0).to(self.device)]
+            output_final_gp = GP_model(train_x_gp)
+            mean_var_gp = [output_final_gp.mean.mean(dim=0).to(self.device).clone(),
+                           output_final_gp.variance.mean(dim=0).to(self.device).clone()]
         else:
             mean_var_gp = None
 
