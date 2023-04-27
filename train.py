@@ -1,6 +1,6 @@
 import gpytorch
 from gpytorch.mlls import PredictiveLogLikelihood
-
+from denoising_model.GPModel import ExactGPModel
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -13,7 +13,6 @@ import torch.nn.functional as F
 import random
 import pandas as pd
 import optuna
-from denoising_model.GPModel import ExactGPModel
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from data_loader import ExperimentConfig
