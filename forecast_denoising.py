@@ -69,8 +69,6 @@ class Forecast_denoising(nn.Module):
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
-        dist = None
-
         if self.residual:
             residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
         else:

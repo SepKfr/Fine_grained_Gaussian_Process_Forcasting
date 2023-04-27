@@ -183,8 +183,8 @@ class Train:
 
             for train_enc, train_dec, train_y in self.train:
 
-                output = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss = nn.MSELoss()(output, train_y.to(self.device))
+                output_fore_den = model(train_enc.to(self.device), train_dec.to(self.device))
+                loss = nn.MSELoss()(output_fore_den, train_y.to(self.device))
 
                 total_loss += loss.item()
 
