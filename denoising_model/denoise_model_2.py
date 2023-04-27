@@ -22,7 +22,7 @@ class SoftplusRBFKernel(gpytorch.kernels.RBFKernel):
 class GPModel(ApproximateGP):
     def __init__(self, inducing_points):
 
-        variational_distribution = gpytorch.variational.CholeskyVariationalDistribution(inducing_points.size(-2),
+        variational_distribution = gpytorch.variational.DeltaVariationalDistribution(inducing_points.size(-2),
                                                                                         batch_shape=torch.Size([1]))
         variational_strategy = VariationalStrategy(self, inducing_points, variational_distribution,
                                                    learn_inducing_locations=True,
@@ -31,8 +31,8 @@ class GPModel(ApproximateGP):
         super(GPModel, self).__init__(variational_strategy)
 
         covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel(lengthscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.5)),
-            outputscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.5)
+            gpytorch.kernels.RBFKernel(lengthscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.1)),
+            outputscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.1)
         )
 
         inducing_kernel = gpytorch.kernels.InducingPointKernel(
