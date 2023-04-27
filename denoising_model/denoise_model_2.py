@@ -30,8 +30,19 @@ class GPModel(ApproximateGP):
 
         super(GPModel, self).__init__(variational_strategy)
 
+        covar_module = gpytorch.kernels.ScaleKernel(
+            gpytorch.kernels.RBFKernel(lengthscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.5)),
+            outputscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.5)
+        )
+
+        inducing_kernel = gpytorch.kernels.InducingPointKernel(
+            base_kernel=covar_module,
+            inducing_points=inducing_points,
+            likelihood=gpytorch.likelihoods.GaussianLikelihood()
+        )
+
         self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(SoftplusRBFKernel())
+        self.covar_module = inducing_kernel
 
     def forward(self, x):
 
