@@ -150,14 +150,14 @@ class Train:
             model.train()
 
             for train_enc, train_dec, train_y in self.train:
-                optimizer.zero_grad()
+
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
                         output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
-                    mll_error = -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
+                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
                 else:
                     mll_error = 0
 
@@ -165,6 +165,7 @@ class Train:
                              + 0.01 * mll_error
 
                 total_loss += loss_train.item()
+                optimizer.zero_grad()
                 loss_train.backward()
                 optimizer.step_and_update_lr()
 
@@ -201,8 +202,8 @@ class Train:
         _, _, test_y = next(iter(self.test))
         total_b = len(list(iter(self.test)))
 
-        predictions = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
-        test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
+        predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
 
         j = 0
 
@@ -212,18 +213,18 @@ class Train:
                     output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-                predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
-                test_y_tot[j, :test_y.shape[0], :] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
-                j += 1
+            predictions[j] = output.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+            j += 1
 
         predictions = torch.from_numpy(predictions)
         test_y = torch.from_numpy(test_y_tot)
         normaliser = test_y.abs().mean()
 
-        test_loss = F.mse_loss(predictions, test_y).item()
+        test_loss = F.mse_loss(predictions, test_y).item() / normaliser
         test_loss = test_loss
 
-        mae_loss = F.l1_loss(predictions, test_y).item()
+        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
         mae_loss = mae_loss
 
         results = torch.zeros(2, self.pred_len)
@@ -265,7 +266,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=5)
