@@ -1,4 +1,5 @@
 import gpytorch
+from gpytorch.mlls import PredictiveLogLikelihood
 
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
@@ -153,7 +154,7 @@ class Train:
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
-        mll = gpytorch.mlls.VariationalELBO(likelihood, model.de_model.gp_model, num_data=train_y.size(0))
+        mll = PredictiveLogLikelihood(likelihood, model.de_model.gp_model, num_data=train_y.size(0))
 
         val_loss = 1e10
         for epoch in range(self.num_epochs):

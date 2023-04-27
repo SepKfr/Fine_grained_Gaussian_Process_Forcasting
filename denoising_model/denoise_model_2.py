@@ -31,8 +31,7 @@ class GPModel(ApproximateGP):
         super(GPModel, self).__init__(variational_strategy)
 
         covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel(lengthscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.1)),
-            outputscale_prior=gpytorch.priors.SmoothedBoxPrior(1e-5, 1e5, sigma=0.1)
+            gpytorch.kernels.RBFKernel()
         )
 
         inducing_kernel = gpytorch.kernels.InducingPointKernel(
