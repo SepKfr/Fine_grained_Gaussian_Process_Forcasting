@@ -1,5 +1,5 @@
 import gpytorch
-from gpytorch.mlls import PredictiveLogLikelihood
+from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO
 from denoising_model.GPModel import ExactGPModel
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
@@ -109,7 +109,7 @@ class Train:
 
         # hyperparameters
 
-        d_model = trial.suggest_categorical("d_model", [32])
+        d_model = trial.suggest_categorical("d_model", [8])
         w_steps = trial.suggest_categorical("w_steps", [1000])
         stack_size = trial.suggest_categorical("stack_size", [1])
 
@@ -125,46 +125,8 @@ class Train:
 
         config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
-        if self.gp:
-
-            train_x_gp = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, config[0])
-            train_y_gp = torch.zeros(self.n_batches, self.batch_size, self.params['num_encoder_steps']*2, 1)
-
-            for i in range(self.n_batches):
-                train_enc, train_dec, train_y_gp[i, :, -self.pred_len:, :] = next(iter(self.train))
-                train_x_gp[i] = torch.cat([train_enc, train_dec], dim=1)
-
-            GP_model = ExactGPModel(train_x_gp, train_y_gp, self.likelihood)
-
-            optimizer_gp = NoamOpt(Adam(GP_model.parameters(),
-                                        lr=0, betas=(0.9, 0.98), eps=1e-9),
-                                   2, d_model, w_steps)
-            mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, GP_model)
-
-            for epoch in range(self.num_epochs):
-
-                optimizer_gp.zero_grad()
-                GP_model.train()
-                self.likelihood.train()
-                gp_output = GP_model(train_x_gp)
-                loss_gp = -mll(gp_output, train_y_gp.squeeze(-1)).mean()
-                loss_gp.backward()
-                if epoch % 5 == 0:
-                    print('Iter %d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
-                        epoch + 1, loss_gp.item(),
-                        GP_model.covar_module.base_kernel.lengthscale.item(),
-                        GP_model.likelihood.noise.item()
-                    ))
-                optimizer_gp.step_and_update_lr()
-
-            output_final_gp = GP_model(train_x_gp)
-
-            mean = torch.mean(output_final_gp.mean.detach(), dim=0).to(self.device)
-            variance = torch.mean(output_final_gp.variance.detach(), dim=0).to(self.device)
-            mean_var_gp = [mean, variance]
-
-        else:
-            mean_var_gp = None
+        train_enc, train_dec, _ = next(iter(self.train))
+        train_x = torch.cat([train_enc, train_dec], dim=1)
 
         model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
@@ -176,8 +138,9 @@ class Train:
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
                                    residual=self.residual,
-                                   mean_var_gp=mean_var_gp).to(self.device)
+                                   train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
 
+        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, train_x.shape[-2]))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
@@ -185,36 +148,37 @@ class Train:
 
             total_loss = 0
             model.train()
+            with gpytorch.settings.num_likelihood_samples(1):
+                for train_enc, train_dec, train_y in self.train:
+                    optimizer.zero_grad()
+                    output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                    loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
+                                 + 0.05 * -mll(dist, train_y.permute(2, 0, 1)).mean()
 
-            for train_enc, train_dec, train_y in self.train:
-                optimizer.zero_grad()
-                output_fore_den = model(train_enc.to(self.device), train_dec.to(self.device))
-                loss_train = nn.MSELoss()(output_fore_den, train_y.to(self.device))
+                    total_loss += loss_train.item()
+                    loss_train.backward()
+                    optimizer.step_and_update_lr()
 
-                total_loss += loss_train.item()
-                loss_train.backward()
-                optimizer.step_and_update_lr()
+                model.eval()
+                test_loss = 0
+                for valid_enc, valid_dec, valid_y in self.valid:
 
-            model.eval()
-            test_loss = 0
-            for valid_enc, valid_dec, valid_y in self.valid:
+                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                    loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
 
-                output = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss_eval = nn.MSELoss()(output, valid_y.to(self.device))
+                    test_loss += loss_eval.item()
 
-                test_loss += loss_eval.item()
+                if epoch % 5 == 0:
+                    print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                    print("val loss: {:.4f}".format(test_loss))
 
-            if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                print("val loss: {:.4f}".format(test_loss))
-
-            if test_loss < val_loss:
-                val_loss = test_loss
-                if val_loss < self.best_val:
-                    self.best_val = val_loss
-                    self.best_model = model
-                    torch.save({'model_state_dict': self.best_model.state_dict()},
-                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
+                if test_loss < val_loss:
+                    val_loss = test_loss
+                    if val_loss < self.best_val:
+                        self.best_val = val_loss
+                        self.best_model = model
+                        torch.save({'model_state_dict': self.best_model.state_dict()},
+                                   os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
 
         return val_loss
 
@@ -232,10 +196,10 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
 
-            output = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
 
             predictions[j, :output.shape[0], :] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j, :test_y.shape[0], :] = test_y.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j, :test_y.shape[0], :] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions)
@@ -290,7 +254,7 @@ def main():
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=2)
+    parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()
 

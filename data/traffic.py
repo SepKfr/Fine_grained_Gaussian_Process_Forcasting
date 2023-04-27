@@ -169,7 +169,7 @@ class TrafficFormatter(GenericDataFormatter):
 
         model_params = {
             'hidden_layer_size': [8],
-            'minibatch_size': [256],
+            'minibatch_size': [32],
             'num_heads': 8,
             'stack_size': [1],
             'context_lengths': [1, 3, 6, 9]
@@ -187,7 +187,7 @@ class TrafficFormatter(GenericDataFormatter):
         """
         if num_train == -1:
 
-            return 32000, 3840
+            return 32, 32
 
         else:
             return num_train, 3840

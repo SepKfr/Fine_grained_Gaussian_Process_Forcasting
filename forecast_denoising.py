@@ -12,7 +12,7 @@ class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
-                 no_noise: bool, residual: bool, mean_var_gp):
+                 no_noise: bool, residual: bool, train_x_shape):
 
         super(Forecast_denoising, self).__init__()
 
@@ -52,7 +52,7 @@ class Forecast_denoising(nn.Module):
                                         d_model, device, seed,
                                         n_noise=no_noise,
                                         residual=residual,
-                                        mean_var_gp=mean_var_gp)
+                                        train_x_shape=train_x_shape)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
@@ -64,6 +64,7 @@ class Forecast_denoising(nn.Module):
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
+        dist = None
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         if self.residual:
@@ -72,7 +73,7 @@ class Forecast_denoising(nn.Module):
             residual = None
 
         if self.denoise:
-            enc_outputs, dec_outputs = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
-        return outputs
+        return outputs, dist

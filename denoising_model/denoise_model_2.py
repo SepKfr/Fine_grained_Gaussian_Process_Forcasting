@@ -3,11 +3,12 @@ import torch.nn as nn
 import numpy as np
 import torch
 import random
+from denoising_model.DeepGP import DeepGPp
 torch.autograd.set_detect_anomaly(True)
 
 
 class denoise_model_2(nn.Module):
-    def __init__(self, model, gp, d, device, seed, mean_var_gp, n_noise=False, residual=False):
+    def __init__(self, model, gp, d, device, seed, train_x_shape, n_noise=False, residual=False):
         super(denoise_model_2, self).__init__()
 
         np.random.seed(seed)
@@ -15,17 +16,13 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        self.mean_gp, self.var_gp = mean_var_gp[0].clone(), mean_var_gp[1].clone()
-
+        self.deep_gp = DeepGPp(train_x_shape, d)
         self.gp = gp
+        self.mean_proj = nn.Linear(1, d)
+        self.var_proj = nn.Linear(1, d)
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
-
-        if self.gp:
-
-            self.gp_proj_mean = nn.Linear(1, d)
-            self.gp_proj_var = nn.Linear(1, d)
 
         self.d = d
         self.device = device
@@ -36,23 +33,26 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        mean = self.mean_gp.unsqueeze(-1).to(self.device)
-        co_var = self.var_gp.unsqueeze(-1).to(self.device)
+        dist = self.deep_gp(x)
 
-        eps_gp = nn.ReLU()(self.gp_proj_mean(mean)) + nn.ReLU()(self.gp_proj_var(co_var)) * eps
+        mean = self.mean_proj(dist.mean.permute(1, 2, 0))
+        co_var = self.var_proj(dist.variance.permute(1, 2, 0))
+
+        eps_gp = nn.ReLU()(mean) + nn.ReLU()(co_var) * eps
         x_noisy = x + eps_gp
 
-        return x_noisy
+        return x_noisy, dist
 
     def forward(self, enc_inputs, dec_inputs, residual=None):
 
         eps_enc = torch.randn_like(enc_inputs)
         eps_dec = torch.randn_like(dec_inputs)
+        dist = None
 
         if self.gp:
             inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
             eps_inputs = torch.cat([eps_enc, eps_dec], dim=1)
-            input_noisy = self.add_gp_noise(inputs, eps_inputs)
+            input_noisy, dist = self.add_gp_noise(inputs, eps_inputs)
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
             dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
 
@@ -75,4 +75,4 @@ class denoise_model_2(nn.Module):
         enc_output = enc_inputs + enc_rec
         dec_output = dec_inputs + dec_rec
 
-        return enc_output, dec_output
+        return enc_output, dec_output, dist
