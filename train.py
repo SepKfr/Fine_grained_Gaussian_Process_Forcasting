@@ -152,8 +152,12 @@ class Train:
                 for train_enc, train_dec, train_y in self.train:
                     optimizer.zero_grad()
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                    if dist is not None:
+                        mll_error = -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
+                    else:
+                        mll_error = 0
                     loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                                 + 0.05 * -mll(dist, train_y.to(self.device).permute(2, 0, 1)).mean()
+                                 + 0.05 * mll_error
 
                     total_loss += loss_train.item()
                     loss_train.backward()
@@ -189,8 +193,8 @@ class Train:
         _, _, test_y = next(iter(self.test))
         total_b = len(list(iter(self.test)))
 
-        predictions = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
-        test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1]))
+        predictions = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], test_y.shape[1] - self.pred_len))
 
         j = 0
 
@@ -251,7 +255,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=5)
