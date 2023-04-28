@@ -9,7 +9,7 @@ from gpytorch.variational import VariationalStrategy, DeltaVariationalDistributi
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, num_inducing=128, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, num_inducing=256, mean_type='constant'):
         if output_dims is None:
             inducing_points = torch.randn(num_inducing, input_dims)
             batch_shape = torch.Size([])
@@ -36,7 +36,6 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         self.covar_module = ScaleKernel(
-            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) +
             MaternKernel(nu=2.5, batch_shape=batch_shape, ard_num_dims=input_dims),
             batch_shape=batch_shape, ard_num_dims=None
         )
@@ -71,26 +70,18 @@ class DeepGPp(DeepGP):
 
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=num_hidden_dims,
-            mean_type='linear',
-        )
-
-        last_layer = ToyDeepGPHiddenLayer(
-            input_dims=num_hidden_dims,
             output_dims=None,
-            mean_type='constant',
+            mean_type='linear',
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.last_layer = last_layer
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
         hidden_rep1 = self.hidden_layer(inputs)
-        output = self.last_layer(hidden_rep1)
-        return output
+        return hidden_rep1
 
     def predict(self, test_loader):
         with torch.no_grad():
