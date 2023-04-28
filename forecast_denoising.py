@@ -12,7 +12,7 @@ class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
-                 no_noise: bool, residual: bool, train_x_shape):
+                 no_noise: bool, residual: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -51,8 +51,7 @@ class Forecast_denoising(nn.Module):
         self.de_model = denoise_model_2(self.forecasting_model, gp,
                                         d_model, device, seed,
                                         n_noise=no_noise,
-                                        residual=residual,
-                                        train_x_shape=train_x_shape)
+                                        residual=residual)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
