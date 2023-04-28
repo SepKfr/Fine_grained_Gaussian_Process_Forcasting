@@ -15,11 +15,11 @@ class denoise_model_2(nn.Module):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        self.proj_down = nn.Linear(d, int(d/4))
-        self.proj_up = nn.Linear(int(d/4), d)
+        self.proj_down = nn.Linear(d, int(d/8))
+        self.proj_up = nn.Linear(int(d/8), d)
 
         self.denoising_model = model
-        self.deep_gp = DeepGPp(int(d/4))
+        self.deep_gp = DeepGPp(int(d/8))
         self.gp = gp
 
         self.residual = residual
