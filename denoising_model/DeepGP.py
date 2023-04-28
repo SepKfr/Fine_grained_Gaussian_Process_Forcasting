@@ -5,11 +5,11 @@ from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
-from gpytorch.variational import CholeskyVariationalDistribution, VariationalStrategy
+from gpytorch.variational import CholeskyVariationalDistribution, VariationalStrategy, DeltaVariationalDistribution
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, num_inducing=8, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, num_inducing=128, mean_type='constant'):
         if output_dims is None:
             inducing_points = torch.randn(num_inducing, input_dims)
             batch_shape = torch.Size([])
@@ -17,7 +17,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             inducing_points = torch.randn(output_dims, num_inducing, input_dims)
             batch_shape = torch.Size([output_dims])
 
-        variational_distribution = CholeskyVariationalDistribution(
+        variational_distribution = DeltaVariationalDistribution(
             num_inducing_points=num_inducing,
             batch_shape=batch_shape
         )
@@ -69,26 +69,18 @@ class DeepGPp(DeepGP):
     def __init__(self, train_x_shape, num_hidden_dims):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=train_x_shape[-1],
-            output_dims=num_hidden_dims,
-            mean_type='linear',
-        )
-
-        last_layer = ToyDeepGPHiddenLayer(
-            input_dims=hidden_layer.output_dims,
             output_dims=None,
-            mean_type='constant',
+            mean_type='linear',
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.last_layer = last_layer
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
         hidden_rep1 = self.hidden_layer(inputs)
-        output = self.last_layer(hidden_rep1)
-        return output
+        return hidden_rep1
 
     def predict(self, test_loader):
         with torch.no_grad():
