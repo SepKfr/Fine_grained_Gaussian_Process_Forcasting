@@ -67,21 +67,30 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 
 class DeepGPp(DeepGP):
-    def __init__(self, train_x_shape, num_hidden_dims):
+    def __init__(self, num_hidden_dims):
+
         hidden_layer = ToyDeepGPHiddenLayer(
-            input_dims=train_x_shape[-1],
-            output_dims=None,
+            input_dims=num_hidden_dims,
+            output_dims=num_hidden_dims,
             mean_type='linear',
+        )
+
+        last_layer = ToyDeepGPHiddenLayer(
+            input_dims=num_hidden_dims,
+            output_dims=None,
+            mean_type='constant',
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
+        self.last_layer = last_layer
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
         hidden_rep1 = self.hidden_layer(inputs)
-        return hidden_rep1
+        output = self.last_layer(hidden_rep1)
+        return output
 
     def predict(self, test_loader):
         with torch.no_grad():
