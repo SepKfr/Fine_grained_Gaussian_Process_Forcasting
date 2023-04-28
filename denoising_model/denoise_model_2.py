@@ -16,11 +16,9 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        d_gp = int(d/16)
-        self.deep_gp = DeepGPp(d_gp)
+        self.deep_gp = DeepGPp(train_x_shape, d)
         self.gp = gp
-        self.proj_down = nn.Linear(d, d_gp)
-        self.proj_up = nn.Linear(1, d)
+        self.mean_proj = nn.Linear(1, d)
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
@@ -34,10 +32,10 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        dist = self.deep_gp(self.proj_down(x))
+        dist = self.deep_gp(x)
         eps_gp = dist.sample()
 
-        eps_gp = nn.ReLU()(self.proj_up(eps_gp.permute(1, 2, 0)))
+        eps_gp = nn.ReLU()(self.mean_proj(eps_gp.permute(1, 2, 0)))
 
         x_noisy = x + eps_gp
 
