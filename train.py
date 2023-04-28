@@ -158,7 +158,7 @@ class Train:
                     mll_error = 0
 
                 loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                             + 0.01 * mll_error
+                             + 0.001 * mll_error
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
