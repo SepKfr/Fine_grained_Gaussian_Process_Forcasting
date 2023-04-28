@@ -15,12 +15,11 @@ class denoise_model_2(nn.Module):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        self.proj_down = nn.Linear(d, int(d/8))
-        self.proj_up = nn.Linear(int(d/8), d)
-
         self.denoising_model = model
-        self.deep_gp = DeepGPp(int(d/8))
+        self.deep_gp = DeepGPp(d)
         self.gp = gp
+        self.mean_proj = nn.Linear(1, d)
+        self.var_proj = nn.Linear(1, d)
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
@@ -30,14 +29,14 @@ class denoise_model_2(nn.Module):
         self.n_noise = n_noise
         self.residual = residual
 
-    def add_gp_noise(self, x):
+    def add_gp_noise(self, x, eps):
 
         b, s, _ = x.shape
 
-        dist = self.deep_gp(self.proj_down(x))
+        dist = self.deep_gp(x)
         eps_gp = dist.sample()
 
-        eps_gp = self.proj_up(eps_gp.squeeze(0))
+        eps_gp = nn.ReLU()(self.mean_proj(eps_gp.permute(1, 2, 0)))
 
         x_noisy = x + eps_gp
 
@@ -51,7 +50,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
             inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
-            input_noisy, dist = self.add_gp_noise(inputs)
+            eps_inputs = torch.cat([eps_enc, eps_dec], dim=1)
+            input_noisy, dist = self.add_gp_noise(inputs, eps_inputs)
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
             dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
 

@@ -1,8 +1,8 @@
 import gpytorch
 import torch
 from gpytorch.distributions import MultivariateNormal
-from gpytorch.kernels import ScaleKernel, RBFKernel, MaternKernel
-from gpytorch.likelihoods import MultitaskGaussianLikelihood
+from gpytorch.kernels import ScaleKernel, RBFKernel
+from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
 from gpytorch.variational import VariationalStrategy, DeltaVariationalDistribution
@@ -36,8 +36,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         self.covar_module = ScaleKernel(
-            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) +
-            MaternKernel(nu=2.5, batch_shape=batch_shape, ard_num_dims=input_dims),
+            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims),
             batch_shape=batch_shape, ard_num_dims=None
         )
 
@@ -70,25 +69,18 @@ class DeepGPp(DeepGP):
     def __init__(self, num_hidden_dims):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=num_hidden_dims,
+            output_dims=None,
             mean_type='linear',
-        )
-        last_layer = ToyDeepGPHiddenLayer(
-            input_dims=hidden_layer.output_dims,
-            output_dims=num_hidden_dims,
-            mean_type='constant',
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.last_layer = last_layer
-        self.likelihood = MultitaskGaussianLikelihood(num_tasks=num_hidden_dims)
+        self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
         hidden_rep1 = self.hidden_layer(inputs)
-        output = self.last_layer(hidden_rep1)
-        return output
+        return hidden_rep1
 
     def predict(self, test_loader):
         with torch.no_grad():

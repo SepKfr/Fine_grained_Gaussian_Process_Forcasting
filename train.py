@@ -136,7 +136,7 @@ class Train:
                                    no_noise=self.no_noise,
                                    residual=self.residual).to(self.device)
 
-        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, int(d_model/4)))
+        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, 1))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
@@ -153,7 +153,7 @@ class Train:
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
-                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device)).mean()
+                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].permute(1, 0, 2).to(self.device)).mean()
                 else:
                     mll_error = 0
 
