@@ -9,7 +9,7 @@ from gpytorch.variational import VariationalStrategy, DeltaVariationalDistributi
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, num_inducing=256, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, num_inducing=128, mean_type='constant'):
         if output_dims is None:
             inducing_points = torch.randn(num_inducing, input_dims)
             batch_shape = torch.Size([])
