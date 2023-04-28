@@ -125,6 +125,9 @@ class Train:
 
         config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
+        train_enc, train_dec, _ = next(iter(self.train))
+        train_x = torch.cat([train_enc, train_dec], dim=1)
+
         model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
                                    gp=self.gp,
@@ -134,9 +137,10 @@ class Train:
                                    pred_len=self.pred_len,
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
-                                   residual=self.residual).to(self.device)
+                                   residual=self.residual,
+                                   train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
 
-        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, 1))
+        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, train_x.shape[-2]))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
@@ -153,12 +157,12 @@ class Train:
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
-                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].permute(1, 0, 2).to(self.device)).mean()
+                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
                 else:
                     mll_error = 0
 
                 loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                             + 0.001 * mll_error
+                             + 0.01 * mll_error
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
