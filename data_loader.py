@@ -29,13 +29,13 @@ import glob
 from tqdm import tqdm
 
 
-from data import air_quality, electricity, traffic, watershed, solar
+from data import air_quality, electricity, traffic, watershed, solar, exchange
 
 
 class ExperimentConfig(object):
     default_experiments = ['electricity', 'traffic', 'air_quality', 'camel',
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
-                           'covid']
+                           'covid', 'exchange']
 
     def __init__(self, pred_len=24, experiment='covid', root_folder=None):
 
@@ -70,7 +70,8 @@ class ExperimentConfig(object):
             'ETTm2': 'ETT.csv',
             'weather': 'weather.csv',
             'camel': 'camel.csv',
-            'covid': 'covid.csv'
+            'covid': 'covid.csv',
+            'exchange': 'exchange.csv'
         }
 
         return os.path.join(self.data_folder, csv_map[self.experiment])
@@ -86,7 +87,8 @@ class ExperimentConfig(object):
             'traffic': traffic.TrafficFormatter,
             'air_quality': air_quality.AirQualityFormatter,
             'watershed': watershed.WatershedFormatter,
-            'solar': solar.SolarFormatter
+            'solar': solar.SolarFormatter,
+            'exchange': exchange.ExchangeFormatter
         }
 
         return data_formatter_class[self.experiment](self.pred_len)
@@ -130,6 +132,7 @@ def download_and_unzip(url, zip_path, csv_path, data_folder):
     unzip(zip_path, csv_path, data_folder)
 
     print('Done.')
+
 
 
 def process_watershed(config):
@@ -476,6 +479,51 @@ def download_solar(args):
     output.to_csv("solar.csv")
 
     print('Done.')
+
+
+def process_exchange(args):
+
+    df = pd.read_csv("~/research/Corruption-resilient-Forecasting-Models/exhchange.csv", index_col=0, sep=',')
+
+    df.index = pd.to_datetime(df.index)
+    df.sort_index(inplace=True)
+
+    # used to determine the start and end dates of a series
+    output = df.replace(0., np.nan)
+
+    earliest_time = output.index.min()
+
+    df_list = []
+    for county, df in output.groupby(by="Country"):
+
+        srs = df
+
+        start_date = min(srs.fillna(method='ffill').dropna().index)
+        end_date = max(srs.fillna(method='bfill').dropna().index)
+
+        active_range = (srs.index >= start_date) & (srs.index <= end_date)
+        srs = srs[active_range].fillna(0.)
+
+        date = srs.index
+        srs['t'] = (date - earliest_time).seconds / 60 / 60 + (
+                date - earliest_time).days * 24
+        srs['days_from_start'] = (date - earliest_time).days
+        srs['categorical_id'] = county
+        srs['date'] = date
+        srs['id'] = county
+        srs['hour'] = date.hour
+        srs['day'] = date.day
+        srs['day_of_week'] = date.dayofweek
+        srs['month'] = date.month
+
+        df_list.append(srs)
+
+    output = pd.concat(df_list, axis=0, join='outer').reset_index(drop=True)
+    output['categorical_id'] = output['id'].copy()
+    output['hours_from_start'] = output['t']
+    output['categorical_day_of_week'] = output['day_of_week'].copy()
+    output['categorical_hour'] = output['hour'].copy()
+    output.to_csv('exchange.csv')
 
 
 def download_electricity(args):
@@ -878,7 +926,8 @@ def main(expt_name, force_download, output_folder):
         'ETTm2': download_ett,
         'weather': download_weather,
         'camel': download_camel,
-        'covid': process_covid
+        'covid': process_covid,
+        'exchange': process_exchange
     }
 
     if expt_name not in download_functions:
