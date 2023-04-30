@@ -98,7 +98,9 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            pred_len=pred_len,
                                            attn_type=args.attn_type,
                                            no_noise=no_noise,
-                                           residual=residual).to(device)
+                                           residual=residual,
+                                           train_x_shape=[test_enc[0].shape[0], test_dec[0].shape[1], d_model]
+                                           ).to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)))
