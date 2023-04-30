@@ -56,7 +56,6 @@ _, _, test = batch_sampled_data(data, 0.8, max_samples, params['total_time_steps
 test_enc, test_dec, test_y = next(iter(test))
 total_b = len(list(iter(test)))
 
-device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
 model_path = "models_{}_{}".format(args.exp_name, pred_len)
 model_params = formatter.get_default_model_params()
 
@@ -106,6 +105,8 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                         "{}_{}".format(args.name, seed)))
                 state_dict = checkpoint['model_state_dict']
                 model.load_state_dict(state_dict)
+                device = state_dict[list(state_dict.keys())[0]].device
+                print(device)
 
                 model.eval()
                 model.to(device)
