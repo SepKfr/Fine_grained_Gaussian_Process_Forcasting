@@ -102,11 +102,9 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            ).to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
-                                        "{}_{}".format(args.name, seed)))
+                                        "{}_{}".format(args.name, seed)), map_location=device)
                 state_dict = checkpoint['model_state_dict']
                 model.load_state_dict(state_dict)
-                device = state_dict[list(state_dict.keys())[0]].device
-                print(device)
 
                 model.eval()
                 model.to(device)
