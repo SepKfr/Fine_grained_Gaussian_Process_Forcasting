@@ -21,7 +21,7 @@ from data.electricity import ElectricityFormatter
 DataFormatter = ElectricityFormatter
 
 
-class ExchangeFormatter(DataFormatter):
+class CovidFormatter(DataFormatter):
 
     _column_definition = [
         ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.TIME),

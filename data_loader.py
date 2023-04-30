@@ -29,7 +29,7 @@ import glob
 from tqdm import tqdm
 
 
-from data import air_quality, electricity, traffic, watershed, solar, exchange
+from data import air_quality, electricity, traffic, watershed, solar, exchange, covid
 
 
 class ExperimentConfig(object):
@@ -88,7 +88,8 @@ class ExperimentConfig(object):
             'air_quality': air_quality.AirQualityFormatter,
             'watershed': watershed.WatershedFormatter,
             'solar': solar.SolarFormatter,
-            'exchange': exchange.ExchangeFormatter
+            'exchange': exchange.ExchangeFormatter,
+            'covid': covid.CovidFormatter
         }
 
         return data_formatter_class[self.experiment](self.pred_len)
@@ -132,7 +133,6 @@ def download_and_unzip(url, zip_path, csv_path, data_folder):
     unzip(zip_path, csv_path, data_folder)
 
     print('Done.')
-
 
 
 def process_watershed(config):
