@@ -25,8 +25,7 @@ class CovidFormatter(DataFormatter):
 
     _column_definition = [
         ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.TIME),
-        ('PEOPLE_POSITIVE_NEW_CASES', DataTypes.REAL_VALUED, InputTypes.TARGET),
-        ('hour', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('PEOPLE_POSITIVE_NEW_CASES_COUNT', DataTypes.REAL_VALUED, InputTypes.TARGET),
         ('day_of_week', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('PEOPLE_DEATH_COUNT', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('Population Staying at Home', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
