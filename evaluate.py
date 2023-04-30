@@ -40,7 +40,7 @@ num_encoder_steps = params['num_encoder_steps']
 column_definition = params["column_definition"]
 pred_len = args.pred_len
 
-device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
+device = torch.device('cpu')
 data_csv_path = "{}.csv".format(args.exp_name)
 raw_data = pd.read_csv(data_csv_path)
 
@@ -106,7 +106,6 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                         "{}_{}".format(args.name, seed)), map_location=device)
                 state_dict = checkpoint['model_state_dict']
                 model.load_state_dict(state_dict)
-                print(state_dict.keys())
 
                 model.eval()
 
