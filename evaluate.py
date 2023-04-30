@@ -63,8 +63,8 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((3, total_b, test_y.shape[0], test_y.shape[1]))
-test_y_tot = torch.zeros((total_b, test_y.shape[0], test_y.shape[1]))
+predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
+test_y_tot = torch.zeros((total_b, test_y.shape[0], test_enc.shape[1] + test_dec.shape[1]))
 n_batches_test = test_enc.shape[0]
 
 
@@ -116,7 +116,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
 
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
-                        test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
+                        test_y_tot[j] = test_y[:, :-pred_len, :].squeeze(-1).cpu().detach()
                     j += 1
 
             except RuntimeError as e:
