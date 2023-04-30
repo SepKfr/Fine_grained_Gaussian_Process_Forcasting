@@ -113,6 +113,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                     new_state_dict = OrderedDict()
                     for key, value in state_dict.items():
                         if 'deep_gp' or 'mean_proj' not in key:
+                            print(key)
                             new_state_dict[key] = value
 
                     state_dict = new_state_dict
