@@ -63,7 +63,7 @@ src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
 predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
-test_y_tot = torch.zeros((total_b, test_y.shape[0], test_enc.shape[1] + test_dec.shape[1]))
+test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
 
