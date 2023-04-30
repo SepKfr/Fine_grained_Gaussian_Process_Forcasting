@@ -111,6 +111,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                 else:
                     state_dict = checkpoint['model_state_dict']
                     state_dict = {key: value for key, value in state_dict.items() if 'deep_gp' or 'mean_proj' not in key}
+                    print(state_dict)
 
                 model.load_state_dict(state_dict)
 
