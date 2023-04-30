@@ -100,6 +100,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            residual=residual,
                                            train_x_shape=[test_enc[0].shape[0], test_dec[0].shape[1], d]
                                            ).to(device)
+                model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, args.pred_len),
                                         "{}_{}".format(args.name, seed)), map_location=device)
@@ -107,7 +108,6 @@ for i, seed in enumerate([7631, 9873, 5249]):
                 model.load_state_dict(state_dict)
 
                 model.eval()
-                model.to(device)
 
                 j = 0
                 for test_enc, test_dec, test_y in test:
