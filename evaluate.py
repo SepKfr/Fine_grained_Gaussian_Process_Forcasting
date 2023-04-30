@@ -117,7 +117,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
 
                     predictions[i, j] = output.squeeze(-1).cpu().detach().numpy()
                     if i == 0:
-                        test_y_tot[j] = test_y[:, :-pred_len, :].squeeze(-1).cpu().detach()
+                        test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
                     j += 1
 
             except RuntimeError as e:
