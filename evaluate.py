@@ -112,6 +112,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                     state_dict = checkpoint['model_state_dict']
                     new_state_dict = OrderedDict()
                     for key, value in state_dict.items():
+                        print(key)
                         if "deep_gp" not in key:
                             if "mean_proj" not in key:
                                 new_state_dict[key] = value
