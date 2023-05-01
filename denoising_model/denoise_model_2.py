@@ -20,7 +20,6 @@ class denoise_model_2(nn.Module):
         self.mean_proj = nn.Linear(1, d)
         self.gp = gp
 
-
         self.residual = residual
         self.norm = nn.LayerNorm(d)
 
