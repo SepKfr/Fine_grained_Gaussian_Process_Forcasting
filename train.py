@@ -140,7 +140,8 @@ class Train:
                                    residual=self.residual,
                                    train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
 
-        mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, train_x.shape[-2]))
+        if self.gp:
+            mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, train_x.shape[-2]))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
