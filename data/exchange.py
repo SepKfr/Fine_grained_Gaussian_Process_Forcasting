@@ -42,7 +42,7 @@ class ExchangeFormatter(DataFormatter):
         """
         if num_train == -1:
 
-            return 32000, 3840
+            return 256, 256
 
         else:
             return num_train, 3840

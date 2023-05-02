@@ -18,7 +18,7 @@ class ATA(nn.Module):
 
         self.device = device
         self.d_k = d_k
-        self.filter_length = [3, 9]
+        self.filter_length = [1, 3, 9]
 
         self.proj_q = nn.Linear(d_k, 1, bias=False, device=device)
         self.proj_k = nn.Linear(d_k, 1, bias=False, device=device)
@@ -37,8 +37,8 @@ class ATA(nn.Module):
                           )
             for f in self.filter_length]).to(device)
 
-        self.proj_back_q = nn.Linear(1, self.d_k, bias=False).to(device)
-        self.proj_back_k = nn.Linear(1, self.d_k, bias=False).to(device)
+        self.proj_back_q = nn.Linear(len(self.filter_length), self.d_k, bias=False).to(device)
+        self.proj_back_k = nn.Linear(len(self.filter_length), self.d_k, bias=False).to(device)
 
         self.factor = 1
 
@@ -62,11 +62,11 @@ class ATA(nn.Module):
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
         Q_proj = Q_p.reshape(b, h, l, -1)
-        Q = torch.max(Q_proj, dim=-1)[0].unsqueeze(-1)
+        Q = torch.softmax(Q_proj, dim=-1)
         Q = self.proj_back_q(Q)
 
         K_proj = K_p.reshape(b, h, l_k, -1)
-        K = torch.max(K_proj, dim=-1)[0].unsqueeze(-1)
+        K = torch.softmax(K_proj, dim=-1)
         K = self.proj_back_k(K)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
