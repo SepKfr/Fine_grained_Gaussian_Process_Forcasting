@@ -18,27 +18,23 @@ class ATA(nn.Module):
 
         self.device = device
         self.d_k = d_k
-        self.filter_length = [1, 3, 9]
-
-        self.proj_q = nn.Linear(d_k, 1, bias=False, device=device)
-        self.proj_k = nn.Linear(d_k, 1, bias=False, device=device)
+        self.filter_length = [3, 9]
 
         self.conv_list_k = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(h),
-                          nn.Softmax(dim=-1))
+            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(d_k*h),
+                          nn.ReLU())
             for f in self.filter_length
             ]).to(device)
 
         self.conv_list_q = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=h, out_channels=h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(h),
-                          nn.Softmax(dim=-1)
-                          )
+            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
+                          nn.BatchNorm1d(d_k*h),
+                          nn.ReLU())
             for f in self.filter_length]).to(device)
 
-        self.proj_back_q = nn.Linear(len(self.filter_length), self.d_k, bias=False).to(device)
-        self.proj_back_k = nn.Linear(len(self.filter_length), self.d_k, bias=False).to(device)
+        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False).to(device)
+        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False).to(device)
 
         self.factor = 1
 
@@ -48,9 +44,6 @@ class ATA(nn.Module):
         l_k = K.shape[2]
         Q_l = []
         K_l = []
-
-        Q = self.proj_q(Q)
-        K = self.proj_k(K)
 
         Q = Q.reshape(b, -1, l)
         K = K.reshape(b, -1, l_k)
