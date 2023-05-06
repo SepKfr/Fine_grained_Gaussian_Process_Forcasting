@@ -1,4 +1,7 @@
+import random
+
 import gpytorch
+import numpy as np
 import torch
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.kernels import ScaleKernel, RBFKernel, MaternKernel
@@ -9,7 +12,12 @@ from gpytorch.variational import VariationalStrategy, DeltaVariationalDistributi
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, num_inducing=256, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, seed, num_inducing=256, mean_type='constant'):
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
         if output_dims is None:
             inducing_points = torch.randn(num_inducing, input_dims)
             batch_shape = torch.Size([])
@@ -67,11 +75,12 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 
 class DeepGPp(DeepGP):
-    def __init__(self, train_x_shape, num_hidden_dims):
+    def __init__(self, train_x_shape, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=train_x_shape[-1],
             output_dims=None,
             mean_type='linear',
+            seed=seed,
         )
 
         super().__init__()
