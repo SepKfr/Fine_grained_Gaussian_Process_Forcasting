@@ -17,7 +17,7 @@ class denoise_model_2(nn.Module):
 
         self.denoising_model = model
         if gp:
-            self.deep_gp = DeepGPp(train_x_shape, d)
+            self.deep_gp = DeepGPp(train_x_shape, d, seed)
             self.mean_proj = nn.Linear(1, d)
         self.gp = gp
 
