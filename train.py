@@ -218,8 +218,8 @@ class Train:
             test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
             j += 1
 
-        predictions = torch.from_numpy(predictions)
-        test_y = torch.from_numpy(test_y_tot)
+        predictions = torch.from_numpy(predictions.reshape(-1, 1))
+        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
         normaliser = test_y.abs().mean()
 
         test_loss = F.mse_loss(predictions, test_y).item() / normaliser
@@ -227,12 +227,6 @@ class Train:
 
         mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
         mae_loss = mae_loss
-
-        results = torch.zeros(2, self.pred_len)
-
-        for j in range(self.pred_len):
-            results[0, j] = F.mse_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
-            results[1, j] = F.l1_loss(predictions[:, :, j], test_y[:, :, j]).item() / normaliser
 
         print("test loss {:.4f}".format(test_loss))
 
