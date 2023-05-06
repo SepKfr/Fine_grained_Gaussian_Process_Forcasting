@@ -44,8 +44,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         self.covar_module = ScaleKernel(
-            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) *
-            MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims),
+            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims),
             batch_shape=batch_shape, ard_num_dims=None
         )
 
