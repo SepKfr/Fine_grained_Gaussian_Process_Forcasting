@@ -18,6 +18,7 @@ from optuna.trial import TrialState
 from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
+from sdtw_cuda_loss import SoftDTW
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -53,6 +54,7 @@ class Train:
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
+        self.sdtw = SoftDTW(use_cuda=True, gamma=0.1)
         self.best_model = nn.Module()
         self.train, self.valid, self.test, self.n_batches = self.split_data()
         self.run_optuna(args)
@@ -162,8 +164,8 @@ class Train:
                 else:
                     mll_error = 0
 
-                loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) \
-                             + 0.01 * mll_error
+                #loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) + 0.01 * mll_error
+                loss_train = self.sdtw(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) + 0.01 * mll_error
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
