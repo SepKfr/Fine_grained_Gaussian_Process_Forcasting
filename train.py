@@ -53,7 +53,6 @@ class Train:
         self.param_history = []
         self.erros = dict()
         self.exp_name = args.exp_name
-        self.sdtw = SoftDTW(use_cuda=True, gamma=0.1)
         self.best_model = nn.Module()
         self.train, self.valid, self.test, self.n_batches = self.split_data()
         self.run_optuna(args)
