@@ -76,13 +76,13 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 class DeepGPp(DeepGP):
     def __init__(self, train_x_shape, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
-            input_dims=train_x_shape[-1],
-            output_dims=train_x_shape[-1],
+            input_dims=num_hidden_dims,
+            output_dims=num_hidden_dims,
             mean_type='linear',
             seed=seed,
         )
         output_layer = ToyDeepGPHiddenLayer(
-            input_dims=train_x_shape[-1],
+            input_dims=num_hidden_dims,
             output_dims=None,
             mean_type='constant',
             seed=seed,
