@@ -1,5 +1,5 @@
 import gpytorch
-from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO
+from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO, ExactMarginalLogLikelihood
 from denoising_model.GPModel import ExactGPModel
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
@@ -142,7 +142,7 @@ class Train:
                                    train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
 
         if self.gp:
-            mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, train_x.shape[-2]))
+            mll = ExactMarginalLogLikelihood(model.de_model.deep_gp.likelihood, model.de_model.deep_gp)
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
