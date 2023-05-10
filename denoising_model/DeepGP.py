@@ -88,18 +88,11 @@ class DeepGPp(DeepGP):
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
-        output = self.hidden_layer(inputs)
-        return output
+        dist = self.hidden_layer(inputs)
+        return dist
 
-    def predict(self, test_loader):
-        with torch.no_grad():
-            mus = []
-            variances = []
-            lls = []
-            for x_batch, y_batch in test_loader:
-                preds = self.likelihood(self(x_batch))
-                mus.append(preds.mean)
-                variances.append(preds.variance)
-                lls.append(self.likelihood.log_marginal(y_batch, self.forward(x_batch)))
+    def predict(self, x):
 
-        return torch.cat(mus, dim=-1), torch.cat(variances, dim=-1), torch.cat(lls, dim=-1)
+        preds = self.likelihood(self(x))
+
+        return torch.cat(preds, dim=-1)
