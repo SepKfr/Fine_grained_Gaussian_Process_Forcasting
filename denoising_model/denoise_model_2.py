@@ -18,7 +18,6 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
         if gp:
             self.deep_gp = DeepGPp(train_x_shape, d, seed)
-            self.mean_proj = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual
@@ -36,7 +35,7 @@ class denoise_model_2(nn.Module):
         dist = self.deep_gp(x)
         eps_gp = dist.sample()
 
-        eps_gp = nn.ReLU()(self.mean_proj(eps_gp.permute(1, 2, 0)))
+        eps_gp = eps_gp.permute(1, 2, 0)
 
         x_noisy = x + eps_gp
 
