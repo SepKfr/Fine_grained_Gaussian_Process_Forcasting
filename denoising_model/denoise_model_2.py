@@ -17,8 +17,7 @@ class denoise_model_2(nn.Module):
 
         self.denoising_model = model
         if gp:
-            self.proj_down = nn.Linear(d, int(d/8))
-            self.deep_gp = DeepGPp(train_x_shape, int(d/8), seed)
+            self.deep_gp = DeepGPp(train_x_shape, d, seed)
             self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
@@ -34,7 +33,7 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        dist = self.deep_gp(self.proj_down(x))
+        dist = self.deep_gp(x)
         eps_gp = dist.sample().permute(1, 2, 0)
 
         eps_gp = self.proj_up(eps_gp)

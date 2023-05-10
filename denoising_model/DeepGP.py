@@ -12,7 +12,7 @@ from gpytorch.variational import VariationalStrategy, DeltaVariationalDistributi
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, seed, num_inducing=64, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, seed, num_inducing=512, mean_type='constant'):
 
         np.random.seed(seed)
         random.seed(seed)
@@ -77,26 +77,18 @@ class DeepGPp(DeepGP):
     def __init__(self, train_x_shape, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=num_hidden_dims,
-            mean_type='linear',
-            seed=seed,
-        )
-        output_layer = ToyDeepGPHiddenLayer(
-            input_dims=num_hidden_dims,
             output_dims=None,
-            mean_type='constant',
+            mean_type='linear',
             seed=seed,
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.output_layer = output_layer
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
-        hidden_rep1 = self.hidden_layer(inputs)
-        output = self.output_layer(hidden_rep1)
+        output = self.hidden_layer(inputs)
         return output
 
     def predict(self, test_loader):
