@@ -142,7 +142,7 @@ class Train:
                                    train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
 
         if self.gp:
-            mll = ExactMarginalLogLikelihood(model.de_model.deep_gp.likelihood, model.de_model.deep_gp)
+            mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
