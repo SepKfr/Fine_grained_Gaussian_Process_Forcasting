@@ -70,7 +70,7 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = 2
+stack_size = [2, 1]
 denoising = True if args.dae == "True" else False
 gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
@@ -79,7 +79,7 @@ residual = True if args.residual == "True" else False
 
 for i, seed in enumerate([7631, 9873, 5249]):
     for d in d_model:
-        for k in kernel:
+        for layer in stack_size:
             try:
                 np.random.seed(seed)
                 random.seed(seed)
@@ -87,7 +87,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
 
                 d_k = int(d / n_heads)
 
-                config = src_input_size, tgt_input_size, d, n_heads, d_k, stack_size
+                config = src_input_size, tgt_input_size, d, n_heads, d_k, layer
 
                 model = Forecast_denoising(model_name=args.name,
                                            config=config,
