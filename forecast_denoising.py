@@ -12,7 +12,7 @@ class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
-                 no_noise: bool, residual: bool, train_x_shape):
+                 no_noise: bool, residual: bool, input_cottupt: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -23,6 +23,7 @@ class Forecast_denoising(nn.Module):
         src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
         self.pred_len = pred_len
+        self.input_corrupt = input_cottupt
 
         if "LSTM" in model_name:
 
@@ -51,8 +52,7 @@ class Forecast_denoising(nn.Module):
         self.de_model = denoise_model_2(self.forecasting_model, gp,
                                         d_model, device, seed,
                                         n_noise=no_noise,
-                                        residual=residual,
-                                        train_x_shape=train_x_shape)
+                                        residual=residual)
         self.denoise = denoise
         self.residual = residual
         self.final_projection = nn.Linear(d_model, 1)
@@ -61,10 +61,18 @@ class Forecast_denoising(nn.Module):
 
     def forward(self, enc_inputs, dec_inputs):
 
+        dist = None
+
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
-        dist = None
+        if self.input_corrupt and self.training:
+
+            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
+            input_noisy, dist = self.de_model.add_gp_noise(inputs)
+            enc_inputs = input_noisy[:, :enc_inputs.shape[1], :]
+            dec_inputs = input_noisy[:, -enc_inputs.shape[1]:, :]
+
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         if self.residual:

@@ -74,7 +74,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 
 class DeepGPp(DeepGP):
-    def __init__(self, train_x_shape, num_hidden_dims, seed):
+    def __init__(self, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
             output_dims=None,

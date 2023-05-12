@@ -30,6 +30,7 @@ class Train:
         self.gp = True if args.gp == "True" else False
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
+        self.input_cottupt = True if args.input_cottupt == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -127,7 +128,6 @@ class Train:
         config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
         train_enc, train_dec, _ = next(iter(self.train))
-        train_x = torch.cat([train_enc, train_dec], dim=1)
 
         model = Forecast_denoising(model_name=self.model_name,
                                    config=config,
@@ -139,7 +139,7 @@ class Train:
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
                                    residual=self.residual,
-                                   train_x_shape=[train_x[0].shape[0], train_x[0].shape[1], d_model]).to(self.device)
+                                   input_cottupt=self.input_cottupt).to(self.device)
 
         if self.gp:
             mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
@@ -260,10 +260,11 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--denoising", type=str, default="True")
+    parser.add_argument("--denoising", type=str, default="False")
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
+    parser.add_argument("--input_cottupt", type=str, default="True")
     parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()

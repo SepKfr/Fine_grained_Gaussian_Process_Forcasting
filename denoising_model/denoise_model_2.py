@@ -8,7 +8,7 @@ torch.autograd.set_detect_anomaly(True)
 
 
 class denoise_model_2(nn.Module):
-    def __init__(self, model, gp, d, device, seed, train_x_shape, n_noise=False, residual=False):
+    def __init__(self, model, gp, d, device, seed, n_noise=False, residual=False):
         super(denoise_model_2, self).__init__()
 
         np.random.seed(seed)
@@ -17,7 +17,7 @@ class denoise_model_2(nn.Module):
 
         self.denoising_model = model
         if gp:
-            self.deep_gp = DeepGPp(train_x_shape, d, seed)
+            self.deep_gp = DeepGPp(d, seed)
             self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
@@ -29,7 +29,7 @@ class denoise_model_2(nn.Module):
         self.n_noise = n_noise
         self.residual = residual
 
-    def add_gp_noise(self, x, eps):
+    def add_gp_noise(self, x):
 
         b, s, _ = x.shape
 
@@ -50,8 +50,7 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
             inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
-            eps_inputs = torch.cat([eps_enc, eps_dec], dim=1)
-            input_noisy, dist = self.add_gp_noise(inputs, eps_inputs)
+            input_noisy, dist = self.add_gp_noise(inputs)
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
             dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
 
