@@ -139,7 +139,7 @@ class Train:
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
                                    residual=self.residual,
-                                   input_cottupt=self.input_cottupt).to(self.device)
+                                   input_corrupt=self.input_corrupt).to(self.device)
 
         if self.gp:
             mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
