@@ -30,7 +30,7 @@ class Train:
         self.gp = True if args.gp == "True" else False
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
-        self.input_cottupt = True if args.input_cottupt == "True" else False
+        self.input_corrupt = True if args.input_corrupt == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
