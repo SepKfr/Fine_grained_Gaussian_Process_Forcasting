@@ -12,7 +12,7 @@ class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
-                 no_noise: bool, residual: bool, input_cottupt: bool):
+                 no_noise: bool, residual: bool, input_corrupt: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -23,7 +23,7 @@ class Forecast_denoising(nn.Module):
         src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size = config
 
         self.pred_len = pred_len
-        self.input_corrupt = input_cottupt
+        self.input_corrupt = input_corrupt
 
         if "LSTM" in model_name:
 
