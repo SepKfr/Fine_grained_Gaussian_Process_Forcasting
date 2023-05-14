@@ -3,6 +3,7 @@ from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO, ExactMarginalLogLikelihood
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from pts.model.time_grad import TimeGradEstimator
+from pts import Trainer
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
