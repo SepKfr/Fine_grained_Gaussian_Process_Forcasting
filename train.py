@@ -1,9 +1,6 @@
 import gpytorch
-from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO, ExactMarginalLogLikelihood
-from gluonts.evaluation.backtest import make_evaluation_predictions
-from pts.model.time_grad import TimeGradEstimator
-from pts import Trainer
+from denoising_model.GPModel import ExactGPModel
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -132,176 +129,139 @@ class Train:
 
         train_enc, train_dec, _ = next(iter(self.train))
 
-        if self.model_name == "timegrad":
-            train_grouper = MultivariateGrouper(
-                max_target_dim=min(2000, int(1)))
+        model = Forecast_denoising(model_name=self.model_name,
+                                   config=config,
+                                   gp=self.gp,
+                                   denoise=self.denoising,
+                                   device=self.device,
+                                   seed=self.seed,
+                                   pred_len=self.pred_len,
+                                   attn_type=self.attn_type,
+                                   no_noise=self.no_noise,
+                                   residual=self.residual,
+                                   input_corrupt=self.input_corrupt).to(self.device)
 
-            test_grouper = MultivariateGrouper(num_test_dates=int(len(self.test) / len(self.train)),
-                                               max_target_dim=min(2000, 1))
+        if self.gp:
+            mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
+        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
-            dataset_train = train_grouper(self.train)
-            dataset_test = test_grouper(self.test)
+        val_loss = 1e10
+        for epoch in range(self.num_epochs):
 
-            estimator = TimeGradEstimator(
-                target_dim=1,
-                prediction_length=self.pred_len,
-                context_length=self.pred_len,
-                cell_type='GRU',
-                input_size=1484,
-                freq="H",
-                loss_type='l2',
-                scaling=True,
-                diff_steps=100,
-                beta_end=0.1,
-                beta_schedule="linear",
-                trainer=Trainer(device=self.device,
-                                epochs=20,
-                                learning_rate=1e-3,
-                                num_batches_per_epoch=100,
-                                batch_size=64, )
-            )
-            predictor = estimator.train(dataset_train, num_workers=8)
-            forecast_it, ts_it = make_evaluation_predictions(dataset=dataset_test,
-                                                             predictor=predictor,
-                                                             num_samples=100)
-            forecasts = list(forecast_it)
-            targets = list(ts_it)
+            total_loss = 0
+            model.train()
 
-        else:
-            model = Forecast_denoising(model_name=self.model_name,
-                                       config=config,
-                                       gp=self.gp,
-                                       denoise=self.denoising,
-                                       device=self.device,
-                                       seed=self.seed,
-                                       pred_len=self.pred_len,
-                                       attn_type=self.attn_type,
-                                       no_noise=self.no_noise,
-                                       residual=self.residual,
-                                       input_corrupt=self.input_corrupt).to(self.device)
+            for train_enc, train_dec, train_y in self.train:
 
-            if self.gp:
-                mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
-            optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
-
-            val_loss = 1e10
-            for epoch in range(self.num_epochs):
-
-                total_loss = 0
-                model.train()
-
-                for train_enc, train_dec, train_y in self.train:
-
-                    if self.gp:
-                        with gpytorch.settings.num_likelihood_samples(1):
-                            output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                    else:
-
-                        output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                    if dist is not None:
-                        mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
-                    else:
-                        mll_error = 0
-
-                    loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) + 0.01 * mll_error
-
-                    total_loss += loss_train.item()
-                    optimizer.zero_grad()
-                    loss_train.backward()
-                    optimizer.step_and_update_lr()
-
-                model.eval()
-                test_loss = 0
-                for valid_enc, valid_dec, valid_y in self.valid:
-                    if self.gp:
-                        with gpytorch.settings.num_likelihood_samples(1):
-                            output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    else:
-                        output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                    loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
-
-                    test_loss += loss_eval.item()
-
-                if epoch % 5 == 0:
-                    print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                    print("val loss: {:.4f}".format(test_loss))
-
-                if test_loss < val_loss:
-                    val_loss = test_loss
-                    if val_loss < self.best_val:
-                        self.best_val = val_loss
-                        self.best_model = model
-                        torch.save({'model_state_dict': self.best_model.state_dict()},
-                                   os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
-
-            return val_loss
-
-        def evaluate(self):
-
-            self.best_model.eval()
-
-            _, _, test_y = next(iter(self.test))
-            total_b = len(list(iter(self.test)))
-
-            predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-            test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
-
-            j = 0
-
-            for test_enc, test_dec, test_y in self.test:
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
-                        output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                        output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 else:
+                    output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                if dist is not None:
+                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
+                else:
+                    mll_error = 0
+
+                loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) + 0.01 * mll_error
+
+                total_loss += loss_train.item()
+                optimizer.zero_grad()
+                loss_train.backward()
+                optimizer.step_and_update_lr()
+
+            model.eval()
+            test_loss = 0
+            for valid_enc, valid_dec, valid_y in self.valid:
+                if self.gp:
+                    with gpytorch.settings.num_likelihood_samples(1):
+                        output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                else:
+                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
+
+                test_loss += loss_eval.item()
+
+            if epoch % 5 == 0:
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                print("val loss: {:.4f}".format(test_loss))
+
+            if test_loss < val_loss:
+                val_loss = test_loss
+                if val_loss < self.best_val:
+                    self.best_val = val_loss
+                    self.best_model = model
+                    torch.save({'model_state_dict': self.best_model.state_dict()},
+                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
+
+        return val_loss
+
+    def evaluate(self):
+
+        self.best_model.eval()
+
+        _, _, test_y = next(iter(self.test))
+        total_b = len(list(iter(self.test)))
+
+        predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
+
+        j = 0
+
+        for test_enc, test_dec, test_y in self.test:
+            if self.gp:
+                with gpytorch.settings.num_likelihood_samples(1):
                     output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-                predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-                test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
-                j += 1
-
-            predictions = torch.from_numpy(predictions.reshape(-1, 1))
-            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-            normaliser = test_y.abs().mean()
-
-            test_loss = F.mse_loss(predictions, test_y).item() / normaliser
-            test_loss = test_loss
-
-            mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
-            mae_loss = mae_loss
-
-            print("test loss {:.4f}".format(test_loss))
-
-            self.erros["{}_{}".format(self.model_name, self.seed)] = list()
-            self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
-            self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
-
-            error_path = "errors_{}_{}.json".format(self.exp_name, self.pred_len)
-
-            if os.path.exists(error_path):
-                with open(error_path) as json_file:
-                    json_dat = json.load(json_file)
-                    if json_dat.get("{}_{}".format(self.model_name, self.seed)) is None:
-                        json_dat["{}_{}".format(self.model_name, self.seed)] = list()
-                    json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
-                    json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
-
-                with open(error_path, "w") as json_file:
-                    json.dump(json_dat, json_file)
             else:
-                with open(error_path, "w") as json_file:
-                    json.dump(self.erros, json_file)
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            predictions[j] = output.squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+            j += 1
+
+        predictions = torch.from_numpy(predictions.reshape(-1, 1))
+        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+        normaliser = test_y.abs().mean()
+
+        test_loss = F.mse_loss(predictions, test_y).item() / normaliser
+        test_loss = test_loss
+
+        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
+        mae_loss = mae_loss
+
+        print("test loss {:.4f}".format(test_loss))
+
+        self.erros["{}_{}".format(self.model_name, self.seed)] = list()
+        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
+        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
+
+        error_path = "errors_{}_{}.json".format(self.exp_name, self.pred_len)
+
+        if os.path.exists(error_path):
+            with open(error_path) as json_file:
+                json_dat = json.load(json_file)
+                if json_dat.get("{}_{}".format(self.model_name, self.seed)) is None:
+                    json_dat["{}_{}".format(self.model_name, self.seed)] = list()
+                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
+                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
+
+            with open(error_path, "w") as json_file:
+                json.dump(json_dat, json_file)
+        else:
+            with open(error_path, "w") as json_file:
+                json.dump(self.erros, json_file)
 
 
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
     parser.add_argument("--attn_type", type=str, default='ATA')
-    parser.add_argument("--model_name", type=str, default="timegrad")
+    parser.add_argument("--model_name", type=str, default="ATA")
     parser.add_argument("--exp_name", type=str, default='exchange')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="False")
-    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--input_corrupt", type=str, default="False")
