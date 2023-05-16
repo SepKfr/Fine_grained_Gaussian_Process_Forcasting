@@ -68,10 +68,8 @@ class Forecast_denoising(nn.Module):
 
         if self.input_corrupt and self.training:
 
-            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
-            input_noisy, dist = self.de_model.add_gp_noise(inputs)
-            enc_inputs = input_noisy[:, :enc_inputs.shape[1], :]
-            dec_inputs = input_noisy[:, -enc_inputs.shape[1]:, :]
+            enc_inputs = enc_inputs.add_(enc_inputs * 0.05)
+            dec_inputs = dec_inputs.add_(dec_inputs * 0.05)
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 

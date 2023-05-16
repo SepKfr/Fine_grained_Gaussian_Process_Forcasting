@@ -160,8 +160,6 @@ class Train:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
                     mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
-                    if self.input_corrupt:
-                        mll_error = 0.01*mll_error
                 else:
                     mll_error = 0
 
