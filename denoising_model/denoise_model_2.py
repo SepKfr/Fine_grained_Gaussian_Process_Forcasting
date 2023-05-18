@@ -49,10 +49,8 @@ class denoise_model_2(nn.Module):
         dist = None
 
         if self.gp:
-            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
-            input_noisy, dist = self.add_gp_noise(inputs)
-            enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
-            dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
+            enc_noisy, _ = self.add_gp_noise(enc_inputs)
+            dec_noisy, dist = self.add_gp_noise(dec_inputs)
 
         elif self.n_noise:
 
