@@ -159,7 +159,7 @@ class Train:
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 if dist is not None:
-                    mll_error = -mll(dist, train_y[:, -self.pred_len:, :].to(self.device).permute(2, 0, 1)).mean()
+                    mll_error = -mll(dist, train_y[:, self.pred_len:, :].to(self.device).permute(2, 0, 1)).mean()
                 else:
                     mll_error = 0
 
