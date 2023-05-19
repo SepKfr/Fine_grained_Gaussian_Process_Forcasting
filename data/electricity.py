@@ -228,7 +228,7 @@ class ElectricityFormatter(GenericDataFormatter):
 
         fixed_params = {
             'total_time_steps': 8 * 24 + self.pred_len,
-            'num_encoder_steps': 4 * 24,
+            'num_encoder_steps': 8 * 24,
             'num_decoder_steps': self.pred_len,
             'num_epochs': 50,
             'early_stopping_patience': 5,

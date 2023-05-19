@@ -95,7 +95,7 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
     input_size = len(enc_input_cols)
     inputs = np.zeros((max_samples, time_steps, input_size))
     enc_inputs = np.zeros((max_samples, num_encoder_steps, input_size))
-    dec_inputs = np.zeros((max_samples, time_steps - num_encoder_steps - pred_len, input_size))
+    dec_inputs = np.zeros((max_samples, pred_len, input_size))
     outputs = np.zeros((max_samples, time_steps, 1))
     time = np.empty((max_samples, time_steps, 1), dtype=object)
     identifiers = np.empty((max_samples, time_steps, 1), dtype=object)
@@ -107,7 +107,7 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
         sliced = split_data_map[identifier].iloc[start_idx -
                                                  time_steps:start_idx]
         enc_inputs[i, :, :] = sliced[enc_input_cols].iloc[:num_encoder_steps]
-        dec_inputs[i, :, :] = sliced[enc_input_cols].iloc[num_encoder_steps:-pred_len]
+        dec_inputs[i, :, :] = sliced[enc_input_cols].iloc[-2*pred_len:-pred_len]
         inputs[i, :, :] = sliced[enc_input_cols]
         outputs[i, :, :] = sliced[[target_col]]
         time[i, :, 0] = sliced[time_col]

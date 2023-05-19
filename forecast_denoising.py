@@ -1,5 +1,4 @@
 import random
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -66,11 +65,6 @@ class Forecast_denoising(nn.Module):
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
-        if self.input_corrupt and self.training:
-
-            enc_inputs = enc_inputs.add_(enc_inputs * 0.05)
-            dec_inputs = dec_inputs.add_(dec_inputs * 0.05)
-
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         if self.residual:
@@ -79,7 +73,10 @@ class Forecast_denoising(nn.Module):
             residual = None
 
         if self.denoise:
-            enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            if self.input_corrupt and self.training or not self.input_corrupt:
+                enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            else:
+                pass
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
         return outputs, dist
