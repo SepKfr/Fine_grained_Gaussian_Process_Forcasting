@@ -154,7 +154,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(3):
+                    with gpytorch.settings.num_likelihood_samples(1):
                         output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
@@ -174,7 +174,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
                 if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(3):
+                    with gpytorch.settings.num_likelihood_samples(1):
                         output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 else:
                     output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
@@ -210,7 +210,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
             if self.gp:
-                with gpytorch.settings.num_likelihood_samples(3):
+                with gpytorch.settings.num_likelihood_samples(1):
                     output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))

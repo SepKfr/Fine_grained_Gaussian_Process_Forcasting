@@ -18,7 +18,7 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
         if gp:
             self.deep_gp = DeepGPp(d, seed)
-            self.proj_up = nn.Linear(3, d)
+            self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual
@@ -49,6 +49,7 @@ class denoise_model_2(nn.Module):
         dist = None
 
         if self.gp:
+
             inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
             input_noisy, dist = self.add_gp_noise(inputs)
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
