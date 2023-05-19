@@ -174,7 +174,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.valid:
                 if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(1):
+                    with gpytorch.settings.num_likelihood_samples(3):
                         output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
                 else:
                     output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
@@ -210,7 +210,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.test:
             if self.gp:
-                with gpytorch.settings.num_likelihood_samples(1):
+                with gpytorch.settings.num_likelihood_samples(3):
                     output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
@@ -260,7 +260,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--denoising", type=str, default="False")
+    parser.add_argument("--denoising", type=str, default="True")
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
