@@ -154,7 +154,7 @@ class Train:
             for train_enc, train_dec, train_y in self.train:
 
                 if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(1):
+                    with gpytorch.settings.num_likelihood_samples(3):
                         output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
                 else:
                     output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
