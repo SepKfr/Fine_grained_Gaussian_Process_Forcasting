@@ -73,10 +73,7 @@ class Forecast_denoising(nn.Module):
             residual = None
 
         if self.denoise:
-            if self.input_corrupt and self.training or not self.input_corrupt:
-                enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
-            else:
-                pass
+            enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
         return outputs, dist
