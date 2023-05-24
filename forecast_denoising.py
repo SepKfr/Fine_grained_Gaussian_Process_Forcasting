@@ -65,15 +65,18 @@ class Forecast_denoising(nn.Module):
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
-        enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
+        if self.input_corrupt:
+            enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
-        if self.residual:
-            residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
         else:
-            residual = None
+            enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
+            if self.residual:
+                residual = [enc_outputs - enc_inputs, dec_outputs - dec_inputs]
+            else:
+                residual = None
 
-        if self.denoise:
-            enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
+            if self.denoise:
+                enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone(), residual)
 
         outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
         return outputs, dist
