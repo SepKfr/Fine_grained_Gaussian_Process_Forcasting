@@ -104,7 +104,7 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            input_corrupt=input_corrupt).to(device)
                 model.to(device)
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, 96),
+                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
                                         "{}_{}".format(args.name, seed)), map_location=device)
 
                 if gp:
