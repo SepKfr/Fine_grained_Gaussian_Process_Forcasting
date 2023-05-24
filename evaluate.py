@@ -64,7 +64,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((1, total_b, test_y.shape[0], pred_len))
+predictions = np.zeros((2, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -79,7 +79,7 @@ residual = True if args.residual == "True" else False
 input_corrupt = True if args.input_corrupt == "True" else False
 
 
-for i, seed in enumerate([7631]):
+for i, seed in enumerate([7631, 9873]):
     for d in d_model:
         for layer in stack_size:
             try:
@@ -144,10 +144,10 @@ for i, seed in enumerate([7631]):
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(1, args.pred_len)
-mae_std = torch.zeros(1, args.pred_len)
+mse_std = torch.zeros(2, args.pred_len)
+mae_std = torch.zeros(2, args.pred_len)
 
-for i in range(1):
+for i in range(2):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
         mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
@@ -158,8 +158,8 @@ mse_mean = mse_std.mean(dim=0)
 m_mse_men = torch.mean(mse_mean).item() / normaliser
 mae_mean = mae_std.mean(dim=0)
 m_mae_men = torch.mean(mae_mean).item() / normaliser
-mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(1)
-mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(1)
+mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(2)
+mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(2)
 
 results = torch.zeros(4, args.pred_len)
 
