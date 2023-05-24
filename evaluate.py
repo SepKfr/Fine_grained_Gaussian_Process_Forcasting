@@ -147,7 +147,7 @@ predictions = torch.from_numpy(predictions)
 mse_std = torch.zeros(2, args.pred_len)
 mae_std = torch.zeros(2, args.pred_len)
 
-for i in range(3):
+for i in range(2):
     for j in range(args.pred_len):
         mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
         mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
