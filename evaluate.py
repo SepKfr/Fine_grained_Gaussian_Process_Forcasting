@@ -123,6 +123,8 @@ for i, seed in enumerate([7631, 9873, 5249]):
 
                 model.load_state_dict(state_dict)
 
+                model.eval()
+
                 j = 0
                 for test_enc, test_dec, test_y in test:
                     if gp:
