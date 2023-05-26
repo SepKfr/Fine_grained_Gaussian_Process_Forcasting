@@ -65,7 +65,13 @@ class Forecast_denoising(nn.Module):
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
 
-        if self.input_corrupt and not self.training:
+        if self.input_corrupt_iso:
+
+            enc_inputs = enc_inputs.add_(enc_inputs * 0.05)
+            dec_inputs = dec_inputs.add_(dec_inputs * 0.05)
+            enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
+
+        elif self.input_corrupt and not self.training:
             enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
 
         else:
