@@ -11,7 +11,7 @@ class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
-                 no_noise: bool, residual: bool, input_corrupt: bool):
+                 no_noise: bool, residual: bool, input_corrupt: bool, input_corrupt_iso: bool):
 
         super(Forecast_denoising, self).__init__()
 
@@ -23,6 +23,7 @@ class Forecast_denoising(nn.Module):
 
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
+        self.input_corrupt_iso = input_corrupt_iso
 
         if "LSTM" in model_name:
 

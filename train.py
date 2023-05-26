@@ -31,6 +31,7 @@ class Train:
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
         self.input_corrupt = True if args.input_corrupt == "True" else False
+        self.input_corrupt_iso = True if args.self.input_corrupt_iso == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -139,7 +140,8 @@ class Train:
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
                                    residual=self.residual,
-                                   input_corrupt=self.input_corrupt).to(self.device)
+                                   input_corrupt=self.input_corrupt,
+                                   input_corrupt_iso=self.input_corrupt_iso).to(self.device)
 
         if self.gp:
             mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
@@ -265,6 +267,7 @@ def main():
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--input_corrupt", type=str, default="False")
+    parser.add_argument("--input_corrupt_iso", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()
