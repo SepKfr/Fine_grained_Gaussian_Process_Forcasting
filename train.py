@@ -31,7 +31,7 @@ class Train:
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
         self.input_corrupt = True if args.input_corrupt == "True" else False
-        self.input_corrupt_iso = True if args.self.input_corrupt_iso == "True" else False
+        self.input_corrupt_iso = True if args.input_corrupt_iso == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
