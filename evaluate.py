@@ -25,6 +25,7 @@ parser.add_argument("--gp", type=str, default="False")
 parser.add_argument("--no_noise", type=str, default="False")
 parser.add_argument("--residual", type=str, default="False")
 parser.add_argument("--input_corrupt", type=str, default="False")
+parser.add_argument("--input_corrupt_iso", type=str, default="False")
 
 args = parser.parse_args()
 
@@ -77,6 +78,7 @@ gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 input_corrupt = True if args.input_corrupt == "True" else False
+input_corrupt_iso = True if args.input_corrupt_iso == "True" else False
 
 
 for i, seed in enumerate([7631, 9873, 5249]):
@@ -101,7 +103,8 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            attn_type=args.attn_type,
                                            no_noise=no_noise,
                                            residual=residual,
-                                           input_corrupt=input_corrupt).to(device)
+                                           input_corrupt=input_corrupt,
+                                           input_corrupt_iso=input_corrupt_iso).to(device)
                 model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
