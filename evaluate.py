@@ -189,7 +189,7 @@ erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
 
-error_path = "5th_final_errors_{}_{}.json".format(args.exp_name, pred_len)
+error_path = "final_final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
 if os.path.exists(error_path):
     with open(error_path) as json_file:
