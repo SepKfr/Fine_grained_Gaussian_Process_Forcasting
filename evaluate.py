@@ -149,8 +149,8 @@ mse_std = torch.zeros(3)
 mae_std = torch.zeros(3)
 
 for i in range(3):
-    mse_std[i] = mse(predictions[i], test_y_tot)
-    mae_std[i] = mse(predictions[i], test_y_tot)
+    mse_std[i] = mse(predictions[i, :], test_y_tot)
+    mae_std[i] = mae(predictions[i, :], test_y_tot)
 
 mse_std = mse_std.std(dim=0) / np.sqrt(3)
 mae_std = mae_std.std(dim=0) / np.sqrt(3)
