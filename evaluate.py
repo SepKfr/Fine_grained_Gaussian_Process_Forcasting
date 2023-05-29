@@ -148,6 +148,12 @@ for i, seed in enumerate([7631, 9873, 5249]):
 mse_std = torch.zeros(3)
 mae_std = torch.zeros(3)
 
+predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
+
+predictions = torch.from_numpy(predictions)
+mse_std_mean = torch.zeros(3, args.pred_len)
+mae_std_mean = torch.zeros(3, args.pred_len)
+
 for i in range(3):
     mse_std[i] = mse(predictions[i, :], test_y_tot)
     mae_std[i] = mae(predictions[i, :], test_y_tot)
@@ -155,11 +161,6 @@ for i in range(3):
 mse_std = mse_std.std(dim=0) / np.sqrt(3)
 mae_std = mae_std.std(dim=0) / np.sqrt(3)
 
-predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
-
-predictions = torch.from_numpy(predictions)
-mse_std_mean = torch.zeros(3, args.pred_len)
-mae_std_mean = torch.zeros(3, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
