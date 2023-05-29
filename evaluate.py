@@ -169,8 +169,8 @@ results = torch.zeros(4, args.pred_len)
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-pred_std_mse = test_loss.std().item() / np.sqrt(pred_len)
-pred_std_mae = mae_loss.std().item() / np.sqrt(pred_len)
+pred_std_mse = test_loss.std() / np.sqrt(pred_len)
+pred_std_mae = mae_loss.std() / np.sqrt(pred_len)
 
 for j in range(args.pred_len):
 
