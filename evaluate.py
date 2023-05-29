@@ -145,24 +145,35 @@ for i, seed in enumerate([7631, 9873, 5249]):
                 pass
 
 
+mse_std = torch.zeros(3)
+mae_std = torch.zeros(3)
+
+for i in range(3):
+    mse_std[i] = mse(predictions[i], test_y_tot)
+    mae_std[i] = mse(predictions[i], test_y_tot)
+
+mse_std = mse_std.std(dim=0) / np.sqrt(3)
+mae_std = mae_std.std(dim=0) / np.sqrt(3)
+
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
+
 predictions = torch.from_numpy(predictions)
-mse_std = torch.zeros(3, args.pred_len)
-mae_std = torch.zeros(3, args.pred_len)
+mse_std_mean = torch.zeros(3, args.pred_len)
+mae_std_mean = torch.zeros(3, args.pred_len)
 
 for i in range(3):
     for j in range(args.pred_len):
-        mse_std[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-        mae_std[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+        mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+        mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 normaliser = test_y_tot.abs().mean()
 
-mse_mean = mse_std.mean(dim=0)
+mse_mean = mse_std_mean.mean(dim=0)
 m_mse_men = torch.mean(mse_mean).item() / normaliser
-mae_mean = mae_std.mean(dim=0)
+mae_mean = mae_std_mean.mean(dim=0)
 m_mae_men = torch.mean(mae_mean).item() / normaliser
-mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
-mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
+# mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
+# mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
 
 results = torch.zeros(4, args.pred_len)
 
@@ -178,8 +189,6 @@ for j in range(args.pred_len):
     results[2] = mse_mean
     results[2] = mae_mean
 
-pred_std_mse = results[0].std().item()/pred_len
-pred_std_mae = results[1].std().item()/pred_len
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 if not os.path.exists("predictions"):
@@ -191,8 +200,6 @@ erros = dict()
 erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mse)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mae)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
@@ -207,8 +214,6 @@ if os.path.exists(error_path):
             json_dat["{}".format(args.name)] = list()
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mse)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mae)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
