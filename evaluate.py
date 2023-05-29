@@ -169,8 +169,8 @@ results = torch.zeros(4, args.pred_len)
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-pred_std_mse = torch.std(test_loss).item() / np.sqrt(pred_len)
-pred_std_mae = torch.std(mae_loss).item() / np.sqrt(pred_len)
+pred_std_mse = test_loss.std().item() / np.sqrt(pred_len)
+pred_std_mae = mae_loss.std().item() / np.sqrt(pred_len)
 
 for j in range(args.pred_len):
 
@@ -205,6 +205,8 @@ if os.path.exists(error_path):
             json_dat["{}".format(args.name)] = list()
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mse)))
+        json_dat["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mae)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
         json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
