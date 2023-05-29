@@ -169,8 +169,7 @@ results = torch.zeros(4, args.pred_len)
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-pred_std_mse = test_loss.std() / np.sqrt(pred_len)
-pred_std_mae = mae_loss.std() / np.sqrt(pred_len)
+
 
 for j in range(args.pred_len):
 
@@ -178,6 +177,9 @@ for j in range(args.pred_len):
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[2] = mse_mean
     results[2] = mae_mean
+
+pred_std_mse = results[0].std().item()/pred_len
+pred_std_mae = results[1].std().item()/pred_len
 
 df = pd.DataFrame(results.detach().cpu().numpy())
 if not os.path.exists("predictions"):
