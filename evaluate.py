@@ -169,6 +169,8 @@ results = torch.zeros(4, args.pred_len)
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
+pred_std_mse = torch.std(test_loss).item() / np.sqrt(pred_len)
+pred_std_mae = torch.std(mae_loss).item() / np.sqrt(pred_len)
 
 for j in range(args.pred_len):
 
@@ -187,6 +189,8 @@ erros = dict()
 erros["{}".format(args.name)] = list()
 erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mse)))
+erros["{}".format(args.name)].append(float("{:.5f}".format(pred_std_mae)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
