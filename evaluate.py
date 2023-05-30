@@ -145,38 +145,40 @@ for i, seed in enumerate([7631, 9873, 5249]):
                 pass
 
 
-mse_std = torch.zeros(3)
-mae_std = torch.zeros(3)
+mse_std_mean = torch.zeros(3)
+mae_std_mean = torch.zeros(3)
 
 predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 
 predictions = torch.from_numpy(predictions)
-mse_std_mean = torch.zeros(3, args.pred_len)
-mae_std_mean = torch.zeros(3, args.pred_len)
 
 for i in range(3):
-    mse_std[i] = mse(predictions[i, :], test_y_tot)
-    mae_std[i] = mae(predictions[i, :], test_y_tot)
-
-mse_std = mse_std.std(dim=0) / np.sqrt(3)
-mae_std = mae_std.std(dim=0) / np.sqrt(3)
-
-
-for i in range(3):
-    for j in range(args.pred_len):
-        mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-        mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+    mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
+    mae_std_mean[i] = mae(predictions[i, :], test_y_tot)
 
 normaliser = test_y_tot.abs().mean()
 
-mse_mean = mse_std_mean.mean(dim=0)
-m_mse_men = torch.mean(mse_mean).item() / normaliser
-mae_mean = mae_std_mean.mean(dim=0)
-m_mae_men = torch.mean(mae_mean).item() / normaliser
+mse_std = mse_std_mean.std(dim=0) / np.sqrt(3)
+mae_std = mae_std_mean.std(dim=0) / np.sqrt(3)
+m_mse_men = torch.mean(mse_std_mean).item() / normaliser
+m_mae_men = torch.mean(mae_std_mean).item() / normaliser
+
+
+# for i in range(3):
+#     for j in range(args.pred_len):
+#         mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+#         mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+
+
+
+# mse_mean = mse_std_mean.mean(dim=0)
+# m_mse_men = torch.mean(mse_mean).item() / normaliser
+# mae_mean = mae_std_mean.mean(dim=0)
+# m_mae_men = torch.mean(mae_mean).item() / normaliser
 # mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
 # mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
 
-results = torch.zeros(4, args.pred_len)
+results = torch.zeros(2, args.pred_len)
 
 
 test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
@@ -187,8 +189,6 @@ for j in range(args.pred_len):
 
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
-    results[2] = mse_mean
-    results[2] = mae_mean
 
 
 df = pd.DataFrame(results.detach().cpu().numpy())
@@ -206,7 +206,7 @@ erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
 erros["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
 
-error_path = "final_final_errors_{}_{}.json".format(args.exp_name, pred_len)
+error_path = "Final_final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
 if os.path.exists(error_path):
     with open(error_path) as json_file:
