@@ -199,12 +199,8 @@ df.to_csv(os.path.join("predictions", "{}_{}_{}.csv".format(args.exp_name, args.
 
 erros = dict()
 erros["{}".format(args.name)] = list()
-erros["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
-erros["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
+erros["{}".format(args.name)].append(float("{:.3f}".format(test_loss)))
+erros["{}".format(args.name)].append(float("{:.3f}".format(mae_loss)))
 
 error_path = "Final_final_errors_{}_{}.json".format(args.exp_name, pred_len)
 
@@ -213,12 +209,8 @@ if os.path.exists(error_path):
         json_dat = json.load(json_file)
         if json_dat.get("{}".format(args.name)) is None:
             json_dat["{}".format(args.name)] = list()
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(test_loss)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_loss)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mse_men)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(m_mae_men)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mse_std)))
-        json_dat["{}".format(args.name)].append(float("{:.5f}".format(mae_std)))
+        json_dat["{}".format(args.name)].append(float("{:.3f}".format(test_loss)))
+        json_dat["{}".format(args.name)].append(float("{:.3f}".format(mae_loss)))
 
     with open(error_path, "w") as json_file:
         json.dump(json_dat, json_file)
