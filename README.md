@@ -31,7 +31,7 @@ numpy >= 1.23.5
 python data_loader.py --expt_name solar
 ```
 
-After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from ```{traffic, electricity, air_quality, solar, watershed}```.
+After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from ```{traffic, electricity, solar}```.
 
 ## How to run:
 ```
