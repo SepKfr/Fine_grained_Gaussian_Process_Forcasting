@@ -84,7 +84,7 @@ class Forecast_denoising(nn.Module):
 
                 outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-                if self.gp:
+                if self.gp and y_true is not None:
                     dist_output = gpytorch.distributions.MultivariateNormal(dist.mean[:, :, -self.pred_len:],
                                                                             dist.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:])
 
