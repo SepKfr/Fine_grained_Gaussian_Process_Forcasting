@@ -42,7 +42,7 @@ class denoise_model_2(nn.Module):
 
         return x_noisy, dist
 
-    def forward(self, enc_inputs, dec_inputs, residual=None):
+    def forward(self, enc_inputs, dec_inputs):
 
         eps_enc = torch.randn_like(enc_inputs)
         eps_dec = torch.randn_like(dec_inputs)
@@ -60,18 +60,13 @@ class denoise_model_2(nn.Module):
             enc_noisy = enc_inputs
             dec_noisy = dec_inputs
 
-        elif self.residual:
-
-            enc_noisy = residual[0]
-            dec_noisy = residual[1]
-
         else:
             enc_noisy = enc_inputs.add_(eps_enc * 0.05)
             dec_noisy = dec_inputs.add_(eps_dec * 0.05)
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        enc_output = enc_inputs + enc_rec
-        dec_output = dec_inputs + dec_rec
+        enc_output = self.norm(enc_inputs + enc_rec)
+        dec_output = self.norm(dec_inputs + dec_rec)
 
         return enc_output, dec_output, dist

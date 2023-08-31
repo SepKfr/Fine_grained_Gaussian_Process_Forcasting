@@ -1,13 +1,12 @@
 import gpytorch
-from gpytorch.mlls import PredictiveLogLikelihood, DeepApproximateMLL, VariationalELBO, ExactMarginalLogLikelihood
-from denoising_model.GPModel import ExactGPModel
+import openpyxl
+
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
 import numpy as np
 import torch
 import argparse
-import json
 import os
 import torch.nn.functional as F
 import random
@@ -30,8 +29,7 @@ class Train:
         self.gp = True if args.gp == "True" else False
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
-        self.input_corrupt = True if args.input_corrupt == "True" else False
-        self.input_corrupt_iso = True if args.input_corrupt_iso == "True" else False
+        self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
         self.data = data
         self.len_data = len(data)
         self.formatter = config.make_data_formatter()
@@ -49,12 +47,26 @@ class Train:
         self.criterion = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
         self.num_epochs = args.num_epochs
-        self.model_name = args.model_name
+        self.exp_name = args.exp_name
+        self.model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name,
+                                                      self.exp_name,
+                                                      self.seed,
+                                                      "_denoise" if self.denoising
+                                                      else "",
+                                                      "_predictions" if self.no_noise
+                                                      else "",
+                                                      "_residual" if self.residual
+                                                      else "",
+                                                      "_gp" if self.gp
+                                                      else "",
+                                                      "_add_noise_only_training" if self.input_corrupt_training
+                                                      else ""
+                                                      )
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
         self.best_val = 1e10
         self.param_history = []
-        self.erros = dict()
-        self.exp_name = args.exp_name
+        self.errors = dict()
+
         self.best_model = nn.Module()
         self.train, self.valid, self.test, self.n_batches = self.split_data()
         self.run_optuna(args)
@@ -112,8 +124,7 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [32])
-
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        w_steps = trial.suggest_categorical("w_steps", [4000])
         stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
         n_heads = self.model_params['num_heads']
@@ -140,11 +151,8 @@ class Train:
                                    attn_type=self.attn_type,
                                    no_noise=self.no_noise,
                                    residual=self.residual,
-                                   input_corrupt=self.input_corrupt,
-                                   input_corrupt_iso=self.input_corrupt_iso).to(self.device)
+                                   input_corrupt=self.input_corrupt_training).to(self.device)
 
-        if self.gp:
-            mll = DeepApproximateMLL(VariationalELBO(model.de_model.deep_gp.likelihood, model.de_model.deep_gp, d_k))
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
@@ -157,15 +165,11 @@ class Train:
 
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
-                        output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
+                        output_fore_den, loss_train = \
+                            model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
                 else:
-                    output_fore_den, dist = model(train_enc.to(self.device), train_dec.to(self.device))
-                if dist is not None:
-                    mll_error = -mll(dist, train_y[:, :-self.pred_len, :].to(self.device).permute(2, 0, 1)).mean()
-                else:
-                    mll_error = 0
-
-                loss_train = nn.MSELoss()(output_fore_den, train_y[:, -self.pred_len:, :].to(self.device)) + 0.01 * mll_error
+                    output_fore_den, loss_train = \
+                        model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
@@ -177,10 +181,11 @@ class Train:
             for valid_enc, valid_dec, valid_y in self.valid:
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
-                        output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
+                        output, loss_eval = \
+                            model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
                 else:
-                    output, _ = model(valid_enc.to(self.device), valid_dec.to(self.device))
-                loss_eval = nn.MSELoss()(output, valid_y[:, -self.pred_len:, :].to(self.device))
+                    output, loss_eval = \
+                        model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
 
                 test_loss += loss_eval.item()
 
@@ -224,50 +229,47 @@ class Train:
         test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
         normaliser = test_y.abs().mean()
 
-        test_loss = F.mse_loss(predictions, test_y).item() / normaliser
-        test_loss = test_loss
+        mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
 
         mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
-        mae_loss = mae_loss
 
-        print("test loss {:.4f}".format(test_loss))
+        errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
 
-        self.erros["{}_{}".format(self.model_name, self.seed)] = list()
-        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
-        self.erros["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
+        error_path = "Final_errors.xlsx"
+        sheet_name = "experiments"
 
-        error_path = "errors_{}_{}.json".format(self.exp_name, self.pred_len)
+        df = pd.DataFrame.from_dict(errors, orient='index')
 
         if os.path.exists(error_path):
-            with open(error_path) as json_file:
-                json_dat = json.load(json_file)
-                if json_dat.get("{}_{}".format(self.model_name, self.seed)) is None:
-                    json_dat["{}_{}".format(self.model_name, self.seed)] = list()
-                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(test_loss)))
-                json_dat["{}_{}".format(self.model_name, self.seed)].append(float("{:.5f}".format(mae_loss)))
 
-            with open(error_path, "w") as json_file:
-                json.dump(json_dat, json_file)
+            book = openpyxl.load_workbook(error_path)
+
+            with pd.ExcelWriter(error_path, engine='openpyxl') as writer:
+                writer.book = book
+                # Append the DataFrame to the existing sheet
+                sheet = writer.book[sheet_name]
+                df.to_excel(writer, sheet_name=sheet_name, startrow=sheet.max_row, index=True, header=False)
+
+            # Save the changes
+            book.save(error_path)
         else:
-            with open(error_path, "w") as json_file:
-                json.dump(self.erros, json_file)
+            df.to_excel(error_path, sheet_name=sheet_name, index=True, header=True)
 
 
 def main():
 
     parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='ATA')
-    parser.add_argument("--model_name", type=str, default="ATA")
+    parser.add_argument("--attn_type", type=str, default='autoformer')
+    parser.add_argument("--model_name", type=str, default="autoformer")
     parser.add_argument("--exp_name", type=str, default='exchange')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--residual", type=str, default="False")
-    parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--input_corrupt", type=str, default="False")
-    parser.add_argument("--input_corrupt_iso", type=str, default="False")
+    parser.add_argument("--no-noise", type=str, default="True")
+    parser.add_argument("--input_corrupt_training", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()
