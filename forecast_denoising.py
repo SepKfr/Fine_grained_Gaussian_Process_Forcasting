@@ -103,6 +103,6 @@ class Forecast_denoising(nn.Module):
             if self.residual:
 
                 residual = y_true - outputs
-                loss = nn.MSELoss()(residual, y_true)
+                loss = nn.MSELoss()(residual, outputs)
 
         return outputs, loss
