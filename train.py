@@ -234,6 +234,7 @@ class Train:
         mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
 
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
+        print(errors)
 
         error_path = "Final_errors.xlsx"
         sheet_name = "experiments"
