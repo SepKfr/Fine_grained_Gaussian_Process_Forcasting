@@ -236,19 +236,17 @@ class Train:
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
 
-        error_path = "Final_errors.xlsx"
-        sheet_name = "experiments"
+        error_path = "Final_errors.csv"
 
         df = pd.DataFrame.from_dict(errors, orient='index')
 
         if os.path.exists(error_path):
 
-            wb = load_workbook(error_path)
-            work_sheet = wb.active
-            work_sheet.append(errors)
-            wb.save(error_path)
+            df = pd.read_csv(error_path)
+            df.append(errors)
+            df.to_csv(error_path)
         else:
-            df.to_excel(error_path, sheet_name=sheet_name, index=True, header=True)
+            df.to_csv(error_path)
 
 
 def main():
