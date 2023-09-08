@@ -174,6 +174,7 @@ class Train:
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
                 loss_train.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step_and_update_lr()
 
             model.eval()
