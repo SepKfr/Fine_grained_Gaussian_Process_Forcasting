@@ -48,7 +48,6 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             batch_shape=batch_shape, ard_num_dims=None
         )
 
-
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)

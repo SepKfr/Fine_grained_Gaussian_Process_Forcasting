@@ -10,8 +10,9 @@ from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
 
+
 class Forecast_denoising(nn.Module):
-    def __init__(self, model_name:str, config: tuple, gp: bool,
+    def __init__(self, model_name: str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
                  no_noise: bool, residual: bool, input_corrupt: bool):
