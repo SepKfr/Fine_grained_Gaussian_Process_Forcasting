@@ -242,8 +242,8 @@ class Train:
 
         if os.path.exists(error_path):
 
-            df = pd.read_csv(error_path)
-            df_new = pd.concat([df, errors], axis=0)
+            df_old = pd.read_csv(error_path)
+            df_new = pd.concat([df_old, df], axis=0)
             df_new.to_csv(error_path)
         else:
             df.to_csv(error_path)
