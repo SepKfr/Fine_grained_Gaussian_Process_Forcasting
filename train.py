@@ -245,11 +245,12 @@ class Train:
 
             book = openpyxl.load_workbook(error_path)
 
-            with pd.ExcelWriter(error_path, engine='openpyxl') as writer:
-                writer.book = book
-                # Append the DataFrame to the existing sheet
-                sheet = writer.book[sheet_name]
-                df.to_excel(writer, sheet_name=sheet_name, startrow=sheet.max_row, index=True, header=False)
+            # Select the sheet by name
+            writer = pd.ExcelWriter(error_path, engine='openpyxl')
+            writer.book = book
+            # Append the DataFrame to the existing sheet
+            sheet = writer.book[sheet_name]
+            df.to_excel(writer, sheet_name=sheet_name, startrow=sheet.max_row, index=True, header=False)
 
             # Save the changes
             book.save(error_path)
