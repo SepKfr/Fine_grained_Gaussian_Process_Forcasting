@@ -99,8 +99,7 @@ class Forecast_denoising(nn.Module):
         loss = 0
 
         if y_true is not None:
-            print(y_true.shape)
-            print(outputs.shape)
+
             loss = nn.MSELoss()(outputs, y_true) + 0.01 * mll_error
 
             if self.residual:
