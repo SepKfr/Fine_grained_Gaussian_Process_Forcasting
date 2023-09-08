@@ -1,6 +1,6 @@
 import gpytorch
 import openpyxl
-
+from openpyxl import load_workbook
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -243,17 +243,10 @@ class Train:
 
         if os.path.exists(error_path):
 
-            book = openpyxl.load_workbook(error_path)
-
-            # Select the sheet by name
-            writer = pd.ExcelWriter(error_path, engine='openpyxl')
-            writer.book = book
-            # Append the DataFrame to the existing sheet
-            sheet = writer.book[sheet_name]
-            df.to_excel(writer, sheet_name=sheet_name, startrow=sheet.max_row, index=True, header=False)
-
-            # Save the changes
-            book.save(error_path)
+            wb = load_workbook(error_path)
+            work_sheet = wb.active
+            work_sheet.append(errors)
+            wb.save(error_path)
         else:
             df.to_excel(error_path, sheet_name=sheet_name, index=True, header=True)
 
