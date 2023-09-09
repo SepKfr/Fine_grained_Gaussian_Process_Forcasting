@@ -22,10 +22,6 @@ class DataLoader:
         data = pd.read_csv(data_csv_path, dtype={'date': str})
         data.sort_values(by=["id", "hours_from_start"], inplace=True)
 
-        mean = data[target_col].mean()
-        std = data[target_col].std()
-        data[target_col] = (data[target_col] - mean) / std
-
         train_len = int(len(data) * 0.8)
         valid_len = int((len(data) - train_len) / 2)
 
@@ -109,7 +105,7 @@ class DataLoader:
         for x, y in data_loader:
             X_enc.append(x["encoder_target"][:, :96].unsqueeze(-1))
             X_dec.append(x["encoder_target"][:, 96:].unsqueeze(-1))
-            Y.append(y[0])
+            Y.append(y[0].unsqueeze(-1))
 
         X_enc_tensor = torch.cat(X_enc)
         X_dec_tensor = torch.cat(X_dec)
