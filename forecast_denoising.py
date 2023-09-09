@@ -101,7 +101,7 @@ class Forecast_denoising(nn.Module):
 
         outputs = outputs.squeeze(-1)
 
-        if y_true is not None:
+        if self.training:
 
             loss = nn.MSELoss()(outputs, y_true) + 0.001 * mll_error
 
