@@ -1,3 +1,4 @@
+import itertools
 import random
 import numpy as np
 import pandas as pd
@@ -106,20 +107,20 @@ class DataLoader:
             drop_last=False,
         )
         data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
-        X_enc = []
-        X_dec = []
-        Y = []
+        x_enc_list = []
+        x_dec_list = []
+        y_list = []
         for x, y in data_loader:
-            X_enc.append(x["encoder_target"][:, :96].unsqueeze(-1))
-            X_dec.append(x["encoder_target"][:, 96:].unsqueeze(-1))
-            Y.append(y[0].unsqueeze(-1))
+            x_enc_list.append(x["encoder_target"][:, :96].unsqueeze(-1))
+            x_dec_list.append(x["encoder_target"][:, 96:].unsqueeze(-1))
+            y_list.append(y[0].unsqueeze(-1))
 
-        X_enc_tensor = torch.cat(X_enc)
-        X_dec_tensor = torch.cat(X_dec)
-        Y_tensor = torch.cat(Y)
+        x_enc = torch.stack(list(itertools.chain.from_iterable(x_enc_list)))
+        x_dec = torch.stack(list(itertools.chain.from_iterable(x_dec_list)))
+        y = torch.stack(list(itertools.chain.from_iterable(y_list)))
 
-        tensor_dataset = TensorDataset(X_enc_tensor,
-                                       X_dec_tensor,
-                                       Y_tensor)
+        tensor_dataset = TensorDataset(x_enc,
+                                       x_dec,
+                                       y)
 
-        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(tensor_dataset)
