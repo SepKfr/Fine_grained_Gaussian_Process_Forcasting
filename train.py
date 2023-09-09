@@ -139,23 +139,23 @@ class Train:
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
+
+        print("Start Training...")
+
         for epoch in range(self.num_epochs):
 
             total_loss = 0
             model.train()
 
-            for train_x, train_y in self.dataloader_obj.train_loader:
-
-                train_enc = train_x["encoder_target"][:, :96].unsqueeze(-1)
-                train_dec = train_x["encoder_target"][:, 96:].unsqueeze(-1)
+            for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
 
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
                         output_fore_den, loss_train = \
-                            model(train_enc.to(self.device), train_dec.to(self.device), train_y[0].to(self.device))
+                            model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
                 else:
                     output_fore_den, loss_train = \
-                        model(train_enc.to(self.device), train_dec.to(self.device), train_y[0].to(self.device))
+                        model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
@@ -165,18 +165,15 @@ class Train:
 
             model.eval()
             test_loss = 0
-            for valid_x, valid_y in self.dataloader_obj.valid_loader:
-
-                valid_enc = valid_x["encoder_target"][:, :96].unsqueeze(-1)
-                valid_dec = valid_x["encoder_target"][:, 96:].unsqueeze(-1)
+            for valid_enc, valid_dec, valid_y in self.dataloader_obj.valid_loader:
 
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
                         output, loss_eval = \
-                            model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y[0].to(self.device))
+                            model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
                 else:
                     output, loss_eval = \
-                        model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y[0].to(self.device))
+                        model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
 
                 test_loss += loss_eval.item()
 
@@ -198,7 +195,7 @@ class Train:
 
         self.best_model.eval()
         total_b = len(self.dataloader_obj.test_loader)
-        _, test_y = next(iter(self.dataloader_obj.test_loader))
+        _, _, test_y = next(iter(self.dataloader_obj.test_loader))
         test_y = test_y[0]
 
         predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
@@ -206,10 +203,7 @@ class Train:
 
         j = 0
 
-        for test_x, test_y in self.dataloader_obj.test_loader:
-
-            test_enc = test_x["encoder_target"][:, :96].unsqueeze(-1)
-            test_dec = test_x["encoder_target"][:, 96:].unsqueeze(-1)
+        for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
 
             if self.gp:
                 with gpytorch.settings.num_likelihood_samples(1):
@@ -217,7 +211,7 @@ class Train:
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y[0][:, -self.pred_len:].cpu().detach().numpy()
+            test_y_tot[j] = test_y[:, -self.pred_len:].cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))

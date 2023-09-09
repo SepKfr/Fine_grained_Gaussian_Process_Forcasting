@@ -2,7 +2,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import BatchSampler
+from torch.utils.data import BatchSampler, TensorDataset
 from pytorch_forecasting.data import TimeSeriesDataSet
 
 
@@ -65,6 +65,7 @@ class DataLoader:
         self.valid_loader = self.get_train_loader(valid_data)
         self.test_loader = self.get_train_loader(test_data)
 
+
     def get_train_dataset(self, train_data):
         return self.create_time_series_dataset(train_data)
 
@@ -101,4 +102,21 @@ class DataLoader:
             batch_size=256,
             drop_last=True,
         )
-        return self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
+        data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
+        X_enc = []
+        X_dec = []
+        Y = []
+        for x, y in data_loader:
+            X_enc.append(x["encoder_target"][:, :96].unsqueeze(-1))
+            X_dec.append(x["encoder_target"][:, 96:].unsqueeze(-1))
+            Y.append(y[0])
+
+        X_enc_tensor = torch.cat(X_enc)
+        X_dec_tensor = torch.cat(X_dec)
+        Y_tensor = torch.cat(Y)
+
+        tensor_dataset = TensorDataset(X_enc_tensor,
+                                       X_dec_tensor,
+                                       Y_tensor)
+
+        return torch.utils.data.DataLoader(tensor_dataset)
