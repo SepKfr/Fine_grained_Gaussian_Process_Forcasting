@@ -103,7 +103,7 @@ class DataLoader:
         batch_sampler = BatchSampler(
             sampler=torch.utils.data.RandomSampler(data, num_samples=num_samples),
             batch_size=self.batch_size,
-            drop_last=True,
+            drop_last=False,
         )
         data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
         X_enc = []
