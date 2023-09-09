@@ -85,7 +85,7 @@ class Forecast_denoising(nn.Module):
 
                 outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-                if self.gp and y_true is not None:
+                if self.gp and self.training:
                     y_true_d = y_true.unsqueeze(-1)
                     dist_output = gpytorch.distributions.MultivariateNormal(dist.mean[:, :, -self.pred_len:],
                                                                             dist.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:])
@@ -101,9 +101,9 @@ class Forecast_denoising(nn.Module):
 
         outputs = outputs.squeeze(-1)
 
-        if self.training:
+        if y_true is not None:
 
-            loss = nn.MSELoss()(outputs, y_true) + 1e-4 * mll_error
+            loss = nn.MSELoss()(outputs, y_true) + 0.001 * mll_error
 
             if self.residual:
 
