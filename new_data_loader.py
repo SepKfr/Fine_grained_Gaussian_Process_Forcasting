@@ -31,6 +31,10 @@ class DataLoader:
         data = pd.read_csv(data_csv_path, dtype={'date': str})
         data.sort_values(by=["id", "hours_from_start"], inplace=True)
 
+        mean = data[target_col].mean()
+        std = data[target_col].std()
+        data[target_col] = (data[target_col] - mean) / std
+
         train_len = int(len(data) * 0.8)
         valid_len = int((len(data) - train_len) / 2)
 
@@ -90,9 +94,6 @@ class DataLoader:
             max_encoder_length=self.max_encoder_length,
             min_prediction_length=1,
             max_prediction_length=self.pred_len,
-            target_normalizer=GroupNormalizer(
-                groups=["group"], transformation="softplus"
-            ),
         )
 
     def get_train_loader(self, train_data):
