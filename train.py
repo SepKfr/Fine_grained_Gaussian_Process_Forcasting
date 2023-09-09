@@ -149,7 +149,6 @@ class Train:
             model.train()
 
             for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
-
                 if self.gp:
                     with gpytorch.settings.num_likelihood_samples(1):
                         output_fore_den, loss_train = \
@@ -248,9 +247,9 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--denoising", type=str, default="False")
-    parser.add_argument("--gp", type=str, default="False")
-    parser.add_argument("--residual", type=str, default="True")
+    parser.add_argument("--denoising", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--input_corrupt_training", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=1)

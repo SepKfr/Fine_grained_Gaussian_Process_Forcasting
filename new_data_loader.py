@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
+from pytorch_forecasting import GroupNormalizer
 from torch.utils.data import BatchSampler, TensorDataset
 from pytorch_forecasting.data import TimeSeriesDataSet
 
@@ -88,7 +89,10 @@ class DataLoader:
             min_encoder_length=1,
             max_encoder_length=self.max_encoder_length,
             min_prediction_length=1,
-            max_prediction_length=self.pred_len
+            max_prediction_length=self.pred_len,
+            target_normalizer=GroupNormalizer(
+                groups=["group"], transformation="softplus"
+            ),
         )
 
     def get_train_loader(self, train_data):
