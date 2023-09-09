@@ -41,7 +41,8 @@ class Train:
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
                                          max_train_sample=32000,
-                                         max_test_sample=3840)
+                                         max_test_sample=3840,
+                                         batch_size=512)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)

@@ -7,12 +7,19 @@ from pytorch_forecasting.data import TimeSeriesDataSet
 
 
 class DataLoader:
-    def __init__(self, exp_name, max_encoder_length, pred_len, target_col, max_train_sample, max_test_sample):
+    def __init__(self, exp_name,
+                 max_encoder_length,
+                 pred_len,
+                 target_col,
+                 max_train_sample,
+                 max_test_sample,
+                 batch_size):
 
         self.max_encoder_length = max_encoder_length
         self.pred_len = pred_len
         self.max_train_sample = max_train_sample
         self.max_test_sample = max_test_sample
+        self.batch_size = batch_size
         seed = 2021
         torch.manual_seed(seed)
         random.seed(seed)
@@ -95,7 +102,7 @@ class DataLoader:
     def create_dataloader(self, data, num_samples):
         batch_sampler = BatchSampler(
             sampler=torch.utils.data.RandomSampler(data, num_samples=num_samples),
-            batch_size=256,
+            batch_size=self.batch_size,
             drop_last=True,
         )
         data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
