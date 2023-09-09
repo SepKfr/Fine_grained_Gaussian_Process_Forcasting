@@ -86,17 +86,20 @@ class Forecast_denoising(nn.Module):
                 outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
                 if self.gp and y_true is not None:
+                    y_true_d = y_true.unsqueeze(-1)
                     dist_output = gpytorch.distributions.MultivariateNormal(dist.mean[:, :, -self.pred_len:],
                                                                             dist.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:])
 
                     mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
                                                              self.de_model.deep_gp, self.d_model))
 
-                    mll_error = -mll(dist_output, y_true.permute(2, 0, 1)).mean()
+                    mll_error = -mll(dist_output, y_true_d.permute(2, 0, 1)).mean()
             else:
                 outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
         loss = 0
+
+        outputs = outputs.squeeze(-1)
 
         if y_true is not None:
 
@@ -106,7 +109,7 @@ class Forecast_denoising(nn.Module):
 
                 residual = y_true - outputs
                 _, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
-                res_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+                res_outputs = self.final_projection(dec_outputs[:, -self.pred_len:])
                 loss = nn.MSELoss()(residual, res_outputs)
 
         return outputs, loss
