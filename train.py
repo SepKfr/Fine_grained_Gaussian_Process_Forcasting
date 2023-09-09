@@ -231,7 +231,7 @@ class Train:
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
 
-        error_path = "Final_errors.csv"
+        error_path = "Final_errors-2.csv"
 
         df = pd.DataFrame.from_dict(errors, orient='index')
 
