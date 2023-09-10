@@ -54,7 +54,7 @@ class DataLoader:
             dict(
                 value=valid[target_col],
                 group=valid["id"],
-                time_idx=np.arange(train_len, train_len + valid_len + 1),
+                time_idx=np.arange(train_len, train_len + valid_len),
             )
         )
 
