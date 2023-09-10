@@ -201,29 +201,26 @@ class Train:
         _, _, test_y = next(iter(self.dataloader_obj.test_loader))
 
         predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
 
         j = 0
+        mse_loss = 0
+        mae_loss = 0
 
         for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
 
             if self.gp:
                 with gpytorch.settings.num_likelihood_samples(1):
-                    output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                    output, losses = self.best_model(test_enc.to(self.device),
+                                                test_dec.to(self.device),
+                                                test_y.to(self.device))
             else:
-                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                output, losses = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
+            mse_loss += losses[0]
+            mae_loss += losses[1]
             j += 1
 
-        predictions = torch.from_numpy(predictions)
-        test_y = torch.from_numpy(test_y_tot)
-
-        mse_loss = nn.MSELoss()(predictions, test_y).item()
-
-        mae_loss = nn.L1Loss()(predictions, test_y).item()
-
-        errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
+        errors = {self.model_name: {'MSE': mse_loss / j, 'MAE': mae_loss / j}}
         print(errors)
 
         error_path = "Final_errors-2.csv"

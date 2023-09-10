@@ -66,7 +66,7 @@ class Forecast_denoising(nn.Module):
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
 
-    def forward(self, enc_inputs, dec_inputs, y_true=None):
+    def forward(self, enc_inputs, dec_inputs, y_true=None, return_losses=False):
 
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
@@ -112,4 +112,9 @@ class Forecast_denoising(nn.Module):
 
             loss = nn.MSELoss()(final_outputs, y_true) + 0.001 * mll_error
 
+        if return_losses:
+            mse_loss = nn.MSELoss()(final_outputs, y_true)
+            mae_loss = nn.L1Loss()(final_outputs, y_true)
+            losses = [mse_loss.item(), mae_loss.item]
+            return final_outputs, losses
         return final_outputs, loss
