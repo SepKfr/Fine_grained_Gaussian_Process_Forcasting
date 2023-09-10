@@ -113,8 +113,8 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [32])
-        w_steps = trial.suggest_categorical("w_steps", [4000])
-        stack_size = trial.suggest_categorical("stack_size", [1])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 4000])
+        stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
         n_heads = 8
 
@@ -213,7 +213,7 @@ class Train:
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y[:, -self.pred_len:].cpu().detach().numpy()
+            test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))
