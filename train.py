@@ -23,6 +23,7 @@ class Train:
 
         self.denoising = True if args.denoising == "True" else False
         self.gp = True if args.gp == "True" else False
+        self.iso = True if args.iso == "True" else False
         self.no_noise = True if args.no_noise == "True" else False
         self.residual = True if args.residual == "True" else False
         self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
@@ -55,6 +56,8 @@ class Train:
                                                       self.exp_name,
                                                       self.seed,
                                                       "_denoise" if self.denoising
+                                                      else "",
+                                                      "_iso" if self.iso
                                                       else "",
                                                       "_predictions" if self.no_noise
                                                       else "",
@@ -251,6 +254,7 @@ def main():
     parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
+    parser.add_argument("--iso", type=str, default="False")
     parser.add_argument("--input_corrupt_training", type=str, default="False")
     parser.add_argument("--num_epochs", type=int, default=1)
 

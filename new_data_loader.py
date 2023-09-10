@@ -74,7 +74,6 @@ class DataLoader:
         self.valid_loader = self.get_train_loader(valid_data)
         self.test_loader = self.get_train_loader(test_data)
 
-
     def get_train_dataset(self, train_data):
         return self.create_time_series_dataset(train_data)
 
@@ -109,7 +108,7 @@ class DataLoader:
         batch_sampler = BatchSampler(
             sampler=torch.utils.data.RandomSampler(data, num_samples=num_samples),
             batch_size=self.batch_size,
-            drop_last=False,
+            drop_last=True,
         )
         data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
         x_enc_list = []
