@@ -216,12 +216,12 @@ class Train:
             test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
 
-        predictions = torch.from_numpy(predictions.reshape(-1, 1))
-        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+        predictions = torch.from_numpy(predictions)
+        test_y = torch.from_numpy(test_y_tot)
 
-        mse_loss = torch.sqrt(F.mse_loss(predictions, test_y)).item()
+        mse_loss = nn.MSELoss()(predictions, test_y, reduction='mean').item()
 
-        mae_loss = F.l1_loss(predictions, test_y).item()
+        mae_loss = nn.L1Loss()(predictions, test_y, reduction='mean').item()
 
         errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
         print(errors)
