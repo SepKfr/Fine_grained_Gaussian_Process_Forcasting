@@ -70,9 +70,9 @@ class DataLoader:
         self.valid_dataset = self.get_valid_dataset(valid_data)
         self.test_dataset = self.get_test_dataset(test_data)
 
-        self.train_loader = self.get_train_loader(train_data)
-        self.valid_loader = self.get_train_loader(valid_data)
-        self.test_loader = self.get_train_loader(test_data)
+        self.train_loader,  self.train_loader2 = self.get_train_loader(train_data)
+        self.valid_loader, self.valid_loader2 = self.get_train_loader(valid_data)
+        self.test_loader, self.test_loader2 = self.get_train_loader(test_data)
 
     def get_train_dataset(self, train_data):
         return self.create_time_series_dataset(train_data)
@@ -115,8 +115,8 @@ class DataLoader:
         x_dec_list = []
         y_list = []
         for x, y in data_loader:
-            x_enc_list.append(x["encoder_target"][:, :96].unsqueeze(-1))
-            x_dec_list.append(x["encoder_target"][:, 96:].unsqueeze(-1))
+            x_enc_list.append(x["encoder_target"][:, :-self.pred_len].unsqueeze(-1))
+            x_dec_list.append(x["encoder_target"][:, -self.pred_len:].unsqueeze(-1))
             y_list.append(y[0].unsqueeze(-1))
 
         x_enc = torch.stack(list(itertools.chain.from_iterable(x_enc_list)))
@@ -127,4 +127,4 @@ class DataLoader:
                                        x_dec,
                                        y)
 
-        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size)
+        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size), data_loader

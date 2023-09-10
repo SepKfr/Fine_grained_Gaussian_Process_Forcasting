@@ -38,7 +38,7 @@ class Train:
                       }
 
         self.dataloader_obj = DataLoader(exp_name,
-                                         max_encoder_length=96+48+2*pred_len,
+                                         max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
                                          max_train_sample=32000,
@@ -163,7 +163,7 @@ class Train:
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
                 loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                 optimizer.step_and_update_lr()
 
             model.eval()
@@ -213,7 +213,7 @@ class Train:
             else:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+            test_y_tot[j] = test_y.squeeze(-1).cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))

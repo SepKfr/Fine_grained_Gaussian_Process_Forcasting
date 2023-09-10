@@ -87,8 +87,8 @@ class Forecast_denoising(nn.Module):
         if self.denoise:
             if self.residual:
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_inputs, dec_inputs)
-                res_outputs = self.residual_final_projection(dec_outputs_res[:, -self.pred_len:, :])
-                final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :]) + res_outputs
+                res_outputs = self.residual_final_projection(dec_outputs_res)
+                final_outputs = self.final_projection(dec_outputs) + res_outputs
                 if y_true is not None:
                     residual = y_true - res_outputs
                     loss = nn.MSELoss()(residual, res_outputs)
@@ -98,18 +98,15 @@ class Forecast_denoising(nn.Module):
                 enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
                 final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
                 if self.gp and self.training:
-                    dist_output = gpytorch.distributions.MultivariateNormal(dist.mean[:, :, -self.pred_len:],
-                                                                            dist.covariance_matrix[:, :,
-                                                                            -self.pred_len:, -self.pred_len:])
 
                     mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
                                                              self.de_model.deep_gp, self.d_model))
 
-                    mll_error = -mll(dist_output, y_true.permute(2, 0, 1)).mean()
+                    mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
                 else:
-                    final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+                    final_outputs = self.final_projection(dec_outputs)
         else:
-            final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+            final_outputs = self.final_projection(dec_outputs)
 
         if y_true is not None and not self.residual:
 
