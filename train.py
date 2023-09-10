@@ -219,7 +219,7 @@ class Train:
         predictions = torch.from_numpy(predictions.reshape(-1, 1))
         test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
 
-        mse_loss = F.mse_loss(predictions, test_y).item()
+        mse_loss = torch.sqrt(F.mse_loss(predictions, test_y)).item()
 
         mae_loss = F.l1_loss(predictions, test_y).item()
 
