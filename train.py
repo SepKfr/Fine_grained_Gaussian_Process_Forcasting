@@ -219,9 +219,9 @@ class Train:
         predictions = torch.from_numpy(predictions)
         test_y = torch.from_numpy(test_y_tot)
 
-        mse_loss = nn.MSELoss()(predictions, test_y, reduction='mean').item()
+        mse_loss = nn.MSELoss()(predictions, test_y).item()
 
-        mae_loss = nn.L1Loss()(predictions, test_y, reduction='mean').item()
+        mae_loss = nn.L1Loss()(predictions, test_y).item()
 
         errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
         print(errors)
