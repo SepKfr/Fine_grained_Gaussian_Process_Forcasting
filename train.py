@@ -199,7 +199,6 @@ class Train:
         self.best_model.eval()
         total_b = len(self.dataloader_obj.test_loader)
         _, _, test_y = next(iter(self.dataloader_obj.test_loader))
-        test_y = test_y[0]
 
         predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
         test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
