@@ -56,6 +56,7 @@ class Forecast_denoising(nn.Module):
                                         d_model, device, seed,
                                         n_noise=no_noise,
                                         residual=residual)
+        self.norm = nn.LayerNorm(d_model)
         self.gp = gp
         self.denoise = denoise
         self.residual = residual
@@ -81,6 +82,7 @@ class Forecast_denoising(nn.Module):
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
             dec_noisy = input_noisy[:, enc_inputs.shape[1]:, :]
             enc_outputs, dec_outputs = self.forecasting_model(enc_noisy, dec_noisy)
+            dec_outputs = self.norm(dec_inputs + dec_outputs)
 
         if self.denoise:
             if self.residual:
