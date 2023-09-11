@@ -84,7 +84,7 @@ class Train:
 
         storage = RDBStorage("sqlite:///example.db")
         study = optuna.create_study(direction="minimize",
-                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5),
+                                    pruner=optuna.pruners.HyperbandPruner(),
                                     storage=storage)
 
         study.set_user_attr("num_likelihood_samples", 1)
