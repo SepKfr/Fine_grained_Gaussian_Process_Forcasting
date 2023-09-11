@@ -10,6 +10,8 @@ from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
 from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistribution
 
+gpytorch.settings.num_likelihood_samples(1)
+
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
     def __init__(self, input_dims, output_dims, seed, num_inducing=256, mean_type='constant'):

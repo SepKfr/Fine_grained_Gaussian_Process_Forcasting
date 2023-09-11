@@ -1,6 +1,5 @@
 import gpytorch
 import joblib
-
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -12,10 +11,11 @@ import torch.nn.functional as F
 import random
 import pandas as pd
 import optuna
-from optuna.samplers import TPESampler
+from optuna.storages import RDBStorage
 from optuna.trial import TrialState
 from modules.opt_model import NoamOpt
 from new_data_loader import DataLoader
+gpytorch.settings.num_likelihood_samples(1)
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -43,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=32000,
-                                         max_test_sample=3840,
+                                         max_train_sample=256,
+                                         max_test_sample=256,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -82,11 +82,12 @@ class Train:
 
     def run_optuna(self, args):
 
-        study = optuna.create_study(study_name=args.model_name,
-                                    direction="minimize",
-                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
+        storage = RDBStorage("sqlite:///example.db")
+        study = optuna.create_study(direction="minimize",
+                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5),
+                                    storage=storage)
 
-        study.set_user_attr("num_likelihood_samples", 10)
+        study.set_user_attr("num_likelihood_samples", 1)
 
         with joblib.Parallel(n_jobs=4) as parallel:
             study.optimize(self.objective, n_trials=100, n_jobs=8)
@@ -113,10 +114,9 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
-        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 10)
+        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 1)
 
-        with torch.cuda.device(self.device):
-            gpytorch.settings.num_likelihood_samples(num_likelihood_samples)
+        gpytorch.settings.num_likelihood_samples(num_likelihood_samples)
 
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
@@ -124,10 +124,9 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [32, 64, 128])
-        w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
+        w_steps = trial.suggest_categorical("w_steps", [1000])
+        n_heads = trial.suggest_categorical("n_heads", [1, 8])
         stack_size = trial.suggest_categorical("stack_size", [1, 2])
-
-        n_heads = 8
 
         if [d_model, stack_size, w_steps] in self.param_history:
             raise optuna.exceptions.TrialPruned()

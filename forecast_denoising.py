@@ -1,5 +1,4 @@
 import random
-
 import gpytorch
 import numpy as np
 import torch
@@ -9,6 +8,7 @@ from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
+gpytorch.settings.num_likelihood_samples(1)
 
 
 class Forecast_denoising(nn.Module):

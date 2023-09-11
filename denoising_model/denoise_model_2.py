@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import random
 from denoising_model.DeepGP import DeepGPp
+gpytorch.settings.num_likelihood_samples(1)
 torch.autograd.set_detect_anomaly(True)
 
 
@@ -18,7 +19,7 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
         if gp:
             self.deep_gp = DeepGPp(d, seed)
-            self.proj_up = nn.Linear(10, d)
+            self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual
