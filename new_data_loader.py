@@ -65,23 +65,9 @@ class DataLoader:
                 time_idx=np.arange(len(train)+ len(valid), train_len + len(valid) + len(test)),
             )
         )
-
-        self.train_dataset = self.get_train_dataset(train_data)
-        self.valid_dataset = self.get_valid_dataset(valid_data)
-        self.test_dataset = self.get_test_dataset(test_data)
-
-        self.train_loader,  self.train_loader2 = self.get_train_loader(train_data)
-        self.valid_loader, self.valid_loader2 = self.get_train_loader(valid_data)
-        self.test_loader, self.test_loader2 = self.get_train_loader(test_data)
-
-    def get_train_dataset(self, train_data):
-        return self.create_time_series_dataset(train_data)
-
-    def get_valid_dataset(self, valid_data):
-        return self.create_time_series_dataset(valid_data)
-
-    def get_test_dataset(self, test_data):
-        return self.create_time_series_dataset(test_data)
+        self.train_loader = self.get_train_loader(train_data)
+        self.valid_loader = self.get_train_loader(valid_data)
+        self.test_loader = self.get_train_loader(test_data)
 
     def create_time_series_dataset(self, data):
         return TimeSeriesDataSet(
@@ -127,4 +113,4 @@ class DataLoader:
                                        x_dec,
                                        y)
 
-        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size), data_loader
+        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size)

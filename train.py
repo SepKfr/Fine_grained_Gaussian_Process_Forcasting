@@ -163,7 +163,7 @@ class Train:
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
                 loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step_and_update_lr()
 
             model.eval()
@@ -225,8 +225,9 @@ class Train:
             mae_losses += losses[1]
             j += 1
 
-        errors = {self.model_name: {'MSE': mse_losses / j, 'MAE': mae_losses / j}}
-        print(errors)
+        mse_loss_final = np.sqrt(mse_losses / total_b)
+        mae_loss_final = mae_losses / total_b
+        errors = {self.model_name: {'MSE': mse_loss_final, 'MAE': mae_loss_final}}
 
         error_path = "Final_errors-2.csv"
 
@@ -251,12 +252,12 @@ def main():
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
     parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--iso", type=str, default="False")
+    parser.add_argument("--iso", type=str, default="True")
     parser.add_argument("--input_corrupt_training", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=1)
+    parser.add_argument("--num_epochs", type=int, default=5)
 
     args = parser.parse_args()
 

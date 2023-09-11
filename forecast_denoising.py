@@ -97,6 +97,7 @@ class Forecast_denoising(nn.Module):
 
                 enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
                 final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+
                 if self.gp and self.training:
 
                     mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
@@ -113,7 +114,8 @@ class Forecast_denoising(nn.Module):
             loss = nn.MSELoss()(final_outputs, y_true) + 0.001 * mll_error
 
         if return_losses:
-            mse_loss = torch.sqrt(nn.MSELoss()(final_outputs, y_true))
+
+            mse_loss = nn.MSELoss()(final_outputs, y_true)
             mae_loss = nn.L1Loss()(final_outputs, y_true)
             losses = [mse_loss.item(), mae_loss.item()]
             return final_outputs, losses
