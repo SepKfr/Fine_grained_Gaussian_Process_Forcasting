@@ -86,7 +86,8 @@ class Train:
                                     direction="minimize",
                                     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
 
-        gpytorch.settings.num_likelihood_samples(1)
+        with torch.cuda.device(self.device):
+            gpytorch.settings.num_likelihood_samples(1)
         study.set_user_attr("num_likelihood_samples", 1)
 
         with joblib.Parallel(n_jobs=4) as parallel:
