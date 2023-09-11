@@ -215,7 +215,11 @@ class Train:
                                                      test_y.to(self.device),
                                                      return_losses=True)
             else:
-                output, losses = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                output, losses = self.best_model(test_enc.to(self.device),
+                                                 test_dec.to(self.device),
+                                                 test_y.to(self.device),
+                                                 return_losses=True
+                                                 )
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
             mse_loss += losses[0]
             mae_loss += losses[1]
