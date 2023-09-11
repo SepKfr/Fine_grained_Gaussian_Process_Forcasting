@@ -84,8 +84,7 @@ class Train:
 
         study = optuna.create_study(study_name=args.model_name,
                                     direction="minimize",
-                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5),
-                                    storage='sqlite:///example.db')
+                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
 
         study.set_user_attr("num_likelihood_samples", 1)
 
