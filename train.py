@@ -218,11 +218,10 @@ class Train:
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))
         test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-        normaliser = test_y.abs().mean()
 
-        mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
+        mse_loss = F.mse_loss(predictions, test_y).item()
 
-        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
+        mae_loss = F.l1_loss(predictions, test_y).item()
 
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
