@@ -22,7 +22,7 @@ class DataLoader:
         self.max_train_sample = max_train_sample
         self.max_test_sample = max_test_sample
         self.batch_size = batch_size
-        seed = 2021
+        seed = 1234
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
