@@ -41,8 +41,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=256,
-                                         max_test_sample=256,
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
