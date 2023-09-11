@@ -43,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=256,
-                                         max_test_sample=256,
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -86,10 +86,10 @@ class Train:
                                     direction="minimize",
                                     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
 
-        study.set_user_attr("num_likelihood_samples", 1)
+        study.set_user_attr("num_likelihood_samples", 10)
 
         with joblib.Parallel(n_jobs=4) as parallel:
-            study.optimize(self.objective, n_trials=100, n_jobs=4)
+            study.optimize(self.objective, n_trials=100, n_jobs=12)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -113,7 +113,7 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
-        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 1)
+        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 10)
 
         with torch.cuda.device(self.device):
             gpytorch.settings.num_likelihood_samples(num_likelihood_samples)
