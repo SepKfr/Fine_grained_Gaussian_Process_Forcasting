@@ -41,8 +41,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=32000,
-                                         max_test_sample=3840,
+                                         max_train_sample=512,
+                                         max_test_sample=512,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -163,7 +163,7 @@ class Train:
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
                 loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                 optimizer.step_and_update_lr()
 
             model.eval()
@@ -206,18 +206,18 @@ class Train:
         mse_losses = 0
         mae_losses = 0
 
-        for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
+        for test_enc, test_dec, y in self.dataloader_obj.test_loader:
 
             if self.gp:
                 with gpytorch.settings.num_likelihood_samples(1):
                     output, losses = self.best_model(test_enc.to(self.device),
                                                      test_dec.to(self.device),
-                                                     test_y.to(self.device),
+                                                     y.to(self.device),
                                                      return_losses=True)
             else:
                 output, losses = self.best_model(test_enc.to(self.device),
                                                  test_dec.to(self.device),
-                                                 test_y.to(self.device),
+                                                 y.to(self.device),
                                                  return_losses=True
                                                  )
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
@@ -225,7 +225,7 @@ class Train:
             mae_losses += losses[1]
             j += 1
 
-        mse_loss_final = np.sqrt(mse_losses / total_b)
+        mse_loss_final = mse_losses / total_b
         mae_loss_final = mae_losses / total_b
         errors = {self.model_name: {'MSE': mse_loss_final, 'MAE': mae_loss_final}}
 
@@ -257,7 +257,7 @@ def main():
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--iso", type=str, default="False")
     parser.add_argument("--input_corrupt_training", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=5)
+    parser.add_argument("--num_epochs", type=int, default=1)
 
     args = parser.parse_args()
 

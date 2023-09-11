@@ -68,8 +68,8 @@ class DataLoader:
             )
         )
         self.train_loader = self.get_train_loader(train_data)
-        self.valid_loader = self.get_train_loader(valid_data)
-        self.test_loader = self.get_train_loader(test_data)
+        self.valid_loader = self.get_valid_loader(valid_data)
+        self.test_loader = self.get_test_loader(test_data)
 
     def create_time_series_dataset(self, data):
         return TimeSeriesDataSet(
