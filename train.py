@@ -89,7 +89,7 @@ class Train:
         study.set_user_attr("num_likelihood_samples", 1)
 
         with joblib.Parallel(n_jobs=4) as parallel:
-            study.optimize(self.objective, n_trials=100, n_jobs=10)
+            study.optimize(self.objective, n_trials=100, n_jobs=4)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
