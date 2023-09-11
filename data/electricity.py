@@ -43,10 +43,9 @@ class ElectricityFormatter(GenericDataFormatter):
       ('categorical_id', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
     ]
 
-    def __init__(self, pred_len):
+    def __init__(self):
         """Initialises formatter."""
 
-        self.pred_len = pred_len
         self.identifiers = None
         self._real_scalers = None
         self._cat_scalers = None
