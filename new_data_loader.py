@@ -35,18 +35,20 @@ class DataLoader:
         std = data[target_col].std()
         data[target_col] = (data[target_col] - mean) / std
 
-        train_len = int(len(data) * 0.8)
-        valid_len = int((len(data) - train_len) / 2)
+        total_batches = int(len(data) / self.batch_size)
+        train_len = int(total_batches * batch_size * 0.8)
+        valid_len = int(total_batches * batch_size * 0.1)
+        test_len = int(total_batches * batch_size * 0.1)
 
         train = data[:train_len]
-        valid = data[train_len:-valid_len]
-        test = data[-valid_len:]
+        valid = data[train_len:train_len+valid_len]
+        test = data[train_len+valid_len:train_len+valid_len+test_len]
 
         train_data = pd.DataFrame(
             dict(
                 value=train[target_col],
                 group=train["id"],
-                time_idx=np.arange(len(train)),
+                time_idx=np.arange(train_len),
             )
         )
 
@@ -54,7 +56,7 @@ class DataLoader:
             dict(
                 value=valid[target_col],
                 group=valid["id"],
-                time_idx=np.arange(len(train), len(train) + len(valid)),
+                time_idx=np.arange(train_len, train_len+valid_len),
             )
         )
 
@@ -62,7 +64,7 @@ class DataLoader:
             dict(
                 value=test[target_col],
                 group=test["id"],
-                time_idx=np.arange(len(train)+ len(valid), train_len + len(valid) + len(test)),
+                time_idx=np.arange(train_len+valid_len, train_len+valid_len+test_len),
             )
         )
         self.train_loader = self.get_train_loader(train_data)
@@ -94,7 +96,7 @@ class DataLoader:
         batch_sampler = BatchSampler(
             sampler=torch.utils.data.RandomSampler(data, num_samples=num_samples),
             batch_size=self.batch_size,
-            drop_last=True,
+            drop_last=False,
         )
         data_loader = self.create_time_series_dataset(data).to_dataloader(batch_sampler=batch_sampler)
         x_enc_list = []
