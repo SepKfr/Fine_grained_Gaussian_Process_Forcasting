@@ -66,7 +66,7 @@ class Forecast_denoising(nn.Module):
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
 
-    def forward(self, enc_inputs, dec_inputs, y_true=None, return_losses=False):
+    def forward(self, enc_inputs, dec_inputs, y_true=None):
 
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)

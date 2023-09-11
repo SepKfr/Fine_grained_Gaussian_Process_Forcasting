@@ -223,7 +223,7 @@ class Train:
 
         mae_loss = F.l1_loss(predictions, test_y).item()
 
-        errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
+        errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
         print(errors)
 
         error_path = "Final_errors-2.csv"
