@@ -113,8 +113,8 @@ class Forecast_denoising(nn.Module):
             loss = nn.MSELoss()(final_outputs, y_true) + 0.001 * mll_error
 
         if return_losses:
-            mse_loss = nn.MSELoss()(final_outputs, y_true)
+            mse_loss = torch.sqrt(nn.MSELoss()(final_outputs, y_true))
             mae_loss = nn.L1Loss()(final_outputs, y_true)
-            losses = [mse_loss.item(), mae_loss.item]
+            losses = [mse_loss.item(), mae_loss.item()]
             return final_outputs, losses
         return final_outputs, loss
