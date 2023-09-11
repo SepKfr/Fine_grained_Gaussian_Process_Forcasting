@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 from pytorch_forecasting import GroupNormalizer
 from torch.utils.data import BatchSampler, TensorDataset
-from pytorch_forecasting.data import TimeSeriesDataSet
+from pytorch_forecasting.data import TimeSeriesDataSet, TorchNormalizer
 
 
 class DataLoader:
@@ -30,10 +30,6 @@ class DataLoader:
         data_csv_path = "{}.csv".format(exp_name)
         data = pd.read_csv(data_csv_path, dtype={'date': str})
         data.sort_values(by=["id", "hours_from_start"], inplace=True)
-
-        mean = data[target_col].mean()
-        std = data[target_col].std()
-        data[target_col] = (data[target_col] - mean) / std
 
         total_batches = int(len(data) / self.batch_size)
         train_len = int(total_batches * batch_size * 0.8)
@@ -81,6 +77,7 @@ class DataLoader:
             max_encoder_length=self.max_encoder_length,
             min_prediction_length=1,
             max_prediction_length=self.pred_len,
+            target_normalizer=TorchNormalizer()
         )
 
     def create_dataloader(self, data, num_samples):
