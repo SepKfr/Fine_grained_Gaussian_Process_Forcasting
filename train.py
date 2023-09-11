@@ -1,4 +1,6 @@
 import gpytorch
+import joblib
+
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -41,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=32000,
-                                         max_test_sample=3840,
+                                         max_train_sample=256,
+                                         max_test_sample=256,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -81,9 +83,11 @@ class Train:
     def run_optuna(self, args):
 
         study = optuna.create_study(study_name=args.model_name,
-                                    direction="minimize", pruner=optuna.pruners.HyperbandPruner(),
-                                    sampler=TPESampler(seed=1234))
-        study.optimize(self.objective, n_trials=args.n_trials)
+                                    direction="minimize",
+                                    pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
+
+        with joblib.Parallel(n_jobs=4) as parallel:
+            study.optimize(self.objective, n_trials=100, n_jobs=5)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -112,8 +116,8 @@ class Train:
 
         # hyperparameters
 
-        d_model = trial.suggest_categorical("d_model", [32, 64])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
         stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
         n_heads = 8
