@@ -43,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=256,
-                                         max_test_sample=256,
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -89,8 +89,8 @@ class Train:
 
         study.set_user_attr("num_likelihood_samples", 1)
 
-        with joblib.Parallel(n_jobs=4) as parallel:
-            study.optimize(self.objective, n_trials=100, n_jobs=8)
+        with joblib.Parallel(n_jobs=8) as parallel:
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=8)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -116,83 +116,83 @@ class Train:
 
         num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 1)
 
-        gpytorch.settings.num_likelihood_samples(num_likelihood_samples)
+        with gpytorch.settings.num_likelihood_samples(num_likelihood_samples):
 
-        if not os.path.exists(self.model_path):
-            os.makedirs(self.model_path)
+            if not os.path.exists(self.model_path):
+                os.makedirs(self.model_path)
 
-        # hyperparameters
+            # hyperparameters
 
-        d_model = trial.suggest_categorical("d_model", [32, 64, 128])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
-        n_heads = trial.suggest_categorical("n_heads", [1, 8])
-        stack_size = trial.suggest_categorical("stack_size", [1, 2])
+            d_model = trial.suggest_categorical("d_model", [32, 64, 128])
+            w_steps = trial.suggest_categorical("w_steps", [1000])
+            n_heads = trial.suggest_categorical("n_heads", [1, 8])
+            stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
-        if [d_model, stack_size, w_steps] in self.param_history:
-            raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, stack_size, w_steps])
+            if [d_model, stack_size, w_steps] in self.param_history:
+                raise optuna.exceptions.TrialPruned()
+            self.param_history.append([d_model, stack_size, w_steps])
 
-        d_k = int(d_model / n_heads)
+            d_k = int(d_model / n_heads)
 
-        assert d_model % d_k == 0
+            assert d_model % d_k == 0
 
-        config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
+            config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
 
-        model = Forecast_denoising(model_name=self.model_name,
-                                   config=config,
-                                   gp=self.gp,
-                                   denoise=self.denoising,
-                                   device=self.device,
-                                   seed=self.seed,
-                                   pred_len=self.pred_len,
-                                   attn_type=self.attn_type,
-                                   no_noise=self.no_noise,
-                                   residual=self.residual,
-                                   input_corrupt=self.input_corrupt_training).to(self.device)
+            model = Forecast_denoising(model_name=self.model_name,
+                                       config=config,
+                                       gp=self.gp,
+                                       denoise=self.denoising,
+                                       device=self.device,
+                                       seed=self.seed,
+                                       pred_len=self.pred_len,
+                                       attn_type=self.attn_type,
+                                       no_noise=self.no_noise,
+                                       residual=self.residual,
+                                       input_corrupt=self.input_corrupt_training).to(self.device)
 
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+            optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
-        val_loss = 1e10
+            val_loss = 1e10
 
-        print("Start Training...")
+            print("Start Training...")
 
-        for epoch in range(self.num_epochs):
+            for epoch in range(self.num_epochs):
 
-            total_loss = 0
-            model.train()
+                total_loss = 0
+                model.train()
 
-            for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
-                output_fore_den, loss_train = \
-                        model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
+                for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
+                    output_fore_den, loss_train = \
+                            model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
-                total_loss += loss_train.item()
-                optimizer.zero_grad()
-                loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
-                optimizer.step_and_update_lr()
+                    total_loss += loss_train.item()
+                    optimizer.zero_grad()
+                    loss_train.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+                    optimizer.step_and_update_lr()
 
-            model.eval()
-            test_loss = 0
-            for valid_enc, valid_dec, valid_y in self.dataloader_obj.valid_loader:
+                model.eval()
+                test_loss = 0
+                for valid_enc, valid_dec, valid_y in self.dataloader_obj.valid_loader:
 
-                output, loss_eval = \
-                        model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
+                    output, loss_eval = \
+                            model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
 
-                test_loss += loss_eval.item()
+                    test_loss += loss_eval.item()
 
-            if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                print("val loss: {:.4f}".format(test_loss))
+                if epoch % 5 == 0:
+                    print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                    print("val loss: {:.4f}".format(test_loss))
 
-            if test_loss < val_loss:
-                val_loss = test_loss
-                if val_loss < self.best_val:
-                    self.best_val = val_loss
-                    self.best_model = model
-                    torch.save({'model_state_dict': self.best_model.state_dict()},
-                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
+                if test_loss < val_loss:
+                    val_loss = test_loss
+                    if val_loss < self.best_val:
+                        self.best_val = val_loss
+                        self.best_model = model
+                        torch.save({'model_state_dict': self.best_model.state_dict()},
+                                   os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
 
-        return val_loss
+            return val_loss
 
     def evaluate(self):
 
@@ -243,9 +243,9 @@ def main():
     parser.add_argument("--exp_name", type=str, default='traffic')
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
-    parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--denoising", type=str, default="False")
-    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--n_trials", type=int, default=10)
+    parser.add_argument("--denoising", type=str, default="True")
+    parser.add_argument("--gp", type=str, default="True")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")
     parser.add_argument("--iso", type=str, default="False")
