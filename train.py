@@ -211,8 +211,9 @@ class Train:
             if self.gp:
                 with gpytorch.settings.num_likelihood_samples(1):
                     output, losses = self.best_model(test_enc.to(self.device),
-                                                test_dec.to(self.device),
-                                                test_y.to(self.device))
+                                                     test_dec.to(self.device),
+                                                     test_y.to(self.device),
+                                                     return_losses=True)
             else:
                 output, losses = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
