@@ -52,7 +52,7 @@ class Train:
         self.mae_loss = nn.L1Loss()
         self.num_epochs = args.num_epochs
         self.exp_name = args.exp_name
-        self.model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name,
+        self.model_name = "{}_{}_{}{}{}{}{}{}{}".format(args.model_name,
                                                       self.exp_name,
                                                       self.seed,
                                                       "_denoise" if self.denoising
@@ -113,7 +113,7 @@ class Train:
         # hyperparameters
 
         d_model = trial.suggest_categorical("d_model", [32])
-        w_steps = trial.suggest_categorical("w_steps", [1000])
+        w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
         stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
         n_heads = 8
@@ -248,7 +248,7 @@ def main():
     parser.add_argument("--cuda", type=str, default="cuda:0")
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--n_trials", type=int, default=50)
-    parser.add_argument("--denoising", type=str, default="True")
+    parser.add_argument("--denoising", type=str, default="False")
     parser.add_argument("--gp", type=str, default="False")
     parser.add_argument("--residual", type=str, default="False")
     parser.add_argument("--no-noise", type=str, default="False")

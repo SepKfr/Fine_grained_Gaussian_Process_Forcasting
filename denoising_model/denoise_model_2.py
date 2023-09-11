@@ -38,7 +38,7 @@ class denoise_model_2(nn.Module):
 
         eps_gp = self.proj_up(eps_gp)
 
-        x_noisy = x + eps_gp
+        x_noisy = x.add_(eps_gp)
 
         return x_noisy, dist
 
