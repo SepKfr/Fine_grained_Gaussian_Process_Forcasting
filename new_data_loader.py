@@ -67,9 +67,9 @@ class DataLoader:
                 time_idx=np.arange(train_len+valid_len, train_len+valid_len+test_len),
             )
         )
-        self.train_loader = self.get_train_loader(train_data)
-        self.valid_loader = self.get_valid_loader(valid_data)
-        self.test_loader = self.get_test_loader(test_data)
+        self.train_loader = self.create_dataloader(train_data, num_samples=self.max_train_sample)
+        self.valid_loader = self.create_dataloader(valid_data, num_samples=self.max_test_sample)
+        self.test_loader = self.create_dataloader(test_data, num_samples=self.max_test_sample)
 
     def create_time_series_dataset(self, data):
         return TimeSeriesDataSet(
@@ -82,15 +82,6 @@ class DataLoader:
             min_prediction_length=1,
             max_prediction_length=self.pred_len,
         )
-
-    def get_train_loader(self, train_data):
-        return self.create_dataloader(train_data, num_samples=self.max_train_sample)
-
-    def get_valid_loader(self, valid_data):
-        return self.create_dataloader(valid_data, num_samples=self.max_test_sample)
-
-    def get_test_loader(self, test_data):
-        return self.create_dataloader(test_data, num_samples=self.max_test_sample)
 
     def create_dataloader(self, data, num_samples):
         batch_sampler = BatchSampler(

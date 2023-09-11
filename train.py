@@ -41,8 +41,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=512,
-                                         max_test_sample=512,
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -225,9 +225,10 @@ class Train:
             mae_losses += losses[1]
             j += 1
 
-        mse_loss_final = mse_losses / total_b
+        mse_loss_final = np.sqrt(mse_losses / total_b)
         mae_loss_final = mae_losses / total_b
         errors = {self.model_name: {'MSE': mse_loss_final, 'MAE': mae_loss_final}}
+        print(errors)
 
         error_path = "Final_errors-2.csv"
 
