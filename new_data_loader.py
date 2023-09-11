@@ -77,7 +77,10 @@ class DataLoader:
             max_encoder_length=self.max_encoder_length,
             min_prediction_length=1,
             max_prediction_length=self.pred_len,
-            target_normalizer=TorchNormalizer()
+            target_normalizer=GroupNormalizer(
+                method="standard",
+                groups=["group"]
+            )
         )
 
     def create_dataloader(self, data, num_samples):
