@@ -82,12 +82,8 @@ class Train:
 
     def run_optuna(self, args):
 
-        storage = RDBStorage("sqlite:///example.db")
         study = optuna.create_study(direction="minimize",
-                                    pruner=optuna.pruners.HyperbandPruner(),
-                                    storage=storage)
-
-        study.set_user_attr("num_likelihood_samples", 1)
+                                    pruner=optuna.pruners.HyperbandPruner())
 
         with joblib.Parallel(n_jobs=8) as parallel:
             study.optimize(self.objective, n_trials=args.n_trials, n_jobs=8)
@@ -114,9 +110,7 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
-        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 1)
-
-        with gpytorch.settings.num_likelihood_samples(num_likelihood_samples):
+        with gpytorch.settings.num_likelihood_samples(1):
 
             if not os.path.exists(self.model_path):
                 os.makedirs(self.model_path)
@@ -128,9 +122,9 @@ class Train:
             n_heads = trial.suggest_categorical("n_heads", [1, 8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
-            if [d_model, stack_size, w_steps] in self.param_history:
+            if [d_model, stack_size, w_steps, n_heads] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
-            self.param_history.append([d_model, stack_size, w_steps])
+            self.param_history.append([d_model, stack_size, w_steps, n_heads])
 
             d_k = int(d_model / n_heads)
 
