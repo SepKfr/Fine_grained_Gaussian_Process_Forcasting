@@ -7,7 +7,8 @@ from optuna.integration import sklearn
 from pytorch_forecasting import GroupNormalizer
 from torch.utils.data import BatchSampler, TensorDataset
 from pytorch_forecasting.data import TimeSeriesDataSet, TorchNormalizer
-from data.traffic import TrafficFormatter
+from data import traffic, electricity, air_quality, solar
+
 
 
 
@@ -20,7 +21,10 @@ class DataLoader:
                  max_test_sample,
                  batch_size):
 
-        data_formatter = {"traffic": TrafficFormatter}
+        data_formatter = {"traffic": traffic.TrafficFormatter,
+                          "electricity": electricity.ElectricityFormatter,
+                          "solar": solar.SolarFormatter,
+                          "air_quality": air_quality.AirQualityFormatter}
 
         self.max_encoder_length = max_encoder_length
         self.pred_len = pred_len
