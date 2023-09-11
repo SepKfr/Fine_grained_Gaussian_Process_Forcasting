@@ -114,6 +114,11 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
+        num_likelihood_samples = trial.study.user_attrs.get("num_likelihood_samples", 1)
+
+        with torch.cuda.device(self.device):
+            gpytorch.settings.num_likelihood_samples(num_likelihood_samples)
+
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
