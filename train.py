@@ -43,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=256,
-                                         max_test_sample=256,
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -86,8 +86,13 @@ class Train:
                                     direction="minimize",
                                     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5))
 
+        gpytorch.settings.num_likelihood_samples(1)
+
+        study = optuna.create_study(direction="minimize", storage='sqlite:///example.db')
+        study.set_user_attr("num_likelihood_samples", 1)
+
         with joblib.Parallel(n_jobs=4) as parallel:
-            study.optimize(self.objective, n_trials=100, n_jobs=5)
+            study.optimize(self.objective, n_trials=100, n_jobs=10)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -156,12 +161,7 @@ class Train:
             model.train()
 
             for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
-                if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(1):
-                        output_fore_den, loss_train = \
-                            model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
-                else:
-                    output_fore_den, loss_train = \
+                output_fore_den, loss_train = \
                         model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
                 total_loss += loss_train.item()
@@ -174,12 +174,7 @@ class Train:
             test_loss = 0
             for valid_enc, valid_dec, valid_y in self.dataloader_obj.valid_loader:
 
-                if self.gp:
-                    with gpytorch.settings.num_likelihood_samples(1):
-                        output, loss_eval = \
-                            model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
-                else:
-                    output, loss_eval = \
+                output, loss_eval = \
                         model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
 
                 test_loss += loss_eval.item()
@@ -211,11 +206,7 @@ class Train:
 
         for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
 
-            if self.gp:
-                with gpytorch.settings.num_likelihood_samples(1):
-                    output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-            else:
-                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
             test_y_tot[j] = test_y[:, -self.pred_len:].squeeze(-1).cpu().detach().numpy()
             j += 1
