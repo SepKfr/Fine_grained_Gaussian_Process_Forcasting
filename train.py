@@ -201,33 +201,30 @@ class Train:
         _, _, test_y = next(iter(self.dataloader_obj.test_loader))
 
         predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
+        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
 
         j = 0
-        mse_losses = 0
-        mae_losses = 0
 
-        for test_enc, test_dec, y in self.dataloader_obj.test_loader:
+        for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
 
             if self.gp:
                 with gpytorch.settings.num_likelihood_samples(1):
-                    output, losses = self.best_model(test_enc.to(self.device),
-                                                     test_dec.to(self.device),
-                                                     y.to(self.device),
-                                                     return_losses=True)
+                    output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             else:
-                output, losses = self.best_model(test_enc.to(self.device),
-                                                 test_dec.to(self.device),
-                                                 y.to(self.device),
-                                                 return_losses=True
-                                                 )
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
             predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            mse_losses += losses[0]
-            mae_losses += losses[1]
+            test_y_tot[j] = test_y[:, -self.pred_len:].squeeze(-1).cpu().detach().numpy()
             j += 1
 
-        mse_loss_final = np.sqrt(mse_losses / total_b)
-        mae_loss_final = mae_losses / total_b
-        errors = {self.model_name: {'MSE': mse_loss_final, 'MAE': mae_loss_final}}
+        predictions = torch.from_numpy(predictions.reshape(-1, 1))
+        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+        normaliser = test_y.abs().mean()
+
+        mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
+
+        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
+
+        errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
 
         error_path = "Final_errors-2.csv"

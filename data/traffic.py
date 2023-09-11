@@ -32,10 +32,8 @@ class TrafficFormatter(GenericDataFormatter):
         ('categorical_id', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
     ]
 
-    def __init__(self, pred_len):
+    def __init__(self):
         """Initialises formatter."""
-
-        self.pred_len = pred_len
 
     def transform_data(self, df):
         """Splits data_set frame into training-validation-test data_set frames.

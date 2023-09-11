@@ -109,15 +109,8 @@ class Forecast_denoising(nn.Module):
         else:
             final_outputs = self.final_projection(dec_outputs)
 
-        if not self.residual:
+        if not self.residual and y_true is not None:
 
             loss = nn.MSELoss()(final_outputs, y_true) + 0.001 * mll_error
-
-        if return_losses:
-
-            mse_loss = nn.MSELoss()(final_outputs, y_true)
-            mae_loss = nn.L1Loss()(final_outputs, y_true)
-            losses = [mse_loss.item(), mae_loss.item()]
-            return final_outputs, losses
 
         return final_outputs, loss

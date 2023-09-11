@@ -3,9 +3,12 @@ import random
 import numpy as np
 import pandas as pd
 import torch
+from optuna.integration import sklearn
 from pytorch_forecasting import GroupNormalizer
 from torch.utils.data import BatchSampler, TensorDataset
 from pytorch_forecasting.data import TimeSeriesDataSet, TorchNormalizer
+from data.traffic import TrafficFormatter
+
 
 
 class DataLoader:
@@ -16,6 +19,8 @@ class DataLoader:
                  max_train_sample,
                  max_test_sample,
                  batch_size):
+
+        data_formatter = {"traffic": TrafficFormatter}
 
         self.max_encoder_length = max_encoder_length
         self.pred_len = pred_len
@@ -30,6 +35,7 @@ class DataLoader:
         data_csv_path = "{}.csv".format(exp_name)
         data = pd.read_csv(data_csv_path, dtype={'date': str})
         data.sort_values(by=["id", "hours_from_start"], inplace=True)
+        data = data_formatter[exp_name]().transform_data(data)
 
         total_batches = int(len(data) / self.batch_size)
         train_len = int(total_batches * batch_size * 0.8)
@@ -77,10 +83,6 @@ class DataLoader:
             max_encoder_length=self.max_encoder_length,
             min_prediction_length=1,
             max_prediction_length=self.pred_len,
-            target_normalizer=GroupNormalizer(
-                method="standard",
-                groups=["group"]
-            )
         )
 
     def create_dataloader(self, data, num_samples):
