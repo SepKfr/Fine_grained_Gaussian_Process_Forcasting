@@ -181,8 +181,8 @@ class Train:
                 test_loss += loss_eval.item()
 
             if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss / len(self.dataloader_obj.train_loader)))
-                print("val loss: {:.4f}".format(test_loss / len(self.dataloader_obj.valid_loader)))
+                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
+                print("val loss: {:.4f}".format(test_loss))
 
             if test_loss < val_loss:
                 val_loss = test_loss
