@@ -116,9 +116,10 @@ class Train:
                 os.makedirs(self.model_path)
 
             # hyperparameters
-            d_model = trial.suggest_categorical("d_model", [32, 64])
+
+            d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
-            n_heads = trial.suggest_categorical("n_heads", [8])
+            n_heads = trial.suggest_categorical("n_heads", [1, 8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
@@ -189,43 +190,44 @@ class Train:
 
     def evaluate(self):
 
-        self.best_model.eval()
-        total_b = len(self.dataloader_obj.test_loader)
-        _, _, test_y = next(iter(self.dataloader_obj.test_loader))
+        with gpytorch.settings.num_likelihood_samples(16):
+            self.best_model.eval()
+            total_b = len(self.dataloader_obj.test_loader)
+            _, _, test_y = next(iter(self.dataloader_obj.test_loader))
 
-        predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
+            predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
+            test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
 
-        j = 0
+            j = 0
 
-        for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
+            for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
 
-            output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-            predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-            test_y_tot[j] = test_y[:, -self.pred_len:].squeeze(-1).cpu().detach().numpy()
-            j += 1
+                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                predictions[j] = output.squeeze(-1).cpu().detach().numpy()
+                test_y_tot[j] = test_y[:, -self.pred_len:].squeeze(-1).cpu().detach().numpy()
+                j += 1
 
-        predictions = torch.from_numpy(predictions.reshape(-1, 1))
-        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+            predictions = torch.from_numpy(predictions.reshape(-1, 1))
+            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
 
-        mse_loss = F.mse_loss(predictions, test_y).item()
+            mse_loss = F.mse_loss(predictions, test_y).item()
 
-        mae_loss = F.l1_loss(predictions, test_y).item()
+            mae_loss = F.l1_loss(predictions, test_y).item()
 
-        errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
-        print(errors)
+            errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
+            print(errors)
 
-        error_path = "Final_errors-2.csv"
+            error_path = "Final_errors-2.csv"
 
-        df = pd.DataFrame.from_dict(errors, orient='index')
+            df = pd.DataFrame.from_dict(errors, orient='index')
 
-        if os.path.exists(error_path):
+            if os.path.exists(error_path):
 
-            df_old = pd.read_csv(error_path)
-            df_new = pd.concat([df_old, df], axis=0)
-            df_new.to_csv(error_path)
-        else:
-            df.to_csv(error_path)
+                df_old = pd.read_csv(error_path)
+                df_new = pd.concat([df_old, df], axis=0)
+                df_new.to_csv(error_path)
+            else:
+                df.to_csv(error_path)
 
 
 def main():
@@ -251,7 +253,7 @@ def main():
     random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    for pred_len in [96]:
+    for pred_len in [96, 192]:
         Train(args.exp_name, args, pred_len)
 
 
