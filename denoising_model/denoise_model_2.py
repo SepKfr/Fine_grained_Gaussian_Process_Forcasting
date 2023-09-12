@@ -19,12 +19,13 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
         if gp:
             self.deep_gp = DeepGPp(d, seed)
+            self.proj_up = nn.Linear(8, d)
         self.gp = gp
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
 
-        self.d_model = d
+        self.d = d
         self.device = device
         self.n_noise = n_noise
         self.residual = residual
@@ -34,13 +35,10 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = torch.zeros_like(x)
 
-        for i in self.d_model:
+        eps_gp = dist.sample().permute(1, 2, 0)
 
-            eps_gp[:, :, i] = dist.sample().permute(1, 2, 0)
-
-        x_noisy = x + eps_gp
+        x_noisy = x + self.proj_up(eps_gp)
 
         return x_noisy, dist
 

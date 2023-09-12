@@ -43,8 +43,8 @@ class Train:
                                          max_encoder_length=96 + 2*pred_len,
                                          target_col=target_col[exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=32000,
-                                         max_test_sample=3840,
+                                         max_train_sample=12800,
+                                         max_test_sample=2560,
                                          batch_size=256)
 
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -110,13 +110,12 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
-        with gpytorch.settings.num_likelihood_samples(1):
+        with gpytorch.settings.num_likelihood_samples(8):
 
             if not os.path.exists(self.model_path):
                 os.makedirs(self.model_path)
 
             # hyperparameters
-
             d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
