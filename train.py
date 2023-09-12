@@ -110,7 +110,7 @@ class Train:
         src_input_size = 1
         tgt_input_size = 1
 
-        with gpytorch.settings.num_likelihood_samples(16):
+        with gpytorch.settings.num_likelihood_samples(8):
 
             if not os.path.exists(self.model_path):
                 try:
@@ -120,7 +120,7 @@ class Train:
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [32, 64])
+            d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
@@ -193,7 +193,7 @@ class Train:
 
     def evaluate(self):
 
-        with gpytorch.settings.num_likelihood_samples(16):
+        with gpytorch.settings.num_likelihood_samples(8):
             self.best_model.eval()
             total_b = len(self.dataloader_obj.test_loader)
             _, _, test_y = next(iter(self.dataloader_obj.test_loader))
