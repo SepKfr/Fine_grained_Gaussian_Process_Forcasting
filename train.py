@@ -113,7 +113,10 @@ class Train:
         with gpytorch.settings.num_likelihood_samples(16):
 
             if not os.path.exists(self.model_path):
-                os.makedirs(self.model_path)
+                try:
+                    os.makedirs(self.model_path)
+                except FileExistsError:
+                    pass
 
             # hyperparameters
 
