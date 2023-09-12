@@ -117,9 +117,9 @@ class Train:
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [32, 64])
+            d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
-            n_heads = trial.suggest_categorical("n_heads", [1, 8])
+            n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
