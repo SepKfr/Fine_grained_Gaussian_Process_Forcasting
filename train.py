@@ -85,8 +85,8 @@ class Train:
         study = optuna.create_study(direction="minimize",
                                     pruner=optuna.pruners.HyperbandPruner())
 
-        with joblib.Parallel(n_jobs=8) as parallel:
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=8)
+        with joblib.Parallel(n_jobs=4) as parallel:
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
 
         pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
         complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -120,9 +120,9 @@ class Train:
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [16, 32])
+            d_model = trial.suggest_categorical("d_model", [32, 64])
             w_steps = trial.suggest_categorical("w_steps", [4000])
-            n_heads = trial.suggest_categorical("n_heads", [1, 8])
+            n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
