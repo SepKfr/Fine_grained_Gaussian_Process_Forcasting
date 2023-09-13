@@ -15,102 +15,100 @@ from optuna.storages import RDBStorage
 from optuna.trial import TrialState
 from modules.opt_model import NoamOpt
 from new_data_loader import DataLoader
-gpytorch.settings.num_likelihood_samples(1)
 
 torch.autograd.set_detect_anomaly(True)
 
+with gpytorch.settings.num_likelihood_samples(8):
 
-class Train:
-    def __init__(self, exp_name, args, pred_len):
+    class Train:
+        def __init__(self, exp_name, args, pred_len):
 
-        self.denoising = True if args.denoising == "True" else False
-        self.gp = True if args.gp == "True" else False
-        self.iso = True if args.iso == "True" else False
-        self.no_noise = True if args.no_noise == "True" else False
-        self.residual = True if args.residual == "True" else False
-        self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
+            self.denoising = True if args.denoising == "True" else False
+            self.gp = True if args.gp == "True" else False
+            self.iso = True if args.iso == "True" else False
+            self.no_noise = True if args.no_noise == "True" else False
+            self.residual = True if args.residual == "True" else False
+            self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
 
-        self.pred_len = pred_len
-        self.seed = args.seed
-        target_col = {"traffic": "values",
-                      "electricity": "power_usage",
-                      "exchange": "value",
-                      "solar": "Power(MW)",
-                      "air_quality": "NO2"
-                      }
+            self.pred_len = pred_len
+            self.seed = args.seed
+            target_col = {"traffic": "values",
+                          "electricity": "power_usage",
+                          "exchange": "value",
+                          "solar": "Power(MW)",
+                          "air_quality": "NO2"
+                          }
 
-        self.dataloader_obj = DataLoader(exp_name,
-                                         max_encoder_length=96 + 2*pred_len,
-                                         target_col=target_col[exp_name],
-                                         pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=2560,
-                                         batch_size=256)
+            self.dataloader_obj = DataLoader(exp_name,
+                                             max_encoder_length=96 + 2*pred_len,
+                                             target_col=target_col[exp_name],
+                                             pred_len=pred_len,
+                                             max_train_sample=12800,
+                                             max_test_sample=2560,
+                                             batch_size=256)
 
-        self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
-        self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
-        self.attn_type = args.attn_type
-        self.criterion = nn.MSELoss()
-        self.mae_loss = nn.L1Loss()
-        self.num_epochs = args.num_epochs
-        self.exp_name = args.exp_name
-        self.model_name = "{}_{}_{}{}{}{}{}{}{}".format(args.model_name,
-                                                      self.exp_name,
-                                                      self.seed,
-                                                      "_denoise" if self.denoising
-                                                      else "",
-                                                      "_iso" if self.iso
-                                                      else "",
-                                                      "_predictions" if self.no_noise
-                                                      else "",
-                                                      "_residual" if self.residual
-                                                      else "",
-                                                      "_gp" if self.gp
-                                                      else "",
-                                                      "_add_noise_only_training" if self.input_corrupt_training
-                                                      else ""
-                                                      )
-        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        self.best_val = 1e10
-        self.param_history = []
-        self.errors = dict()
+            self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
+            self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
+            self.attn_type = args.attn_type
+            self.criterion = nn.MSELoss()
+            self.mae_loss = nn.L1Loss()
+            self.num_epochs = args.num_epochs
+            self.exp_name = args.exp_name
+            self.model_name = "{}_{}_{}{}{}{}{}{}{}".format(args.model_name,
+                                                          self.exp_name,
+                                                          self.seed,
+                                                          "_denoise" if self.denoising
+                                                          else "",
+                                                          "_iso" if self.iso
+                                                          else "",
+                                                          "_predictions" if self.no_noise
+                                                          else "",
+                                                          "_residual" if self.residual
+                                                          else "",
+                                                          "_gp" if self.gp
+                                                          else "",
+                                                          "_add_noise_only_training" if self.input_corrupt_training
+                                                          else ""
+                                                          )
+            self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
+            self.best_val = 1e10
+            self.param_history = []
+            self.errors = dict()
 
-        self.best_model = nn.Module()
+            self.best_model = nn.Module()
 
-        self.run_optuna(args)
-        self.evaluate()
+            self.run_optuna(args)
+            self.evaluate()
 
-    def run_optuna(self, args):
+        def run_optuna(self, args):
 
-        study = optuna.create_study(direction="minimize",
-                                    pruner=optuna.pruners.HyperbandPruner())
+            study = optuna.create_study(direction="minimize",
+                                        pruner=optuna.pruners.HyperbandPruner())
 
-        with joblib.Parallel(n_jobs=4) as parallel:
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            with joblib.Parallel(n_jobs=4) as parallel:
+                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
 
-        pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
-        complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+            pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
+            complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
 
-        print("Study statistics: ")
-        print("  Number of finished trials: ", len(study.trials))
-        print("  Number of pruned trials: ", len(pruned_trials))
-        print("  Number of complete trials: ", len(complete_trials))
+            print("Study statistics: ")
+            print("  Number of finished trials: ", len(study.trials))
+            print("  Number of pruned trials: ", len(pruned_trials))
+            print("  Number of complete trials: ", len(complete_trials))
 
-        print("Best trial:")
-        trial = study.best_trial
+            print("Best trial:")
+            trial = study.best_trial
 
-        print("  Value: ", trial.value)
+            print("  Value: ", trial.value)
 
-        print("  Params: ")
-        for key, value in trial.params.items():
-            print("    {}: {}".format(key, value))
+            print("  Params: ")
+            for key, value in trial.params.items():
+                print("    {}: {}".format(key, value))
 
-    def objective(self, trial):
+        def objective(self, trial):
 
-        src_input_size = 1
-        tgt_input_size = 1
-
-        with gpytorch.settings.num_likelihood_samples(8):
+            src_input_size = 1
+            tgt_input_size = 1
 
             if not os.path.exists(self.model_path):
                 try:
@@ -191,9 +189,8 @@ class Train:
 
             return val_loss
 
-    def evaluate(self):
+        def evaluate(self):
 
-        with gpytorch.settings.num_likelihood_samples(8):
             self.best_model.eval()
             total_b = len(self.dataloader_obj.test_loader)
             _, _, test_y = next(iter(self.dataloader_obj.test_loader))
@@ -233,32 +230,32 @@ class Train:
                 df.to_csv(error_path)
 
 
-def main():
+    def main():
 
-    parser = argparse.ArgumentParser(description="preprocess argument parser")
-    parser.add_argument("--attn_type", type=str, default='autoformer')
-    parser.add_argument("--model_name", type=str, default="autoformer")
-    parser.add_argument("--exp_name", type=str, default='traffic')
-    parser.add_argument("--cuda", type=str, default="cuda:0")
-    parser.add_argument("--seed", type=int, default=1234)
-    parser.add_argument("--n_trials", type=int, default=10)
-    parser.add_argument("--denoising", type=str, default="True")
-    parser.add_argument("--gp", type=str, default="True")
-    parser.add_argument("--residual", type=str, default="False")
-    parser.add_argument("--no-noise", type=str, default="False")
-    parser.add_argument("--iso", type=str, default="False")
-    parser.add_argument("--input_corrupt_training", type=str, default="False")
-    parser.add_argument("--num_epochs", type=int, default=5)
+        parser = argparse.ArgumentParser(description="preprocess argument parser")
+        parser.add_argument("--attn_type", type=str, default='autoformer')
+        parser.add_argument("--model_name", type=str, default="autoformer")
+        parser.add_argument("--exp_name", type=str, default='traffic')
+        parser.add_argument("--cuda", type=str, default="cuda:0")
+        parser.add_argument("--seed", type=int, default=1234)
+        parser.add_argument("--n_trials", type=int, default=10)
+        parser.add_argument("--denoising", type=str, default="True")
+        parser.add_argument("--gp", type=str, default="True")
+        parser.add_argument("--residual", type=str, default="False")
+        parser.add_argument("--no-noise", type=str, default="False")
+        parser.add_argument("--iso", type=str, default="False")
+        parser.add_argument("--input_corrupt_training", type=str, default="False")
+        parser.add_argument("--num_epochs", type=int, default=5)
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
 
-    for pred_len in [96, 192]:
-        Train(args.exp_name, args, pred_len)
+        for pred_len in [96, 192]:
+            Train(args.exp_name, args, pred_len)
 
 
-if __name__ == '__main__':
-    main()
+    if __name__ == '__main__':
+        main()
