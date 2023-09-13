@@ -17,10 +17,10 @@ from new_data_loader import DataLoader
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(8):
+with gpytorch.settings.num_likelihood_samples(16):
 
     class Train:
-        def __init__(self, exp_name, args, pred_len):
+        def __init__(self, exp_name, args, pred_len, seed):
 
             self.denoising = True if args.denoising == "True" else False
             self.gp = True if args.gp == "True" else False
@@ -29,8 +29,8 @@ with gpytorch.settings.num_likelihood_samples(8):
             self.residual = True if args.residual == "True" else False
             self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
 
+            self.seed = seed
             self.pred_len = pred_len
-            self.seed = args.seed
             target_col = {"traffic": "values",
                           "electricity": "power_usage",
                           "exchange": "value",
@@ -119,7 +119,7 @@ with gpytorch.settings.num_likelihood_samples(8):
 
             d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
-            n_heads = trial.suggest_categorical("n_heads", [8])
+            n_heads = trial.suggest_categorical("n_heads", [4, 8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
@@ -213,7 +213,7 @@ with gpytorch.settings.num_likelihood_samples(8):
 
             mae_loss = F.l1_loss(predictions, test_y).item()
 
-            errors = {self.model_name: {'MSE': mse_loss, 'MAE': mae_loss}}
+            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
             print(errors)
 
             error_path = "Final_errors-2.csv"
@@ -252,8 +252,11 @@ with gpytorch.settings.num_likelihood_samples(8):
         random.seed(args.seed)
         torch.manual_seed(args.seed)
 
-        for pred_len in [96, 192]:
-            Train(args.exp_name, args, pred_len)
+        random.seed(1234)
+        seeds = [random.randint(1000, 9999) for _ in range(3)]
+        for seed in seeds:
+            for pred_len in [96, 192]:
+                Train(args.exp_name, args, pred_len, seed)
 
 
     if __name__ == '__main__':
