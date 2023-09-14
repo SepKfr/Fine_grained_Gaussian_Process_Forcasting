@@ -84,8 +84,8 @@ with gpytorch.settings.num_likelihood_samples(16):
             study = optuna.create_study(direction="minimize",
                                         pruner=optuna.pruners.HyperbandPruner())
 
-            with joblib.Parallel(n_jobs=5) as parallel:
-                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=5)
+            with joblib.Parallel(n_jobs=4) as parallel:
+                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
