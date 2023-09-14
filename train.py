@@ -252,7 +252,7 @@ with gpytorch.settings.num_likelihood_samples(16):
         random.seed(args.seed)
         torch.manual_seed(args.seed)
 
-        random.seed(1234)
+        random.seed(2021)
         seeds = [random.randint(1000, 9999) for _ in range(3)]
         for seed in seeds:
             for pred_len in [96, 192]:
