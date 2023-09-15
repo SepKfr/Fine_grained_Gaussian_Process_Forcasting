@@ -27,7 +27,6 @@ class Forecast_denoising(nn.Module):
 
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
-        self.device = device
 
         if "LSTM" in model_name:
 
@@ -69,12 +68,8 @@ class Forecast_denoising(nn.Module):
 
     def forward(self, enc_inputs, dec_inputs, y_true=None):
 
-        b, _, _ = enc_inputs.shape
         enc_inputs = self.enc_embedding(enc_inputs)
-        dec_inputs = torch.cat([dec_inputs, torch.zeros(b, self.pred_len, 1).to(self.device)]
-                               , dim=1)
         dec_inputs = self.dec_embedding(dec_inputs)
-
         mll_error = 0
         loss = 0
 
@@ -92,8 +87,8 @@ class Forecast_denoising(nn.Module):
         if self.denoise:
             if self.residual:
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_inputs, dec_inputs)
-                res_outputs = self.residual_final_projection(dec_outputs_res[:, -self.pred_len:, :])
-                final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :]) + res_outputs
+                res_outputs = self.residual_final_projection(dec_outputs_res)
+                final_outputs = self.final_projection(dec_outputs) + res_outputs
                 if self.training:
                     residual = y_true - res_outputs
                     loss = nn.MSELoss()(residual, res_outputs)
@@ -104,15 +99,13 @@ class Forecast_denoising(nn.Module):
                 final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
                 if self.gp and self.training:
-                    subset_mean = dist.mean[:, :, -self.pred_len:]
-                    covariance_matrix = dist.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:]
-                    dist_gp = gpytorch.distributions.multivariate_normal.MultivariateNormal(subset_mean, covariance_matrix)
+
                     mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
                                                              self.de_model.deep_gp, self.d_model))
 
-                    mll_error = -mll(dist_gp, y_true.permute(2, 0, 1)).mean()
+                    mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
         else:
-            final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
+            final_outputs = self.final_projection(dec_outputs)
 
         if y_true is not None:
             loss = nn.MSELoss()(final_outputs, y_true) + 1e-4 * mll_error
