@@ -119,7 +119,7 @@ with gpytorch.settings.num_likelihood_samples(16):
 
             d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [4000])
-            n_heads = trial.suggest_categorical("n_heads", [4, 8])
+            n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
@@ -216,7 +216,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
             print(errors)
 
-            error_path = "Final_errors-2.csv"
+            error_path = "Final_errors_{}.csv".format(self.exp_name)
 
             df = pd.DataFrame.from_dict(errors, orient='index')
 
