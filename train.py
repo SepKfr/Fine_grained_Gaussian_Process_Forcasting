@@ -44,7 +44,7 @@ with gpytorch.settings.num_likelihood_samples(16):
                                              pred_len=pred_len,
                                              max_train_sample=12800,
                                              max_test_sample=2560,
-                                             batch_size=256)
+                                             batch_size=128)
 
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -84,8 +84,8 @@ with gpytorch.settings.num_likelihood_samples(16):
             study = optuna.create_study(direction="minimize",
                                         pruner=optuna.pruners.HyperbandPruner())
 
-            with joblib.Parallel(n_jobs=4) as parallel:
-                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            with joblib.Parallel(n_jobs=6) as parallel:
+                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=6)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
