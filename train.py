@@ -248,7 +248,7 @@ with gpytorch.settings.num_likelihood_samples(16):
 
         args = parser.parse_args()
 
-        random.seed(2021)
+        random.seed(1992)
         seed = random.randint(1000, 9999)
 
         np.random.seed(seed)
