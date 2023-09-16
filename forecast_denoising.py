@@ -6,6 +6,7 @@ import torch.nn as nn
 from gpytorch.mlls import DeepApproximateMLL, VariationalELBO
 from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
+from modules.feedforward import PoswiseFeedForwardNet
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
 gpytorch.settings.num_likelihood_samples(1)
@@ -40,14 +41,11 @@ class Forecast_denoising(nn.Module):
 
         else:
 
-            self.forecasting_model = Transformer(src_input_size=src_input_size,
-                                                 tgt_input_size=tgt_input_size,
-                                                 pred_len=pred_len,
+            self.forecasting_model = Transformer(pred_len=pred_len,
                                                  d_model=d_model,
                                                  d_ff=d_model * 4,
                                                  d_k=d_k, d_v=d_k, n_heads=n_heads,
-                                                 n_layers=stack_size, src_pad_index=0,
-                                                 tgt_pad_index=0, device=device,
+                                                 n_layers=stack_size, device=device,
                                                  attn_type=attn_type,
                                                  seed=seed,
                                                  )
@@ -65,6 +63,8 @@ class Forecast_denoising(nn.Module):
         self.residual_final_projection = nn.Linear(d_model, 1)
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
+        self.ffn = PoswiseFeedForwardNet(
+            d_model=d_model, d_ff=d_model * 4, seed=seed)
 
     def forward(self, enc_inputs, dec_inputs, y_true=None):
 
@@ -81,8 +81,8 @@ class Forecast_denoising(nn.Module):
             input_noisy, dist = self.de_model.add_gp_noise(inputs)
             enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
             dec_noisy = input_noisy[:, enc_inputs.shape[1]:, :]
-            enc_outputs, dec_outputs = self.forecasting_model(enc_noisy, dec_noisy)
-            dec_outputs = self.norm(dec_inputs + dec_outputs)
+            _, dec_outputs = self.forecasting_model(enc_noisy, dec_noisy)
+            dec_outputs = self.norm(dec_inputs + self.ffn(dec_outputs))
 
         if self.denoise:
             if self.residual:
@@ -95,7 +95,7 @@ class Forecast_denoising(nn.Module):
                     return final_outputs, loss
             else:
 
-                enc_outputs, dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
+                dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
                 final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
                 if self.gp and self.training:
@@ -108,6 +108,6 @@ class Forecast_denoising(nn.Module):
             final_outputs = self.final_projection(dec_outputs)
 
         if y_true is not None:
-            loss = nn.MSELoss()(final_outputs, y_true) + 1e-4 * mll_error
+            loss = nn.MSELoss()(final_outputs, y_true) + 1e-3 * mll_error
 
         return final_outputs, loss

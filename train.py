@@ -42,8 +42,8 @@ with gpytorch.settings.num_likelihood_samples(16):
                                              max_encoder_length=96 + 2*pred_len,
                                              target_col=target_col[exp_name],
                                              pred_len=pred_len,
-                                             max_train_sample=12800,
-                                             max_test_sample=2560,
+                                             max_train_sample=64000,
+                                             max_test_sample=1280,
                                              batch_size=128)
 
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
@@ -248,15 +248,15 @@ with gpytorch.settings.num_likelihood_samples(16):
 
         args = parser.parse_args()
 
-        np.random.seed(args.seed)
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-
         random.seed(2021)
-        seeds = [random.randint(1000, 9999) for _ in range(3)]
-        for seed in seeds:
-            for pred_len in [96, 192]:
-                Train(args.exp_name, args, pred_len, seed)
+        seed = random.randint(1000, 9999)
+
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
+
+        for pred_len in [96, 192]:
+            Train(args.exp_name, args, pred_len, seed)
 
 
     if __name__ == '__main__':

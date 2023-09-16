@@ -54,7 +54,7 @@ class ProbAttention(nn.Module):
             contex = V.cumsum(dim=-2)
         return contex
 
-    def _update_context(self, context_in, V, scores, index, L_Q, attn_mask):
+    def _update_context(self, context_in, V, scores, index, L_Q, attn_mask=None):
         B, H, L_V, D = V.shape
 
         attn = torch.softmax(scores, dim=-1)  # nn.Softmax(dim=-1)(scores)

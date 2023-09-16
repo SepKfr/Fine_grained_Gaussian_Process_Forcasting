@@ -4,6 +4,8 @@ import numpy as np
 import torch
 import random
 from denoising_model.DeepGP import DeepGPp
+from modules.feedforward import PoswiseFeedForwardNet
+
 torch.autograd.set_detect_anomaly(True)
 
 
@@ -28,6 +30,8 @@ class denoise_model_2(nn.Module):
         self.device = device
         self.n_noise = n_noise
         self.residual = residual
+        self.ffn = PoswiseFeedForwardNet(
+            d_model=d, d_ff=d*4, seed=seed)
 
     def add_gp_noise(self, x):
 
@@ -63,7 +67,6 @@ class denoise_model_2(nn.Module):
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        enc_output = enc_inputs + enc_rec
-        dec_output = dec_inputs + dec_rec
+        dec_output = self.norm(dec_inputs + self.ffn(dec_rec))
 
-        return enc_output, dec_output, dist_dec
+        return dec_output, dist_dec

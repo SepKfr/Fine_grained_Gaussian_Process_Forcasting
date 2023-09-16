@@ -102,7 +102,7 @@ class AutoCorrelation(nn.Module):
             delays_agg = delays_agg + pattern * (tmp_corr[..., i].unsqueeze(-1))
         return delays_agg
 
-    def forward(self, queries, keys, values, attn_mask):
+    def forward(self, queries, keys, values, attn_mask=None):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         if L > S:

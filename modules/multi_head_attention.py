@@ -33,7 +33,7 @@ class MultiHeadAttention(nn.Module):
         self.attn_type = attn_type
         self.seed = seed
 
-    def forward(self, Q, K, V, attn_mask):
+    def forward(self, Q, K, V):
 
         batch_size = Q.shape[0]
         q_s = self.WQ(Q).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
@@ -42,28 +42,30 @@ class MultiHeadAttention(nn.Module):
 
         # ATA forecasting model
 
+        context = None
+
         if self.attn_type == "ATA":
             context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
-            Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+            Q=q_s, K=k_s, V=v_s)
 
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
-            context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2), k_s.transpose(1, 2), v_s.transpose(1, 2),
-                                              attn_mask)
+            context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2),
+                                                            k_s.transpose(1, 2),
+                                                            v_s.transpose(1, 2))
 
         # CNN-trans forecasting model
 
         elif self.attn_type == "conv_attn":
             context, attn = ConvAttn(d_k=self.d_k, device=self.device, seed=self.seed, kernel=9, h=self.n_heads)(
-            Q=q_s, K=k_s, V=v_s, attn_mask=attn_mask)
+            Q=q_s, K=k_s, V=v_s)
 
         # Informer forecasting model
 
         elif self.attn_type == "informer":
-            mask_flag = True if attn_mask is not None else False
-            context, attn = ProbAttention(mask_flag=mask_flag, seed=self.seed)(q_s, k_s, v_s, attn_mask)
+            context, attn = ProbAttention(mask_flag=False, seed=self.seed)(q_s, k_s, v_s)
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
-        output = self.fc(context)
-        return output, attn
+        outputs = self.fc(context)
+        return outputs
