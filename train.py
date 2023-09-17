@@ -143,9 +143,10 @@ with gpytorch.settings.num_likelihood_samples(16):
                                        attn_type=self.attn_type,
                                        no_noise=self.no_noise,
                                        residual=self.residual,
-                                       input_corrupt=self.input_corrupt_training).to(self.device)
+                                       input_corrupt=self.input_corrupt_training)
+
             if torch.cuda.device_count() > 1 and self.use_parallel:
-                model = nn.DataParallel(model)
+                model = nn.DataParallel(model).to(self.device)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
