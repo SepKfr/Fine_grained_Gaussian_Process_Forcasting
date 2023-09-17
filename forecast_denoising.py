@@ -60,7 +60,6 @@ class Forecast_denoising(nn.Module):
         self.residual = residual
         self.d_model = d_model
         self.final_projection = nn.Linear(d_model, 1)
-        self.residual_final_projection = nn.Linear(d_model, 1)
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.ffn = PoswiseFeedForwardNet(
@@ -87,8 +86,8 @@ class Forecast_denoising(nn.Module):
         if self.denoise:
             if self.residual:
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_inputs, dec_inputs)
-                res_outputs = self.residual_final_projection(dec_outputs_res)
-                final_outputs = self.final_projection(dec_outputs) + res_outputs
+                res_outputs = self.final_projection(dec_outputs_res)
+                final_outputs = self.final_projection(self.norm(dec_inputs + self.ffn(dec_outputs_res)))
                 if y_true is not None:
                     residual = y_true - res_outputs
                     loss = nn.MSELoss()(residual, res_outputs)
