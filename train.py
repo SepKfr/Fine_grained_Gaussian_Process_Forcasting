@@ -46,7 +46,7 @@ with gpytorch.settings.num_likelihood_samples(16):
                                              max_test_sample=1280,
                                              batch_size=256)
 
-            self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
             self.attn_type = args.attn_type
             self.criterion = nn.MSELoss()
@@ -143,6 +143,8 @@ with gpytorch.settings.num_likelihood_samples(16):
                                        no_noise=self.no_noise,
                                        residual=self.residual,
                                        input_corrupt=self.input_corrupt_training).to(self.device)
+            if torch.cuda.device_count() > 1:
+                model = nn.DataParallel(model)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
