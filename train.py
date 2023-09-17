@@ -28,6 +28,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             self.no_noise = True if args.no_noise == "True" else False
             self.residual = True if args.residual == "True" else False
             self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
+            self.use_parallel = True if args.use_parallel == "True" else False
 
             self.seed = seed
             self.pred_len = pred_len
@@ -143,7 +144,7 @@ with gpytorch.settings.num_likelihood_samples(16):
                                        no_noise=self.no_noise,
                                        residual=self.residual,
                                        input_corrupt=self.input_corrupt_training).to(self.device)
-            if torch.cuda.device_count() > 1:
+            if torch.cuda.device_count() > 1 and self.use_parallel:
                 model = nn.DataParallel(model)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
@@ -246,6 +247,7 @@ with gpytorch.settings.num_likelihood_samples(16):
         parser.add_argument("--no-noise", type=str, default="False")
         parser.add_argument("--iso", type=str, default="False")
         parser.add_argument("--input_corrupt_training", type=str, default="False")
+        parser.add_argument("--use_parallel", type=str, default="False")
         parser.add_argument("--num_epochs", type=int, default=5)
 
         args = parser.parse_args()
