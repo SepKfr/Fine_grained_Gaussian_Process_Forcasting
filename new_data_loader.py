@@ -8,8 +8,6 @@ from pytorch_forecasting.data import TimeSeriesDataSet
 from data import traffic, electricity, air_quality, solar
 
 
-
-
 class DataLoader:
     def __init__(self, exp_name,
                  max_encoder_length,

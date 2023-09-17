@@ -9,7 +9,7 @@ import copy
 
 
 class DecoderLayer(nn.Module):
-    def __init__(self, attn_type,d_model, d_k, d_v, d_ff, n_heads, device, seed, dropout=0.0):
+    def __init__(self, attn_type, d_model, d_k, d_v, d_ff, n_heads, device, seed, dropout=0.0):
         """
         Decoder Layer in the Transformer model.
 
