@@ -165,6 +165,8 @@ with gpytorch.settings.num_likelihood_samples(16):
                     output_fore_den, loss_train = \
                             model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
+                    if self.use_parallel:
+                        total_loss = loss_train.sum().item()
                     total_loss += loss_train.item()
                     optimizer.zero_grad()
                     loss_train.backward()
