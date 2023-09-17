@@ -28,7 +28,6 @@ with gpytorch.settings.num_likelihood_samples(16):
             self.no_noise = True if args.no_noise == "True" else False
             self.residual = True if args.residual == "True" else False
             self.input_corrupt_training = True if args.input_corrupt_training == "True" else False
-            self.use_parallel = True if args.use_parallel == "True" else False
 
             self.seed = seed
             self.pred_len = pred_len
@@ -47,7 +46,7 @@ with gpytorch.settings.num_likelihood_samples(16):
                                              max_test_sample=1280,
                                              batch_size=256)
 
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
             self.attn_type = args.attn_type
             self.criterion = nn.MSELoss()
@@ -85,8 +84,8 @@ with gpytorch.settings.num_likelihood_samples(16):
             study = optuna.create_study(direction="minimize",
                                         pruner=optuna.pruners.HyperbandPruner())
 
-            with joblib.Parallel(n_jobs=4) as parallel:
-                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            with joblib.Parallel(n_jobs=6) as parallel:
+                study.optimize(self.objective, n_trials=args.n_trials, n_jobs=6)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -143,12 +142,7 @@ with gpytorch.settings.num_likelihood_samples(16):
                                        attn_type=self.attn_type,
                                        no_noise=self.no_noise,
                                        residual=self.residual,
-                                       input_corrupt=self.input_corrupt_training)
-
-            if torch.cuda.device_count() > 1 and self.use_parallel:
-                model = nn.DataParallel(model).to(self.device)
-            else:
-                model = model.to(self.device)
+                                       input_corrupt=self.input_corrupt_training).to(self.device)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -165,15 +159,9 @@ with gpytorch.settings.num_likelihood_samples(16):
                     output_fore_den, loss_train = \
                             model(train_enc.to(self.device), train_dec.to(self.device), train_y.to(self.device))
 
-                    if self.use_parallel:
-                        total_loss = loss_train.sum().item()
-                    else:
-                        total_loss += loss_train.item()
+                    total_loss += loss_train.item()
                     optimizer.zero_grad()
-                    if self.use_parallel:
-                        loss_train.sum().backward()
-                    else:
-                        loss_train.backward()
+                    loss_train.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                     optimizer.step_and_update_lr()
 
@@ -251,12 +239,11 @@ with gpytorch.settings.num_likelihood_samples(16):
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=10)
         parser.add_argument("--denoising", type=str, default="True")
-        parser.add_argument("--gp", type=str, default="False")
-        parser.add_argument("--residual", type=str, default="True")
+        parser.add_argument("--gp", type=str, default="True")
+        parser.add_argument("--residual", type=str, default="False")
         parser.add_argument("--no-noise", type=str, default="False")
         parser.add_argument("--iso", type=str, default="False")
         parser.add_argument("--input_corrupt_training", type=str, default="False")
-        parser.add_argument("--use_parallel", type=str, default="False")
         parser.add_argument("--num_epochs", type=int, default=5)
 
         args = parser.parse_args()
