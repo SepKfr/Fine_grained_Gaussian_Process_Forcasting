@@ -170,7 +170,10 @@ with gpytorch.settings.num_likelihood_samples(16):
                     else:
                         total_loss += loss_train.item()
                     optimizer.zero_grad()
-                    loss_train.backward()
+                    if self.use_parallel:
+                        loss_train.sum().backward()
+                    else:
+                        loss_train.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                     optimizer.step_and_update_lr()
 
