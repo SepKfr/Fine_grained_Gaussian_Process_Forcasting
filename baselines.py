@@ -6,11 +6,10 @@ import torch.nn.functional as F
 import numpy as np
 import optuna
 import torch
+from neuralforecast import NeuralForecast
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
-from forecasting_models import DeepAR
-from forecasting_models import NBeats
-from forecasting_models import NHITS
+from neuralforecast.models import NBEATS, NHITS, DeepAR
 import argparse
 from torch import nn
 from torch.optim import Adam
@@ -65,9 +64,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=1280,
-                                         batch_size=128)
+                                         max_train_sample=8,
+                                         max_test_sample=8,
+                                         batch_size=8)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -77,32 +76,6 @@ class Baselines:
         self.num_epochs = args.num_epochs
         self.run_optuna(args)
         self.evaluate()
-
-    def get_deep_ar_model(self, d_model, n_layers):
-
-        return DeepAR.Net(DeepARParams(num_class=1,
-                                       embedding_dim=0,
-                                       cov_dim=0,
-                                       lstm_hidden_dim=d_model,
-                                       lstm_layers=n_layers,
-                                       lstm_dropout=0.0,
-                                       sample_times=1,
-                                       predict_steps=self.pred_len,
-                                       device=self.device)).to(self.device)
-
-    def get_nbeats_model(self, d_model, n_layers):
-
-        return NBeats.NBeatsNet(forecast_length=self.pred_len,
-                                backcast_length=96 + self.pred_len*2,
-                                hidden_layer_units=d_model,
-                                device=self.device).to(self.device)
-
-    def get_nhits_model(self, d_model, n_layers):
-
-        return NHITS.NHiTSModel(num_layers=n_layers,
-                                layer_widths=d_model,
-                                input_chunk_length=96 + self.pred_len*2,
-                                output_chunk_length=self.pred_len)
 
     def run_optuna(self, args):
 
@@ -144,14 +117,17 @@ class Baselines:
         self.param_history.append([d_model, stack_size, w_steps])
 
         if self.model_id == "DeepAR":
-            model = self.get_deep_ar_model(d_model, stack_size)
+            model = DeepAR(h=self.pred_len, lstm_n_layers=stack_size, lstm_hidden_size=d_model)
+            nf = NeuralForecast(models=[model], freq='M')
 
         elif self.model_id == "NBeats":
-            model = self.get_nbeats_model(d_model, n_layers=1)
+            model = NBEATS(h=self.pred_len, input_size=1)
+            nf = NeuralForecast(models=[model], freq='M')
         else:
-            model = self.get_nhits_model(d_model, stack_size)
+            model = NHITS(h=self.pred_len, input_size=1)
+            nf = NeuralForecast(models=[model], freq='M')
 
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+        #optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
 
@@ -160,7 +136,7 @@ class Baselines:
         for epoch in range(self.num_epochs):
 
             total_loss = 0
-            model.train()
+            #model.train()
 
             for x_enc, x_dec, y in self.dataloader_obj.train_loader:
 
@@ -169,21 +145,11 @@ class Baselines:
                 y = y.to(self.device)
 
                 x = torch.cat([x_enc, x_dec], dim=1)
-                if isinstance(model, DeepAR.Net):
-                    hidden = model.init_hidden(x.shape[1])
-                    cell = model.init_cell(x.shape[1])
-                    mu, sigma, _, _ = model(x, hidden, cell)
-                    loss_train = DeepAR.loss_fn(mu, sigma, y)
-                else:
-                    _, outputs = model(x)
-                    outputs = outputs.unsqueeze(-1)
-                    loss_train = nn.MSELoss()(y, outputs)
+                outputs = nf.fit(x)
+
 
                 total_loss += loss_train.item()
-                optimizer.zero_grad()
-                loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
-                optimizer.step_and_update_lr()
+
 
             model.eval()
             test_loss = 0
@@ -193,15 +159,9 @@ class Baselines:
                 valid_x_dec = valid_x_dec.to(self.device)
                 valid_y = valid_y.to(self.device)
                 valid_x = torch.cat([valid_x_enc, valid_x_dec], dim=1)
-                if isinstance(model, DeepAR.Net):
-                    hidden = model.init_hidden(valid_x.shape[1])
-                    cell = model.init_cell(valid_x.shape[1])
-                    mu, sigma, _, _ = model(valid_x, hidden, cell)
-                    loss_eval = DeepAR.loss_fn(mu, sigma, valid_y)
-                else:
-                    _, outputs = model(valid_x)
-                    outputs = outputs.unsqueeze(-1)
-                    loss_eval = nn.MSELoss()(valid_y, outputs)
+                _, outputs = model(valid_x)
+                outputs = outputs.unsqueeze(-1)
+                loss_eval = nn.MSELoss()(valid_y, outputs)
 
                 test_loss += loss_eval.item()
 
@@ -234,18 +194,8 @@ class Baselines:
 
             x = torch.cat([x_enc, x_dec], dim=1).to(self.device)
 
-            if isinstance(self.best_model, DeepAR.Net):
-
-                hidden = self.best_model.init_hidden(self.pred_len)
-                cell = self.best_model.init_cell(self.pred_len)
-                mu, sigma, _, _ = self.best_model(x[:, -self.pred_len:, :], hidden, cell)
-                gaussian = torch.distributions.normal.Normal(mu, sigma)
-                pred = gaussian.sample().cpu().detach().numpy()
-                predictions[j, :, :] = pred
-
-            else:
-                _, output = self.best_model(x)
-                predictions[j] = output.cpu().detach().numpy()
+            _, output = self.best_model(x)
+            predictions[j] = output.cpu().detach().numpy()
 
             test_y_tot[j] = y.squeeze(-1).cpu().detach().numpy()
             j += 1
@@ -276,7 +226,7 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='NBeats')
+parser.add_argument("--model_name", type=str, default='Nhits')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)
