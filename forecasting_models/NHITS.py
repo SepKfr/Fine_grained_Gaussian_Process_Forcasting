@@ -460,6 +460,8 @@ class NHiTSModule(PLPastCovariatesModule):
 class NHiTSModel(PastCovariatesTorchModel):
     def __init__(
         self,
+        input_chunk_length: int,
+        output_chunk_length: int,
         num_stacks: int = 3,
         num_blocks: int = 1,
         num_layers: int = 2,
@@ -753,12 +755,10 @@ class NHiTSModel(PastCovariatesTorchModel):
 
         return pooling_kernel_sizes, n_freq_downsample
 
-    def _create_model(self, train_sample: Tuple[torch.Tensor]) -> torch.nn.Module:
+    def create_model(self) -> torch.nn.Module:
         # samples are made of (past_target, past_covariates, future_target)
-        input_dim = train_sample[0].shape[1] + (
-            train_sample[1].shape[1] if train_sample[1] is not None else 0
-        )
-        output_dim = train_sample[-1].shape[1]
+        input_dim = 1
+        output_dim = 1
         nr_params = 1 if self.likelihood is None else self.likelihood.num_parameters
 
         return NHiTSModule(
