@@ -87,14 +87,14 @@ class Baselines:
                                        lstm_dropout=0.0,
                                        sample_times=1,
                                        predict_steps=self.pred_len,
-                                       device=self.device))
+                                       device=self.device)).to(self.device)
 
     def get_nbeats_model(self, d_model, n_layers):
 
         return NBeats.NBeatsNet(forecast_length=self.pred_len,
                                 backcast_length=96 + self.pred_len*2,
                                 hidden_layer_units=d_model,
-                                device=self.device)
+                                device=self.device).to(self.device)
 
     def run_optuna(self, args):
 
