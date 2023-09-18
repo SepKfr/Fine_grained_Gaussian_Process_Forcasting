@@ -1,4 +1,6 @@
 import os
+import random
+
 import pandas as pd
 import torch.nn.functional as F
 import numpy as np
@@ -270,6 +272,13 @@ parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)
 parser.add_argument("--seed", type=int, default=2021)
 args = parser.parse_args()
+
+random.seed(1992)
+seed = random.randint(1000, 9999)
+
+np.random.seed(seed)
+random.seed(seed)
+torch.manual_seed(seed)
 
 for pred_len in [96, 192]:
     baseline = Baselines(args, pred_len)
