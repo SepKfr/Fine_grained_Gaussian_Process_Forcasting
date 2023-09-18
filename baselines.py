@@ -99,10 +99,10 @@ class Baselines:
 
     def get_nhits_model(self, d_model, n_layers):
 
-        return NHITS.NHiTSModel(num_layers=n_layers,
+        return NHITS.NHiTSModule(num_layers=n_layers,
                                 layer_widths=d_model,
                                 input_chunk_length=96 + self.pred_len*2,
-                                output_chunk_length=self.pred_len).create_model().to(self.device)
+                                output_chunk_length=self.pred_len).to(self.device)
 
     def run_optuna(self, args):
 

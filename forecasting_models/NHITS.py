@@ -319,6 +319,8 @@ class NHiTSModule(PLPastCovariatesModule):
     def __init__(
         self,
         *,
+        input_chunk_length: int,
+        output_chunk_length: int,
         input_dim: int = 1,
         output_dim: int = 1,
         nr_params: int = 1,
