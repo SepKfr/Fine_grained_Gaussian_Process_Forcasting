@@ -9,8 +9,6 @@ from forecasting_models.LSTM import RNN
 from modules.feedforward import PoswiseFeedForwardNet
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
-gpytorch.settings.num_likelihood_samples(1)
-
 
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name: str, config: tuple, gp: bool,
