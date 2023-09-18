@@ -10,6 +10,7 @@ from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from forecasting_models import DeepAR
 from forecasting_models import NBeats
+from forecasting_models import NHITS
 import argparse
 from torch import nn
 from torch.optim import Adam
@@ -96,6 +97,11 @@ class Baselines:
                                 hidden_layer_units=d_model,
                                 device=self.device).to(self.device)
 
+    def get_nhits_model(self, d_model, n_layers):
+
+        return NHITS.NHiTSModule(num_layers=n_layers,
+                                 layer_widths=d_model).to(self.device)
+
     def run_optuna(self, args):
 
         study = optuna.create_study(study_name=args.model_name,
@@ -140,6 +146,8 @@ class Baselines:
 
         elif self.model_id == "NBeats":
             model = self.get_nbeats_model(d_model, n_layers=1)
+        else:
+            model = self.get_nhits_model(d_model, stack_size)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -251,7 +259,7 @@ class Baselines:
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
 
-        error_path = "Final_errors-{}.csv".format(self.exp_name)
+        error_path = "Final_errors_{}.csv".format(self.exp_name)
 
         df = pd.DataFrame.from_dict(errors, orient='index')
 
