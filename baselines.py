@@ -4,11 +4,12 @@ import pandas as pd
 import torch.nn.functional as F
 import numpy as np
 import optuna
-import pytorch_forecasting
+import lightning.pytorch as pl
 import torch
+from lightning.pytorch.callbacks import EarlyStopping
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
-from pytorch_forecasting import TemporalFusionTransformer, DeepAR, NHiTS, NBeats
+from pytorch_forecasting import TemporalFusionTransformer, DeepAR, NHiTS, NBeats, MQF2DistributionLoss
 
 import argparse
 
@@ -17,8 +18,7 @@ from torch.optim import Adam
 
 from modules.opt_model import NoamOpt
 from new_data_loader import DataLoader
-
-
+print(pl.__version__)
 class Baselines:
     def __init__(self, args, pred_len):
 
@@ -43,9 +43,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=1280,
-                                         batch_size=128)
+                                         max_train_sample=1,
+                                         max_test_sample=1,
+                                         batch_size=1)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -53,10 +53,9 @@ class Baselines:
                                             self.exp_name,
                                             self.seed)
         self.num_epochs = args.num_epochs
-        self.run_optuna(args)
-        self.evaluate()
+        self.train_model(32)
 
-    def get_model(self, d_model):
+    def train_model(self, d_model):
 
         if "NBeats" in self.model_name:
             model = NBeats.from_dataset(self.dataloader_obj.train_dataset,
@@ -64,145 +63,49 @@ class Baselines:
                                         weight_decay=1e-2,
                                         widths=[32, 512],
                                         backcast_loss_ratio=0.1).to(self.device)
+
         else:
             model = NHiTS.from_dataset(
                           self.dataloader_obj.train_dataset,
-                          hidden_size=d_model).to(self.device)
-        return model
+                            learning_rate=5e-3,
+                            log_interval=10,
+                            log_val_interval=1,
+                            weight_decay=1e-2,
+                            backcast_loss_ratio=0.0,
+                            hidden_size=64,
+                            optimizer="AdamW",
 
-    def run_optuna(self, args):
+            ).to(self.device)
 
-        study = optuna.create_study(study_name=args.model_name,
-                                    direction="minimize", pruner=optuna.pruners.HyperbandPruner(),
-                                    sampler=TPESampler(seed=1234))
-        study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+        early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min")
+        trainer = pl.Trainer(
+            max_epochs=5,
+            accelerator="cpu",
+            enable_model_summary=True,
+            gradient_clip_val=1.0,
+            callbacks=[early_stop_callback],
+            limit_train_batches=30,
+            enable_checkpointing=True,
+        )
 
-        pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
-        complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+        trainer.fit(
+            model,
+            train_dataloaders=self.dataloader_obj.train_loader2,
+            val_dataloaders=self.dataloader_obj.valid_loader2,
+        )
 
-        print("Study statistics: ")
-        print("  Number of finished trials: ", len(study.trials))
-        print("  Number of pruned trials: ", len(pruned_trials))
-        print("  Number of complete trials: ", len(complete_trials))
+        best_model_path = trainer.checkpoint_callback.best_model_path
+        best_model = NBeats.load_from_checkpoint(best_model_path)
 
-        print("Best trial:")
-        trial = study.best_trial
-
-        print("  Value: ", trial.value)
-
-        print("  Params: ")
-        for key, value in trial.params.items():
-            print("    {}: {}".format(key, value))
-
-    def objective(self, trial):
-
-        src_input_size = 1
-        tgt_input_size = 1
-
-        if not os.path.exists(self.model_path):
-            os.makedirs(self.model_path)
-
-        # hyperparameters
-
-        d_model = trial.suggest_categorical("d_model", [32, 64])
-        w_steps = trial.suggest_categorical("w_steps", [4000])
-
-        if [d_model] in self.param_history:
-            raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model])
-
-        model = self.get_model(d_model)
-
-        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
-
-        val_loss = 1e10
-
-        print("Start Training...")
-
-        for epoch in range(self.num_epochs):
-
-            total_loss = 0
-            model.train()
-
-            for x, y in self.dataloader_obj.train_loader2:
-
-                x = {key: value.to(self.device) for key, value in x.items()}
-                x["target_scale"] = torch.ones_like(x["target_scale"])
-                outputs = model(x)
-                if len(outputs["prediction"].shape) > 2:
-                    outputs = outputs["prediction"][:, :, -1]
-                else:
-                    outputs = outputs["prediction"]
-                loss_train = nn.MSELoss()(y[0].to(self.device),
-                                          outputs.to(self.device))
-
-                total_loss += loss_train.item()
-                optimizer.zero_grad()
-                loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
-                optimizer.step_and_update_lr()
-
-            model.eval()
-            test_loss = 0
-
-            for valid_x, valid_y in self.dataloader_obj.valid_loader2:
-                valid_x = {key: value.to(self.device) for key, value in valid_x.items()}
-                valid_x["target_scale"] = torch.ones_like(valid_x["target_scale"])
-                outputs = model(valid_x)
-                if len(outputs["prediction"].shape) > 2:
-                    outputs = outputs["prediction"][:, :, -1]
-                else:
-                    outputs = outputs["prediction"]
-                loss_eval = nn.MSELoss()(valid_y[0].to(self.device),
-                                         outputs.to(self.device))
-
-                test_loss += loss_eval.item()
-
-            if epoch % 5 == 0:
-                print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
-                print("val loss: {:.4f}".format(test_loss))
-
-            if test_loss < val_loss:
-                val_loss = test_loss
-                if val_loss < self.best_val:
-                    self.best_val = val_loss
-                    self.best_model = model
-                    torch.save({'model_state_dict': self.best_model.state_dict()},
-                               os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
-
-        return val_loss
-
-    def evaluate(self):
-
-        self.best_model.eval()
-        total_b = len(self.dataloader_obj.test_loader)
-        _, _, test_y = next(iter(self.dataloader_obj.test_loader))
-
-        predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-        test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
-
-        j = 0
-
-        for x, y in self.dataloader_obj.test_loader2:
-            x = {key: value.to(self.device) for key, value in x.items()}
-            x["target_scale"] = torch.ones_like(x["target_scale"])
-
-            outputs = self.best_model(x)
-            if len(outputs["prediction"].shape) > 2:
-                outputs = outputs["prediction"][:, :, -1]
-            else:
-                outputs = outputs["prediction"]
-            predictions[j] = outputs.cpu().detach().numpy()
-            test_y_tot[j] = y[0][:, -self.pred_len:].cpu().detach().numpy()
-            j += 1
+        actuals = torch.cat([y[0] for x, y in iter(self.dataloader_obj.test_loader2)])
+        predictions = best_model.predict(self.dataloader_obj.test_loader2)
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))
-        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-        normaliser = test_y.abs().mean()
+        test_y = torch.from_numpy(actuals.reshape(-1, 1))
 
-        mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
+        mse_loss = F.mse_loss(predictions, test_y).item()
 
-        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
+        mae_loss = F.l1_loss(predictions, test_y).item()
 
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
@@ -219,10 +122,12 @@ class Baselines:
         else:
             df.to_csv(error_path)
 
+        return model
+
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='NBeats')
+parser.add_argument("--model_name", type=str, default='NHiTS')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)
