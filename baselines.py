@@ -1,42 +1,22 @@
 import os
-import random
 
 import pandas as pd
 import torch.nn.functional as F
 import numpy as np
 import optuna
+import pytorch_forecasting
 import torch
-from neuralforecast import NeuralForecast
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
-from neuralforecast.models import NBEATS, NHITS, DeepAR
+from pytorch_forecasting import TemporalFusionTransformer, DeepAR, NHiTS, NBeats
+
 import argparse
+
 from torch import nn
 from torch.optim import Adam
 
 from modules.opt_model import NoamOpt
 from new_data_loader import DataLoader
-
-
-class DeepARParams:
-    def __init__(self, num_class,
-                 embedding_dim,
-                 cov_dim,
-                 lstm_hidden_dim,
-                 lstm_layers,
-                 lstm_dropout,
-                 sample_times,
-                 predict_steps,
-                 device):
-        self.num_class = num_class
-        self.embedding_dim = embedding_dim
-        self.cov_dim = cov_dim
-        self.lstm_hidden_dim = lstm_hidden_dim
-        self.lstm_layers = lstm_layers
-        self.lstm_dropout = lstm_dropout
-        self.sample_times = sample_times
-        self.predict_steps = predict_steps
-        self.device = device
 
 
 class Baselines:
@@ -49,7 +29,6 @@ class Baselines:
                       "air_quality": "NO2"
                       }
 
-        self.model_id = args.model_name
         self.exp_name = args.exp_name
         self.seed = args.seed
         self.pred_len = pred_len
@@ -77,6 +56,15 @@ class Baselines:
         self.run_optuna(args)
         self.evaluate()
 
+    def get_model(self, d_model, n_layers):
+
+        if "DeepAR" in self.model_name:
+            model = DeepAR.from_dataset(self.dataloader_obj.train_dataset).to(self.device)
+        else:
+            model = NHiTS(self.dataloader_obj.train_dataset, hidden_size=d_model,
+                          n_layers=n_layers).to(self.device)
+        return model
+
     def run_optuna(self, args):
 
         study = optuna.create_study(study_name=args.model_name,
@@ -103,31 +91,25 @@ class Baselines:
 
     def objective(self, trial):
 
+        src_input_size = 1
+        tgt_input_size = 1
+
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
         # hyperparameters
 
-        d_model = trial.suggest_categorical("d_model", [32, 64])
+        d_model = trial.suggest_categorical("d_model", [32])
         w_steps = trial.suggest_categorical("w_steps", [4000])
-        stack_size = trial.suggest_categorical("stack_size", [1, 2] if self.model_id != "NBeats" else [1])
+        stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
         if [d_model, stack_size, w_steps] in self.param_history:
             raise optuna.exceptions.TrialPruned()
         self.param_history.append([d_model, stack_size, w_steps])
 
-        if self.model_id == "DeepAR":
-            model = DeepAR(h=self.pred_len, lstm_n_layers=stack_size, lstm_hidden_size=d_model)
-            nf = NeuralForecast(models=[model], freq='M')
+        model = self.get_model(d_model, stack_size)
 
-        elif self.model_id == "NBeats":
-            model = NBEATS(h=self.pred_len, input_size=1)
-            nf = NeuralForecast(models=[model], freq='M')
-        else:
-            model = NHITS(h=self.pred_len, input_size=1)
-            nf = NeuralForecast(models=[model], freq='M')
-
-        #optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
+        optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
         val_loss = 1e10
 
@@ -136,32 +118,28 @@ class Baselines:
         for epoch in range(self.num_epochs):
 
             total_loss = 0
-            #model.train()
+            model.train()
 
-            for x_enc, x_dec, y in self.dataloader_obj.train_loader:
-
-                x_enc = x_enc.to(self.device)
-                x_dec = x_dec.to(self.device)
-                y = y.to(self.device)
-
-                x = torch.cat([x_enc, x_dec], dim=1)
-                outputs = nf.models.pop().
-
+            for x, y in self.dataloader_obj.train_loader2:
+                x["target_scale"] = torch.ones_like(x["target_scale"])
+                outputs = model(x)
+                loss_train = nn.MSELoss()(y[0].to(self.device),
+                                          outputs["prediction"][:, :, -1].to(self.device))
 
                 total_loss += loss_train.item()
-
+                optimizer.zero_grad()
+                loss_train.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
+                optimizer.step_and_update_lr()
 
             model.eval()
             test_loss = 0
 
-            for valid_x_enc, valid_x_dec, valid_y in self.dataloader_obj.valid_loader:
-                valid_x_enc = valid_x_enc.to(self.device)
-                valid_x_dec = valid_x_dec.to(self.device)
-                valid_y = valid_y.to(self.device)
-                valid_x = torch.cat([valid_x_enc, valid_x_dec], dim=1)
-                _, outputs = model(valid_x)
-                outputs = outputs.unsqueeze(-1)
-                loss_eval = nn.MSELoss()(valid_y, outputs)
+            for valid_x, valid_y in self.dataloader_obj.valid_loader2:
+                valid_x["target_scale"] = torch.ones_like(valid_x["target_scale"])
+                outputs = model(valid_x)
+                loss_eval = nn.MSELoss()(valid_y[0].to(self.device),
+                                         outputs["prediction"][:, :, -1].to(self.device))
 
                 test_loss += loss_eval.item()
 
@@ -190,14 +168,14 @@ class Baselines:
 
         j = 0
 
-        for x_enc, x_dec, y in self.dataloader_obj.test_loader:
+        for x, y in self.dataloader_obj.test_loader2:
 
-            x = torch.cat([x_enc, x_dec], dim=1).to(self.device)
+            x["target_scale"] = torch.ones_like(x["target_scale"])
+            y = y[:, -self.pred_len:, :]
 
-            _, output = self.best_model(x)
-            predictions[j] = output.cpu().detach().numpy()
-
-            test_y_tot[j] = y.squeeze(-1).cpu().detach().numpy()
+            output = self.best_model(x.to(self.device))
+            predictions[j] = output["prediction"][:, :, -1].cpu().detach().numpy()
+            test_y_tot[j] = y[:, -self.pred_len:].cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))
@@ -211,7 +189,7 @@ class Baselines:
         errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
         print(errors)
 
-        error_path = "Final_errors_{}.csv".format(self.exp_name)
+        error_path = "Final_errors-{}.csv".format(self.exp_name)
 
         df = pd.DataFrame.from_dict(errors, orient='index')
 
@@ -226,19 +204,12 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='Nhits')
+parser.add_argument("--model_name", type=str, default='NBeats')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)
 parser.add_argument("--seed", type=int, default=2021)
 args = parser.parse_args()
-
-random.seed(1992)
-seed = random.randint(1000, 9999)
-
-np.random.seed(seed)
-random.seed(seed)
-torch.manual_seed(seed)
 
 for pred_len in [96, 192]:
     baseline = Baselines(args, pred_len)
