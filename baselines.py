@@ -43,9 +43,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=8,
-                                         max_test_sample=8,
-                                         batch_size=8)
+                                         max_train_sample=12800,
+                                         max_test_sample=1280,
+                                         batch_size=128)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -56,13 +56,18 @@ class Baselines:
         self.run_optuna(args)
         self.evaluate()
 
-    def get_model(self, d_model, n_layers):
+    def get_model(self, d_model):
 
-        if "DeepAR" in self.model_name:
-            model = DeepAR.from_dataset(self.dataloader_obj.train_dataset).to(self.device)
+        if "NBeats" in self.model_name:
+            model = NBeats.from_dataset(self.dataloader_obj.train_dataset,
+                                        learning_rate=3e-2,
+                                        weight_decay=1e-2,
+                                        widths=[32, 512],
+                                        backcast_loss_ratio=0.1).to(self.device)
         else:
-            model = NHiTS(self.dataloader_obj.train_dataset, hidden_size=d_model,
-                          n_layers=n_layers).to(self.device)
+            model = NHiTS.from_dataset(
+                          self.dataloader_obj.train_dataset,
+                          hidden_size=d_model).to(self.device)
         return model
 
     def run_optuna(self, args):
@@ -99,15 +104,14 @@ class Baselines:
 
         # hyperparameters
 
-        d_model = trial.suggest_categorical("d_model", [32])
+        d_model = trial.suggest_categorical("d_model", [32, 64])
         w_steps = trial.suggest_categorical("w_steps", [4000])
-        stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
-        if [d_model, stack_size, w_steps] in self.param_history:
+        if [d_model] in self.param_history:
             raise optuna.exceptions.TrialPruned()
-        self.param_history.append([d_model, stack_size, w_steps])
+        self.param_history.append([d_model])
 
-        model = self.get_model(d_model, stack_size)
+        model = self.get_model(d_model)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -121,10 +125,16 @@ class Baselines:
             model.train()
 
             for x, y in self.dataloader_obj.train_loader2:
+
+                x = {key: value.to(self.device) for key, value in x.items()}
                 x["target_scale"] = torch.ones_like(x["target_scale"])
                 outputs = model(x)
+                if len(outputs["prediction"].shape) > 2:
+                    outputs = outputs["prediction"][:, :, -1]
+                else:
+                    outputs = outputs["prediction"]
                 loss_train = nn.MSELoss()(y[0].to(self.device),
-                                          outputs["prediction"][:, :, -1].to(self.device))
+                                          outputs.to(self.device))
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
@@ -136,10 +146,15 @@ class Baselines:
             test_loss = 0
 
             for valid_x, valid_y in self.dataloader_obj.valid_loader2:
+                valid_x = {key: value.to(self.device) for key, value in valid_x.items()}
                 valid_x["target_scale"] = torch.ones_like(valid_x["target_scale"])
                 outputs = model(valid_x)
+                if len(outputs["prediction"].shape) > 2:
+                    outputs = outputs["prediction"][:, :, -1]
+                else:
+                    outputs = outputs["prediction"]
                 loss_eval = nn.MSELoss()(valid_y[0].to(self.device),
-                                         outputs["prediction"][:, :, -1].to(self.device))
+                                         outputs.to(self.device))
 
                 test_loss += loss_eval.item()
 
@@ -169,13 +184,16 @@ class Baselines:
         j = 0
 
         for x, y in self.dataloader_obj.test_loader2:
-
+            x = {key: value.to(self.device) for key, value in x.items()}
             x["target_scale"] = torch.ones_like(x["target_scale"])
-            y = y[:, -self.pred_len:, :]
 
-            output = self.best_model(x.to(self.device))
-            predictions[j] = output["prediction"][:, :, -1].cpu().detach().numpy()
-            test_y_tot[j] = y[:, -self.pred_len:].cpu().detach().numpy()
+            outputs = self.best_model(x)
+            if len(outputs["prediction"].shape) > 2:
+                outputs = outputs["prediction"][:, :, -1]
+            else:
+                outputs = outputs["prediction"]
+            predictions[j] = outputs.cpu().detach().numpy()
+            test_y_tot[j] = y[0][:, -self.pred_len:].cpu().detach().numpy()
             j += 1
 
         predictions = torch.from_numpy(predictions.reshape(-1, 1))

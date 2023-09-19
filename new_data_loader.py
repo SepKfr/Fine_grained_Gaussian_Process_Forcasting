@@ -70,33 +70,34 @@ class DataLoader:
             )
         )
 
-        self.train_dataset = self.get_train_dataset(train_data)
-        self.valid_dataset = self.get_valid_dataset(valid_data)
-        self.test_dataset = self.get_test_dataset(test_data)
+        self.train_dataset = self.get_train_dataset(train_data, self.max_encoder_length, self.pred_len)
+        self.valid_dataset = self.get_valid_dataset(valid_data, self.max_encoder_length, self.pred_len)
+        self.test_dataset = self.get_test_dataset(test_data, self.max_encoder_length, self.pred_len)
 
         self.train_loader,  self.train_loader2 = self.create_dataloader(train_data, num_samples=max_train_sample)
         self.valid_loader, self.valid_loader2 = self.create_dataloader(valid_data, num_samples=max_test_sample)
         self.test_loader, self.test_loader2 = self.create_dataloader(test_data, num_samples=max_test_sample)
 
-    def get_train_dataset(self, train_data):
-        return self.create_time_series_dataset(train_data)
+    def get_train_dataset(self, train_data, min_encoder_length, min_prediction_length):
+        return self.create_time_series_dataset(train_data, min_encoder_length, min_prediction_length)
 
-    def get_valid_dataset(self, valid_data):
-        return self.create_time_series_dataset(valid_data)
+    def get_valid_dataset(self, valid_data, min_encoder_length, min_prediction_length):
+        return self.create_time_series_dataset(valid_data, min_encoder_length, min_prediction_length)
 
-    def get_test_dataset(self, test_data):
-        return self.create_time_series_dataset(test_data)
+    def get_test_dataset(self, test_data, min_encoder_length, min_prediction_length):
+        return self.create_time_series_dataset(test_data, min_encoder_length, min_prediction_length)
 
-    def create_time_series_dataset(self, data):
+    def create_time_series_dataset(self, data, min_encoder_length=1, min_prediction_length=1):
         return TimeSeriesDataSet(
             data,
             group_ids=["group"],
             target="value",
             time_idx="time_idx",
-            min_encoder_length=1,
+            min_encoder_length=min_encoder_length,
             max_encoder_length=self.max_encoder_length,
-            min_prediction_length=1,
+            min_prediction_length=min_prediction_length,
             max_prediction_length=self.pred_len,
+            time_varying_unknown_reals=["value"],
         )
 
     def create_dataloader(self, data, num_samples):
