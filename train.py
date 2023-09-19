@@ -120,7 +120,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
-            nu = trial.suggest_categorical("nu", [0.5, 2.5])
+            nu = trial.suggest_categorical("nu", [0.5, 2.5] if self.gp else [0])
 
             if [d_model, stack_size, w_steps, n_heads, nu] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
