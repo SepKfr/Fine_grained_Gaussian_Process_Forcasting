@@ -1,24 +1,17 @@
 import os
-
 import pandas as pd
 import torch.nn.functional as F
-import numpy as np
-import optuna
 import lightning.pytorch as pl
 import torch
 from lightning.pytorch.callbacks import EarlyStopping
-from optuna.samplers import TPESampler
-from optuna.trial import TrialState
 from pytorch_forecasting import TemporalFusionTransformer, DeepAR, NHiTS, NBeats, MQF2DistributionLoss
 
 import argparse
 
 from torch import nn
-from torch.optim import Adam
-
-from modules.opt_model import NoamOpt
 from new_data_loader import DataLoader
-print(pl.__version__)
+
+
 class Baselines:
     def __init__(self, args, pred_len):
 
@@ -43,9 +36,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=1,
-                                         max_test_sample=1,
-                                         batch_size=1)
+                                         max_train_sample=8,
+                                         max_test_sample=8,
+                                         batch_size=8)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -59,10 +52,13 @@ class Baselines:
 
         if "NBeats" in self.model_name:
             model = NBeats.from_dataset(self.dataloader_obj.train_dataset,
-                                        learning_rate=3e-2,
+                                        learning_rate=1e-3,
+                                        log_interval=1,
+                                        log_val_interval=1,
                                         weight_decay=1e-2,
                                         widths=[32, 512],
-                                        backcast_loss_ratio=0.1).to(self.device)
+                                        backcast_loss_ratio=1.0,
+                                        ).to(self.device)
 
         else:
             model = NHiTS.from_dataset(
@@ -74,18 +70,18 @@ class Baselines:
                             backcast_loss_ratio=0.0,
                             hidden_size=64,
                             optimizer="AdamW",
+                            loss=MQF2DistributionLoss(prediction_length=self.pred_len),
 
             ).to(self.device)
 
         early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min")
         trainer = pl.Trainer(
-            max_epochs=5,
-            accelerator="cpu",
+            max_epochs=3,
+            accelerator="auto",
             enable_model_summary=True,
-            gradient_clip_val=1.0,
+            gradient_clip_val=0.01,
             callbacks=[early_stop_callback],
-            limit_train_batches=30,
-            enable_checkpointing=True,
+            limit_train_batches=150,
         )
 
         trainer.fit(
@@ -127,7 +123,7 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='NHiTS')
+parser.add_argument("--model_name", type=str, default='NBeats')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)

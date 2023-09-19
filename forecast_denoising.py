@@ -74,18 +74,12 @@ class Forecast_denoising(nn.Module):
         loss = 0
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
+        denoise = False if self.input_corrupt else self.denoise
 
-        if self.input_corrupt and self.training:
+        if denoise or (self.input_corrupt and self.training):
 
-            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
-            input_noisy, dist = self.de_model.add_gp_noise(inputs)
-            enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
-            dec_noisy = input_noisy[:, enc_inputs.shape[1]:, :]
-            _, dec_outputs = self.forecasting_model(enc_noisy, dec_noisy)
-            dec_outputs = self.norm(dec_inputs + self.ffn(dec_outputs))
-
-        if self.denoise:
             if self.residual:
+
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_outputs, dec_outputs)
                 res_outputs = self.final_projection(dec_outputs_res)
                 final_outputs = self.final_projection(self.norm(dec_outputs + self.ffn(dec_outputs_res)))
@@ -93,6 +87,7 @@ class Forecast_denoising(nn.Module):
                     residual = y_true - res_outputs
                     loss = nn.MSELoss()(residual, res_outputs)
                 return final_outputs, loss
+
             else:
 
                 dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
