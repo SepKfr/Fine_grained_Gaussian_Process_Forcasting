@@ -43,8 +43,12 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             self.mean_module = ConstantMean(batch_shape=batch_shape)
         else:
             self.mean_module = LinearMean(input_dims)
+        if nu == 2.5:
+            kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
+        else:
+            kernel = MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=nu),
         self.covar_module = ScaleKernel(
-            MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=nu),
+            kernel,
             batch_shape=batch_shape, ard_num_dims=None
         )
 
