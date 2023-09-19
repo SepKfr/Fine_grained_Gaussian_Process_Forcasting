@@ -12,7 +12,7 @@ from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistri
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, seed, num_inducing=128, mean_type='constant'):
+    def __init__(self, nu, input_dims, output_dims, seed, num_inducing=128, mean_type='constant'):
 
         np.random.seed(seed)
         random.seed(seed)
@@ -44,7 +44,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         self.covar_module = ScaleKernel(
-            RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims),
+            MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=nu),
             batch_shape=batch_shape, ard_num_dims=None
         )
 
@@ -74,12 +74,13 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 
 class DeepGPp(DeepGP):
-    def __init__(self, num_hidden_dims, seed):
+    def __init__(self, nu, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
             output_dims=None,
             mean_type='linear',
             seed=seed,
+            nu=nu
         )
 
         super().__init__()

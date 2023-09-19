@@ -84,7 +84,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             study = optuna.create_study(direction="minimize",
                                         pruner=optuna.pruners.HyperbandPruner())
 
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=6)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -120,6 +120,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
+            nu = trial.suggest_categorical("nu", [0.5, 1.5, 2.5])
 
             if [d_model, stack_size, w_steps, n_heads] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
@@ -141,7 +142,8 @@ with gpytorch.settings.num_likelihood_samples(16):
                                        attn_type=self.attn_type,
                                        no_noise=self.no_noise,
                                        residual=self.residual,
-                                       input_corrupt=self.input_corrupt_training).to(self.device)
+                                       input_corrupt=self.input_corrupt_training,
+                                       nu=nu).to(self.device)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 

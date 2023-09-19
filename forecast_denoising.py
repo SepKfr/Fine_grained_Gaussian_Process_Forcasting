@@ -10,8 +10,9 @@ from modules.feedforward import PoswiseFeedForwardNet
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
 
+
 class Forecast_denoising(nn.Module):
-    def __init__(self, model_name: str, config: tuple, gp: bool,
+    def __init__(self, nu: float, model_name: str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
                  no_noise: bool, residual: bool, input_corrupt: bool):
@@ -48,10 +49,12 @@ class Forecast_denoising(nn.Module):
                                                  seed=seed,
                                                  )
 
-        self.de_model = denoise_model_2(self.forecasting_model, gp,
+        self.de_model = denoise_model_2(nu,
+                                        self.forecasting_model, gp,
                                         d_model, device, seed,
                                         n_noise=no_noise,
-                                        residual=residual)
+                                        residual=residual,
+                                        )
         self.norm = nn.LayerNorm(d_model)
         self.gp = gp
         self.denoise = denoise

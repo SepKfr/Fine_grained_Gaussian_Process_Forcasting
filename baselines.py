@@ -145,7 +145,7 @@ class Baselines:
                 y = y.to(self.device)
 
                 x = torch.cat([x_enc, x_dec], dim=1)
-                outputs = nf.fit(x)
+                outputs = nf.models.pop().
 
 
                 total_loss += loss_train.item()
