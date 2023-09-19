@@ -46,7 +46,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         if nu == 2.5:
             kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
         else:
-            kernel = MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=nu),
+            kernel = MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=nu)
         self.covar_module = ScaleKernel(
             kernel,
             batch_shape=batch_shape, ard_num_dims=None

@@ -122,9 +122,9 @@ with gpytorch.settings.num_likelihood_samples(16):
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
             nu = trial.suggest_categorical("nu", [0.5, 1.5, 2.5])
 
-            if [d_model, stack_size, w_steps, n_heads] in self.param_history:
+            if [d_model, stack_size, w_steps, n_heads, nu] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
-            self.param_history.append([d_model, stack_size, w_steps, n_heads])
+            self.param_history.append([d_model, stack_size, w_steps, n_heads, nu])
 
             d_k = int(d_model / n_heads)
 
