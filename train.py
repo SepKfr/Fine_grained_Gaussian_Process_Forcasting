@@ -120,7 +120,7 @@ with gpytorch.settings.num_likelihood_samples(16):
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
-            nu = trial.suggest_categorical("nu", [0.5, 1.5, 2.5])
+            nu = trial.suggest_categorical("nu", [0.5, 2.5])
 
             if [d_model, stack_size, w_steps, n_heads, nu] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
@@ -245,7 +245,7 @@ with gpytorch.settings.num_likelihood_samples(16):
         parser.add_argument("--no-noise", type=str, default="False")
         parser.add_argument("--iso", type=str, default="False")
         parser.add_argument("--input_corrupt_training", type=str, default="True")
-        parser.add_argument("--num_epochs", type=int, default=5)
+        parser.add_argument("--num_epochs", type=int, default=6)
 
         args = parser.parse_args()
 

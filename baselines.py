@@ -64,13 +64,12 @@ class Baselines:
             model = NHiTS.from_dataset(
                           self.dataloader_obj.train_dataset,
                             learning_rate=5e-3,
-                            log_interval=10,
+                            log_interval=1,
                             log_val_interval=1,
                             weight_decay=1e-2,
                             backcast_loss_ratio=0.0,
                             hidden_size=64,
                             optimizer="AdamW",
-                            loss=MQF2DistributionLoss(prediction_length=self.pred_len),
 
             ).to(self.device)
 
@@ -123,7 +122,7 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='NBeats')
+parser.add_argument("--model_name", type=str, default='NHiTS')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=5)
