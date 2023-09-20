@@ -1,8 +1,6 @@
 import os
-
 import pandas as pd
 import numpy as np
-import pmdarima as pm
 import torch
 import torch.nn.functional as F
 from new_data_loader import DataLoader
@@ -39,10 +37,7 @@ def run_ARIMA(exp_name, pred_len):
         xes = torch.cat([test_enc, test_dec], dim=1).squeeze(-1).detach().numpy()
         yes = test_y.squeeze(-1).detach().numpy()
         for x, y in zip(xes, yes):
-            input_to_fit = np.hstack([x, y])
-            auto_arima = pm.auto_arima(input_to_fit, seasonal=False, stepwise=True,
-                                       suppress_warnings=True, error_action="ignore")
-            arima_model = sm.tsa.ARIMA(x, order=auto_arima.order)
+            arima_model = sm.tsa.ARIMA(x, order=(1, 1, 1))
             arima_results = arima_model.fit()
             forecasts = arima_results.forecast(steps=pred_len)
             predictions[j] = forecasts[0]
