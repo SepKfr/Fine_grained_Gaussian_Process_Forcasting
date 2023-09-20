@@ -252,7 +252,7 @@ class Baselines:
         errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
         print(errors)
 
-        error_path = "Final_errors-{}.csv".format(self.exp_name)
+        error_path = "Final_errors_{}.csv".format(self.exp_name)
 
         df = pd.DataFrame.from_dict(errors, orient='index')
 
