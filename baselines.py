@@ -66,7 +66,7 @@ class Baselines:
                                          pred_len=pred_len,
                                          max_train_sample=12800,
                                          max_test_sample=1280,
-                                         batch_size=1280)
+                                         batch_size=128)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -160,6 +160,7 @@ class Baselines:
                 y = y.to(self.device)
 
                 x = torch.cat([x_enc, x_dec], dim=1)
+
                 if isinstance(model, DeepAR.Net):
                     hidden = model.init_hidden(x.shape[1])
                     cell = model.init_cell(x.shape[1])
@@ -230,9 +231,9 @@ class Baselines:
                 hidden = self.best_model.init_hidden(self.pred_len)
                 cell = self.best_model.init_cell(self.pred_len)
                 mu, sigma, _, _ = self.best_model(x[:, -self.pred_len:, :], hidden, cell)
-                gaussian = torch.distributions.normal.Normal(mu, sigma)
-                pred = gaussian.sample().cpu().detach().numpy()
-                predictions[j, :, :] = pred
+                mse_loss = torch.mean(
+                    torch.mul((mu - y.squeeze(-1)), (mu - y.squeeze(-1)))).item()
+                mae_loss = torch.mean(torch.abs(mu - y.squeeze(-1)))
 
             else:
                 _, output = self.best_model(x)
@@ -241,13 +242,14 @@ class Baselines:
             test_y_tot[j] = y.squeeze(-1).cpu().detach().numpy()
             j += 1
 
-        predictions = torch.from_numpy(predictions.reshape(-1, 1))
-        test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-        normaliser = test_y.abs().mean()
+        if self.model_id != "DeepAR":
+            predictions = torch.from_numpy(predictions.reshape(-1, 1))
+            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+            normaliser = test_y.abs().mean()
 
-        mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
+            mse_loss = F.mse_loss(predictions, test_y).item() / normaliser
 
-        mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
+            mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
 
         errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
         print(errors)
@@ -270,7 +272,7 @@ parser.add_argument("--exp_name", type=str, default='traffic')
 parser.add_argument("--model_name", type=str, default='DeepAR')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
-parser.add_argument("--num_epochs", type=int, default=5)
+parser.add_argument("--num_epochs", type=int, default=1)
 parser.add_argument("--seed", type=int, default=2021)
 args = parser.parse_args()
 
