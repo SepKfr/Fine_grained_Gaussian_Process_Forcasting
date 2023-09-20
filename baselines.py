@@ -40,7 +40,7 @@ class DeepARParams:
 
 
 class Baselines:
-    def __init__(self, args, pred_len):
+    def __init__(self, args, pred_len, seed):
 
         target_col = {"traffic": "values",
                       "electricity": "power_usage",
@@ -51,7 +51,7 @@ class Baselines:
 
         self.model_id = args.model_name
         self.exp_name = args.exp_name
-        self.seed = args.seed
+        self.seed = seed
         self.pred_len = pred_len
         self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
 
@@ -64,15 +64,16 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=1280,
-                                         batch_size=128)
+                                         max_train_sample=8,
+                                         max_test_sample=8,
+                                         batch_size=8)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
-        self.model_name = "{}_{}_{}".format(args.model_name,
+        self.model_name = "{}_{}_{}_{}".format(args.model_name,
                                             self.exp_name,
-                                            self.seed)
+                                            self.seed,
+                                            pred_len)
         self.num_epochs = args.num_epochs
         self.run_optuna(args)
         self.evaluate()
@@ -80,7 +81,7 @@ class Baselines:
     def get_deep_ar_model(self, d_model, n_layers):
 
         return DeepAR.Net(DeepARParams(num_class=1,
-                                       embedding_dim=0,
+                                       embedding_dim=d_model,
                                        cov_dim=0,
                                        lstm_hidden_dim=d_model,
                                        lstm_layers=n_layers,
@@ -248,7 +249,7 @@ class Baselines:
 
         mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
 
-        errors = {self.model_name: {'MSE': mse_loss.item(), 'MAE': mae_loss.item()}}
+        errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
         print(errors)
 
         error_path = "Final_errors-{}.csv".format(self.exp_name)
@@ -281,4 +282,4 @@ random.seed(seed)
 torch.manual_seed(seed)
 
 for pred_len in [96, 192]:
-    baseline = Baselines(args, pred_len)
+    baseline = Baselines(args, pred_len, seed)

@@ -19,9 +19,9 @@ class Net(nn.Module):
         '''
         super(Net, self).__init__()
         self.params = params
-        self.embedding = nn.Embedding(params.num_class, params.embedding_dim)
+        self.embedding = nn.Linear(params.num_class, params.embedding_dim)
 
-        self.lstm = nn.LSTM(input_size=1+params.cov_dim+params.embedding_dim,
+        self.lstm = nn.LSTM(input_size=params.embedding_dim,
                             hidden_size=params.lstm_hidden_dim,
                             num_layers=params.lstm_layers,
                             bias=True,
@@ -62,7 +62,7 @@ class Net(nn.Module):
         '''
         #onehot_embed = self.embedding(idx) #TODO: is it possible to do this only once per window instead of per step?
         #lstm_input = torch.cat((x, onehot_embed), dim=2)
-        lstm_input = x
+        lstm_input = self.embedding(x)
         output, (hidden, cell) = self.lstm(lstm_input, (hidden, cell))
         # use h from all three layers to calculate mu and sigma
         hidden_permute = hidden.permute(1, 2, 0).contiguous().view(hidden.shape[1], -1)
