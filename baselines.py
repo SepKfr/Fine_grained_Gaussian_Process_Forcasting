@@ -64,9 +64,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=8,
-                                         max_test_sample=8,
-                                         batch_size=8)
+                                         max_train_sample=12800,
+                                         max_test_sample=1280,
+                                         batch_size=1280)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
