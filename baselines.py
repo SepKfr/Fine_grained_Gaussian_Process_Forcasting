@@ -225,6 +225,7 @@ class Baselines:
         for x_enc, x_dec, y in self.dataloader_obj.test_loader:
 
             x = torch.cat([x_enc, x_dec], dim=1).to(self.device)
+            y = y.to(self.device)
 
             if isinstance(self.best_model, DeepAR.Net):
 
