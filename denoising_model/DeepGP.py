@@ -4,7 +4,7 @@ import gpytorch
 import numpy as np
 import torch
 from gpytorch.distributions import MultivariateNormal
-from gpytorch.kernels import ScaleKernel, RBFKernel, MaternKernel
+from gpytorch.kernels import ScaleKernel, RBFKernel, PolynomialKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
@@ -44,7 +44,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) + \
-                 MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=0.5)
+                 PolynomialKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
         self.covar_module = ScaleKernel(
             kernel,
             batch_shape=batch_shape, ard_num_dims=None
