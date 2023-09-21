@@ -85,7 +85,7 @@ class DeepGPp(DeepGP):
             mean_type='linear',
             seed=seed,
             nu=nu,
-            num_inducing=16
+            num_inducing=128
         )
 
         super().__init__()
