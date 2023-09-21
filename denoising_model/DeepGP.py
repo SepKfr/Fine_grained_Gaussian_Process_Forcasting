@@ -90,7 +90,7 @@ class DeepGPp(DeepGP):
         self.likelihood = GaussianLikelihood()
 
     def forward(self, inputs):
-        dist = self.last_layer(self.hidden_layer(inputs))
+        dist = self.hidden_layer(inputs)
         return dist
 
     def predict(self, x):
