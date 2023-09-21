@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.kernels import ScaleKernel, RBFKernel, PolynomialKernel
-from gpytorch.likelihoods import GaussianLikelihood
+from gpytorch.likelihoods import GaussianLikelihood, MultitaskGaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
 from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistribution
@@ -78,7 +78,7 @@ class DeepGPp(DeepGP):
     def __init__(self, nu, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=None,
+            output_dims=num_hidden_dims,
             mean_type='linear',
             seed=seed,
             nu=nu
@@ -87,7 +87,7 @@ class DeepGPp(DeepGP):
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.likelihood = GaussianLikelihood()
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=num_hidden_dims)
 
     def forward(self, inputs):
         dist = self.hidden_layer(inputs)
@@ -95,6 +95,6 @@ class DeepGPp(DeepGP):
 
     def predict(self, x):
 
-        preds = self.likelihood(self(x))
+        preds = self.likelihood(self(x)).to_data_independent_dist()
 
-        return torch.cat(preds, dim=-1)
+        return preds.mean.mean(0), preds.variance.mean(0)
