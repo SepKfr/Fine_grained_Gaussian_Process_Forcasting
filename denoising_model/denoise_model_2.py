@@ -39,10 +39,10 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-
         eps_gp = dist.sample().permute(1, 2, 0)
+        eps_gp = eps_gp.repeat(1, 1, self.d)
 
-        x_noisy = self.norm1(x + self.proj_up(eps_gp))
+        x_noisy = self.norm1(x + eps_gp)
 
         return x_noisy, dist
 
