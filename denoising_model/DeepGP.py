@@ -3,6 +3,7 @@ import random
 import gpytorch
 import numpy as np
 import torch
+import torch.nn as nn
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.kernels import ScaleKernel, RBFKernel, PolynomialKernel
 from gpytorch.likelihoods import GaussianLikelihood, MultitaskGaussianLikelihood
@@ -76,25 +77,38 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 class DeepGPp(DeepGP):
     def __init__(self, nu, num_hidden_dims, seed):
+
+        output_dim = int(num_hidden_dims/8)
+        proj_down = nn.Linear(num_hidden_dims, output_dim)
         hidden_layer = ToyDeepGPHiddenLayer(
-            input_dims=num_hidden_dims,
-            output_dims=None,
+            input_dims=output_dim,
+            output_dims=output_dim,
             mean_type='linear',
             seed=seed,
             nu=nu
         )
 
+        proj_up_mean = nn.Linear(output_dim, num_hidden_dims)
+        proj_up_var = nn.Linear(output_dim, num_hidden_dims)
+
         super().__init__()
 
+        self.proj_down = proj_down
         self.hidden_layer = hidden_layer
-        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        self.proj_up_mean = proj_up_mean
+        self.proj_up_var = proj_up_var
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=output_dim)
 
     def forward(self, inputs):
+
         dist = self.hidden_layer(inputs)
         return dist
 
     def predict(self, x):
 
-        preds = self.likelihood(self(x)).to_data_independent_dist()
+        x_gp = self.proj_down(x)
+        preds = self.likelihood(self(x_gp)).to_data_independent_dist()
+        outputs = self.proj_up_mean(preds.mean.mean(0)) + \
+                  torch.randn_like(x) * self.proj_up_var(preds.variance.mean(0))
 
-        return preds.mean.mean(0), preds.variance.mean(0)
+        return outputs

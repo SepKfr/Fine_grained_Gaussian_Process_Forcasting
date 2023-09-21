@@ -38,10 +38,7 @@ class denoise_model_2(nn.Module):
     def add_gp_noise(self, x):
 
         b, s, _ = x.shape
-        eps_gp_mean, eps_gp_var = self.deep_gp.predict(x)
-        eps_gp_mean = eps_gp_mean.unsqueeze(-1).repeat(1, 1, self.d)
-        eps_gp_var = eps_gp_var.unsqueeze(-1).repeat(1, 1, self.d)
-        noise = eps_gp_mean + torch.randn_like(x) * eps_gp_var
+        noise = self.deep_gp.predict(x)
         x_noisy = self.norm1(x + noise)
 
         return x_noisy
