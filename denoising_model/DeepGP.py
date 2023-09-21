@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from gpytorch.distributions import MultivariateNormal
-from gpytorch.kernels import ScaleKernel, RBFKernel, PolynomialKernel
+from gpytorch.kernels import ScaleKernel, RBFKernel, PiecewisePolynomialKernel
 from gpytorch.likelihoods import GaussianLikelihood, MultitaskGaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
@@ -44,7 +44,8 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             self.mean_module = ConstantMean(batch_shape=batch_shape)
         else:
             self.mean_module = LinearMean(input_dims)
-        kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
+        kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) + \
+                 PiecewisePolynomialKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
         self.covar_module = ScaleKernel(
             kernel,
             batch_shape=batch_shape, ard_num_dims=None
@@ -84,17 +85,12 @@ class DeepGPp(DeepGP):
             mean_type='linear',
             seed=seed,
             nu=nu,
-            num_inducing=num_hidden_dims
+            num_inducing=16
         )
 
-        proj_up_mean = nn.Linear(1, num_hidden_dims)
-        proj_up_var = nn.Linear(1, num_hidden_dims)
-
         super().__init__()
-
+        self.num_hidden_dims=num_hidden_dims
         self.hidden_layer = hidden_layer
-        self.proj_up_mean = proj_up_mean
-        self.proj_up_var = proj_up_var
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
     def forward(self, inputs):
@@ -105,7 +101,8 @@ class DeepGPp(DeepGP):
     def predict(self, x):
 
         preds = self.likelihood(self(x)).to_data_independent_dist()
-        outputs = self.proj_up_mean(preds.mean.mean(0).unsqueeze(-1)) + \
-                  torch.randn_like(x) * self.proj_up_var(preds.variance.mean(0).unsqueeze(-1))
+        mean = preds.mean.mean(0).unsqueeze(-1).repeat(1, 1, self.num_hidden_dims)
+        var = preds.variance.mean(0).unsqueeze(-1).repeat(1, 1, self.num_hidden_dims)
+        outputs = mean + torch.randn_like(x) * var
 
         return outputs

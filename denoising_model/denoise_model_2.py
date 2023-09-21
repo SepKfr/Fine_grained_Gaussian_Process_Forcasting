@@ -39,7 +39,7 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
         noise = self.deep_gp.predict(x)
-        x_noisy = self.norm1(x + noise)
+        x_noisy = self.norm1(x + self.ffn_gp(noise))
 
         return x_noisy
 
