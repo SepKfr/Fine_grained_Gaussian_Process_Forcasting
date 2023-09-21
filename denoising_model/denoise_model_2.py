@@ -20,7 +20,7 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
         if gp:
             self.deep_gp = DeepGPp(nu, d, seed)
-            self.proj_up = nn.Linear(4, d)
+            self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual

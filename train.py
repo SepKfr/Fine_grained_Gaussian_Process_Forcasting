@@ -17,7 +17,7 @@ from new_data_loader import DataLoader
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(4):
+with gpytorch.settings.num_likelihood_samples(1):
 
     class Train:
         def __init__(self, exp_name, args, pred_len, seed):
@@ -120,7 +120,7 @@ with gpytorch.settings.num_likelihood_samples(4):
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
-            nu = trial.suggest_categorical("nu", [0.5, 2.5] if self.gp else [0])
+            nu = trial.suggest_categorical("nu", [0])
 
             if [d_model, stack_size, w_steps, n_heads, nu] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
