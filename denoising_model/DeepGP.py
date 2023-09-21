@@ -9,7 +9,7 @@ from gpytorch.kernels import ScaleKernel, RBFKernel, MaternKernel
 from gpytorch.likelihoods import GaussianLikelihood, MultitaskGaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
-from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistribution
+from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistribution, CholeskyVariationalDistribution
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
@@ -26,7 +26,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             inducing_points = torch.randn(output_dims, num_inducing, input_dims)
             batch_shape = torch.Size([output_dims])
 
-        variational_distribution = MeanFieldVariationalDistribution(
+        variational_distribution = CholeskyVariationalDistribution(
             num_inducing_points=num_inducing,
             batch_shape=batch_shape
         )

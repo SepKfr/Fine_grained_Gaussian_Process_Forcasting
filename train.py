@@ -119,7 +119,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             d_model = trial.suggest_categorical("d_model", [32, 64])
             w_steps = trial.suggest_categorical("w_steps", [4000])
             n_heads = trial.suggest_categorical("n_heads", [8])
-            stack_size = trial.suggest_categorical("stack_size", [1])
+            stack_size = trial.suggest_categorical("stack_size", [2])
             nu = trial.suggest_categorical("nu", [0])
 
             if [d_model, stack_size, w_steps, n_heads, nu] in self.param_history:
