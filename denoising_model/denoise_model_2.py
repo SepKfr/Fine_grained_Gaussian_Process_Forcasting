@@ -19,9 +19,7 @@ class denoise_model_2(nn.Module):
 
         self.denoising_model = model
         if gp:
-            self.n_heads = 16
-            d_gp = int(d / self.n_heads)
-            self.deep_gp = DeepGPp(nu, d_gp, seed)
+            self.deep_gp = DeepGPp(nu, d, seed)
         self.gp = gp
 
         self.residual = residual
@@ -40,14 +38,13 @@ class denoise_model_2(nn.Module):
     def add_gp_noise(self, x):
 
         b, s, _ = x.shape
-        x_gp = x.reshape(b, self.n_heads, s, -1)
-        dist = self.deep_gp(x_gp)
-        eps_gp_mean, eps_gp_var = self.deep_gp.predict(x_gp)
-        noise = eps_gp_mean + torch.randn_like(x_gp) * eps_gp_var
-        noise = noise.reshape(b, s, -1)
+        eps_gp_mean, eps_gp_var = self.deep_gp.predict(x)
+        eps_gp_mean = eps_gp_mean.unsqueeze(-1).repeat(1, 1, self.d)
+        eps_gp_var = eps_gp_var.unsqueeze(-1).repeat(1, 1, self.d)
+        noise = eps_gp_mean + torch.randn_like(x) * eps_gp_var
         x_noisy = self.norm1(x + noise)
 
-        return x_noisy, dist
+        return x_noisy
 
     def forward(self, enc_inputs, dec_inputs):
 
@@ -57,8 +54,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
 
-            enc_noisy, dist_enc = self.add_gp_noise(enc_inputs)
-            dec_noisy, dist_dec = self.add_gp_noise(dec_inputs)
+            enc_noisy = self.add_gp_noise(enc_inputs)
+            dec_noisy = self.add_gp_noise(dec_inputs)
 
         elif self.n_noise:
 
