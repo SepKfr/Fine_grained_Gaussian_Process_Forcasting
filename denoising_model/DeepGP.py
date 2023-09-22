@@ -45,7 +45,8 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         else:
             self.mean_module = LinearMean(input_dims)
         try:
-            kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
+            kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)\
+                     * MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=0.5)
         except RuntimeError:
             kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
 
