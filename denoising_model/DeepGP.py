@@ -44,7 +44,8 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             self.mean_module = ConstantMean(batch_shape=batch_shape)
         else:
             self.mean_module = LinearMean(input_dims)
-        kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims)
+        kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) * \
+                 MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=0.5)
         self.covar_module = ScaleKernel(
             kernel,
             batch_shape=batch_shape, ard_num_dims=None
@@ -88,7 +89,7 @@ class DeepGPp(DeepGP):
         )
 
         super().__init__()
-        self.num_hidden_dims=num_hidden_dims
+        self.num_hidden_dims = num_hidden_dims
         self.hidden_layer = hidden_layer
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
