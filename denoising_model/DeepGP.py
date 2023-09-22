@@ -85,7 +85,7 @@ class DeepGPp(DeepGP):
 
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=None,
+            output_dims=4,
             mean_type='linear',
             seed=seed,
             nu=nu,
@@ -95,7 +95,7 @@ class DeepGPp(DeepGP):
         super().__init__()
         self.num_hidden_dims = num_hidden_dims
         self.hidden_layer = hidden_layer
-        self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=4)
 
     def forward(self, inputs):
 
