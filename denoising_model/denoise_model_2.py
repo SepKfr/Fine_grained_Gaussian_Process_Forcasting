@@ -35,13 +35,14 @@ class denoise_model_2(nn.Module):
             d_model=d, d_ff=d*4, seed=seed)
         self.ffn_gp = PoswiseFeedForwardNet(
             d_model=d, d_ff=d * 4, seed=seed)
+
     def add_gp_noise(self, x):
 
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = dist.sample().permute(1, 2, 0)
-        eps_gp = eps_gp.repeat(1, 1, self.d)
+        eps_gp = torch.cat([dist.sample() for _ in range(self.d)])
+        eps_gp = eps_gp.permute(1, 2, 0)
 
         x_noisy = self.norm1(x + self.ffn_gp(eps_gp))
 
