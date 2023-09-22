@@ -44,7 +44,7 @@ class denoise_model_2(nn.Module):
         eps_gp = torch.cat([dist.sample() for _ in range(self.d)])
         eps_gp = eps_gp.reshape(b, s, -1)
 
-        x_noisy = x + eps_gp
+        x_noisy = self.norm1(x + self.ffn(eps_gp))
 
         return x_noisy, dist
 
