@@ -26,7 +26,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             inducing_points = torch.randn(output_dims, num_inducing, input_dims)
             batch_shape = torch.Size([output_dims])
 
-        variational_distribution = CholeskyVariationalDistribution(
+        variational_distribution = MeanFieldVariationalDistribution(
             num_inducing_points=num_inducing,
             batch_shape=batch_shape
         )
@@ -46,7 +46,7 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
             self.mean_module = LinearMean(input_dims)
 
         kernel = RBFKernel(batch_shape=batch_shape, ard_num_dims=input_dims) \
-                 + MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=1.5)
+                 * MaternKernel(batch_shape=batch_shape, ard_num_dims=input_dims, nu=0.5)
 
         self.covar_module = ScaleKernel(
             kernel,
