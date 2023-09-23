@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 import optuna
 import torch
-import torchaudio as torchaudio
+from forecasting_models.DLinear import DLinear
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from forecasting_models import DeepAR
@@ -98,10 +98,9 @@ class Baselines:
                                 hidden_layer_units=d_model,
                                 device=self.device).to(self.device)
 
-    def get_tcn_model(self, d_model, n_layers):
-        return torchaudio.models.ConvTasNet(msk_num_feats=1,
-                                            msk_num_hidden_feats=d_model,
-                                            msk_num_layers=n_layers)
+    def get_dlinear_model(self):
+        return DLinear(pred_len=self.pred_len,
+                       seq_len=96 + 2 * self.pred_len)
 
     def run_optuna(self, args):
 
@@ -148,7 +147,7 @@ class Baselines:
         elif self.model_id == "NBeats":
             model = self.get_nbeats_model(d_model, n_layers=1)
         else:
-            model = self.get_tcn_model(d_model, n_layers=stack_size)
+            model = self.get_dlinear_model()
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -175,8 +174,7 @@ class Baselines:
                     mu, sigma, _, _ = model(x, hidden, cell)
                     loss_train = DeepAR.loss_fn(mu, sigma, y)
                 else:
-                    _, outputs = model(x)
-                    outputs = outputs.unsqueeze(-1)
+                    outputs = model(x)
                     loss_train = nn.MSELoss()(y, outputs)
 
                 total_loss += loss_train.item()
@@ -199,8 +197,7 @@ class Baselines:
                     mu, sigma, _, _ = model(valid_x, hidden, cell)
                     loss_eval = DeepAR.loss_fn(mu, sigma, valid_y)
                 else:
-                    _, outputs = model(valid_x)
-                    outputs = outputs.unsqueeze(-1)
+                    outputs = model(valid_x)
                     loss_eval = nn.MSELoss()(valid_y, outputs)
 
                 test_loss += loss_eval.item()
@@ -245,8 +242,8 @@ class Baselines:
                 mae_loss = torch.mean(torch.abs(mu - y.squeeze(-1)))
 
             else:
-                _, output = self.best_model(x)
-                predictions[j] = output.cpu().detach().numpy()
+                output = self.best_model(x)
+                predictions[j] = output.squeeze(-1).cpu().detach().numpy()
 
             test_y_tot[j] = y.squeeze(-1).cpu().detach().numpy()
             j += 1
