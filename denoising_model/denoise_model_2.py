@@ -32,7 +32,7 @@ class denoise_model_2(nn.Module):
         self.n_noise = n_noise
         self.residual = residual
         self.ffn = PoswiseFeedForwardNet(
-            d_model=d, d_ff =d * 4, seed=seed)
+            d_model=d, d_ff=d * 4, seed=seed)
         self.ffn_gp = PoswiseFeedForwardNet(
             d_model=d, d_ff=d * 4, seed=seed)
 
@@ -41,10 +41,10 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = torch.cat([dist.sample() for _ in range(int(self.d/16))])
+        eps_gp = torch.cat([dist.sample() for _ in range(int(self.d/4))])
         eps_gp = eps_gp.reshape(b, s, -1)
 
-        x_noisy = self.norm1(x + self.ffn_gp(eps_gp))
+        x_noisy = x.add_(eps_gp)
 
         return x_noisy, dist
 

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 import optuna
 import torch
+import torchaudio as torchaudio
 from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from forecasting_models import DeepAR
@@ -64,9 +65,9 @@ class Baselines:
                                          max_encoder_length=96 + 2 * pred_len,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=1280,
-                                         batch_size=128)
+                                         max_train_sample=8,
+                                         max_test_sample=8,
+                                         batch_size=8)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -96,6 +97,11 @@ class Baselines:
                                 backcast_length=96 + self.pred_len*2,
                                 hidden_layer_units=d_model,
                                 device=self.device).to(self.device)
+
+    def get_tcn_model(self, d_model, n_layers):
+        return torchaudio.models.ConvTasNet(msk_num_feats=1,
+                                            msk_num_hidden_feats=d_model,
+                                            msk_num_layers=n_layers)
 
     def run_optuna(self, args):
 
@@ -139,8 +145,10 @@ class Baselines:
         if self.model_id == "DeepAR":
             model = self.get_deep_ar_model(d_model, stack_size)
 
-        else:
+        elif self.model_id == "NBeats":
             model = self.get_nbeats_model(d_model, n_layers=1)
+        else:
+            model = self.get_tcn_model(d_model, n_layers=stack_size)
 
         optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -270,7 +278,7 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='DeepAR')
+parser.add_argument("--model_name", type=str, default='tcn')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=1)
