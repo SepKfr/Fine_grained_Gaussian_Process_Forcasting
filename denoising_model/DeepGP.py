@@ -100,9 +100,6 @@ class DeepGPp(DeepGP):
 
     def predict(self, x):
 
-        preds = self.likelihood(self(x)).to_data_independent_dist()
-        mean = preds.mean.mean(0).unsqueeze(-1).repeat(1, 1, self.num_hidden_dims)
-        var = preds.variance.mean(0).unsqueeze(-1).repeat(1, 1, self.num_hidden_dims)
-        outputs = mean + torch.randn_like(x) * var
-
-        return outputs
+        preds = self.likelihood(x).to_data_independent_dist()
+        mean = preds.mean.mean(0)
+        return mean
