@@ -278,11 +278,11 @@ def main():
         test_y_96 = train_96.test_y
         test_y_192 = train_192.test_y
 
-    mse_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1])
-    mae_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1])
+    mse_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[1], test_y_96.shape[2])
+    mae_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[1], test_y_96.shape[2])
 
-    mse_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[0], test_y_192.shape[1])
-    mae_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[0], test_y_192.shape[1])
+    mse_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[1], test_y_192.shape[2])
+    mae_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[1], test_y_192.shape[2])
 
     for i in range(3):
 
