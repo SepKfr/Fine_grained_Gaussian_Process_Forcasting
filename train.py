@@ -40,8 +40,8 @@ with gpytorch.settings.num_likelihood_samples(10):
                                              max_encoder_length=96 + 2 * pred_len,
                                              target_col=target_col[exp_name],
                                              pred_len=pred_len,
-                                             max_train_sample=6400,
-                                             max_test_sample=640,
+                                             max_train_sample=12800,
+                                             max_test_sample=1280,
                                              batch_size=128)
 
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
