@@ -123,4 +123,4 @@ class DataLoader:
                                        x_dec,
                                        y)
 
-        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size, num_workers=8), data_loader
+        return torch.utils.data.DataLoader(tensor_dataset, batch_size=self.batch_size), data_loader
