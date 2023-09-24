@@ -1,5 +1,4 @@
 import gpytorch
-import joblib
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -35,16 +34,15 @@ with gpytorch.settings.num_likelihood_samples(10):
                           "electricity": "power_usage",
                           "exchange": "value",
                           "solar": "Power(MW)",
-                          "air_quality": "NO2"
-                          }
+                          "air_quality": "NO2"}
 
             self.dataloader_obj = DataLoader(exp_name,
                                              max_encoder_length=96 + 2 * pred_len,
                                              target_col=target_col[exp_name],
                                              pred_len=pred_len,
-                                             max_train_sample=12800,
-                                             max_test_sample=1280,
-                                             batch_size=128)
+                                             max_train_sample=2,
+                                             max_test_sample=2,
+                                             batch_size=2)
 
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -69,7 +67,6 @@ with gpytorch.settings.num_likelihood_samples(10):
                                                                else "",
                                                                "_add_noise_only_training" if self.input_corrupt_training
                                                                else "")
-            self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
             self.best_val = 1e10
             self.param_history = []
             self.errors = dict()
@@ -77,7 +74,7 @@ with gpytorch.settings.num_likelihood_samples(10):
             self.best_model = nn.Module()
 
             self.run_optuna(args)
-            self.evaluate()
+            self.predictions, self.test_y = self.evaluate()
 
         def run_optuna(self, args):
 
@@ -189,6 +186,29 @@ with gpytorch.settings.num_likelihood_samples(10):
 
             return val_loss
 
+        def write_to_file(self, mse_loss, mae_loss, mse_std=None, mae_std=None):
+
+            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+            if mse_std is not None:
+                errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"},
+                          'MSE_std': f"{mse_std:.3f}", 'MAE_std': f"{mae_std:.3f}"}
+
+            print(errors)
+            if mse_std is None:
+                error_path = "Final_errors_{}.csv".format(self.exp_name)
+            else:
+                error_path = "Final_errors_mean_std{}.csv".format(self.exp_name)
+
+            df = pd.DataFrame.from_dict(errors, orient='index')
+
+            if os.path.exists(error_path):
+
+                df_old = pd.read_csv(error_path)
+                df_new = pd.concat([df_old, df], axis=0)
+                df_new.to_csv(error_path)
+            else:
+                df.to_csv(error_path)
+
         def evaluate(self):
 
             self.best_model.eval()
@@ -207,60 +227,91 @@ with gpytorch.settings.num_likelihood_samples(10):
                 test_y_tot[j] = test_y[:, -self.pred_len:].squeeze(-1).cpu().detach().numpy()
                 j += 1
 
-            predictions = torch.from_numpy(predictions.reshape(-1, 1))
-            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
+            predictions = torch.from_numpy(predictions)
+            test_y = torch.from_numpy(test_y_tot)
 
-            mse_loss = F.mse_loss(predictions, test_y).item()
+            mse_loss = nn.MSELoss()(predictions, test_y).item()
 
-            mae_loss = F.l1_loss(predictions, test_y).item()
+            mae_loss = nn.L1Loss()(predictions, test_y).item()
 
-            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
-            print(errors)
+            self.write_to_file(mse_loss, mae_loss)
 
-            error_path = "Final_errors_{}.csv".format(self.exp_name)
-
-            df = pd.DataFrame.from_dict(errors, orient='index')
-
-            if os.path.exists(error_path):
-
-                df_old = pd.read_csv(error_path)
-                df_new = pd.concat([df_old, df], axis=0)
-                df_new.to_csv(error_path)
-            else:
-                df.to_csv(error_path)
+            return predictions, test_y
 
 
-    def main():
+def main():
 
-        parser = argparse.ArgumentParser(description="preprocess argument parser")
-        parser.add_argument("--attn_type", type=str, default='autoformer')
-        parser.add_argument("--model_name", type=str, default="autoformer")
-        parser.add_argument("--exp_name", type=str, default='traffic')
-        parser.add_argument("--cuda", type=str, default="cuda:0")
-        parser.add_argument("--seed", type=int, default=1234)
-        parser.add_argument("--n_trials", type=int, default=10)
-        parser.add_argument("--denoising", type=str, default="True")
-        parser.add_argument("--gp", type=str, default="True")
-        parser.add_argument("--residual", type=str, default="False")
-        parser.add_argument("--no-noise", type=str, default="False")
-        parser.add_argument("--iso", type=str, default="True")
-        parser.add_argument("--input_corrupt_training", type=str, default="True")
-        parser.add_argument("--num_epochs", type=int, default=6)
+    parser = argparse.ArgumentParser(description="preprocess argument parser")
+    parser.add_argument("--attn_type", type=str, default='autoformer')
+    parser.add_argument("--model_name", type=str, default="autoformer")
+    parser.add_argument("--exp_name", type=str, default='traffic')
+    parser.add_argument("--cuda", type=str, default="cuda:0")
+    parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--n_trials", type=int, default=10)
+    parser.add_argument("--denoising", type=str, default="False")
+    parser.add_argument("--gp", type=str, default="False")
+    parser.add_argument("--residual", type=str, default="False")
+    parser.add_argument("--no-noise", type=str, default="False")
+    parser.add_argument("--iso", type=str, default="False")
+    parser.add_argument("--input_corrupt_training", type=str, default="False")
+    parser.add_argument("--num_epochs", type=int, default=1)
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
-        random.seed(1992)
-        seeds = [random.randint(1000, 9999) for _ in range(3)]
+    random.seed(1992)
+    seeds = [random.randint(1000, 9999) for _ in range(3)]
+    preds_over_run_96 = []
+    preds_over_run_192 = []
+    test_y_96 = None
+    test_y_192 = None
 
-        for seed in seeds:
+    for seed in seeds:
 
-            np.random.seed(seed)
-            random.seed(seed)
-            torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.manual_seed(seed)
 
-            for pred_len in [96, 192]:
-                Train(args.exp_name, args, pred_len, seed)
+        train_96 = Train(args.exp_name, args, 96, seed)
+        train_192 = Train(args.exp_name, args, 192, seed)
+        preds_over_run_96.append(train_96.predictions)
+        preds_over_run_192.append(train_192.predictions)
+        test_y_96 = train_96.test_y
+        test_y_192 = train_192.test_y
+
+    mse_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1])
+    mae_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1])
+
+    mse_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[0], test_y_192.shape[1])
+    mae_loss_over_runs_192 = torch.zeros(3, test_y_192.shape[0], test_y_192.shape[1])
+
+    for i in range(3):
+
+        mse_loss_over_runs_96[i] = F.mse_loss(preds_over_run_96[i], test_y_96, reduction="none")
+        mae_loss_over_runs_96[i] = F.l1_loss(preds_over_run_96[i], test_y_96, reduction="none")
+
+        mse_loss_over_runs_192[i] = F.mse_loss(preds_over_run_192[i], test_y_192, reduction="none")
+        mae_loss_over_runs_192[i] = F.l1_loss(preds_over_run_192[i], test_y_192, reduction="none")
+
+    mse_96 = mse_loss_over_runs_96.mean(dim=0)
+    mae_96 = mae_loss_over_runs_96.mean(dim=0)
+    mse_192 = mse_loss_over_runs_192.mean(dim=0)
+    mae_192 = mae_loss_over_runs_192.mean(dim=0)
+
+    mse_96_mean = mse_96.mean().item()
+    mse_96_std = mse_96.std().item()
+
+    mae_96_mean = mae_96.mean().item()
+    mae_96_std = mae_96.std().item()
+
+    mse_192_mean = mse_192.mean().item()
+    mse_192_std = mse_192.std().item()
+
+    mae_192_mean = mae_192.mean().ietm()
+    mae_192_std = mae_192.std().item()
+
+    train_96.write_to_file(mse_96_mean, mae_96_mean, mse_96_std, mae_96_std)
+    train_192.write_to_file(mse_192_mean, mae_192_mean, mse_192_std, mae_192_std)
 
 
-    if __name__ == '__main__':
-        main()
+if __name__ == '__main__':
+    main()
