@@ -258,7 +258,7 @@ def main():
 
     args = parser.parse_args()
 
-    random.seed(1992)
+    random.seed(2018)
     seeds = [random.randint(1000, 9999) for _ in range(3)]
     preds_over_run_96 = []
     preds_over_run_192 = []
