@@ -190,8 +190,8 @@ with gpytorch.settings.num_likelihood_samples(10):
 
             errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
             if mse_std is not None:
-                errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"},
-                          'MSE_std': f"{mse_std:.3f}", 'MAE_std': f"{mae_std:.3f}"}
+                errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
+                          'MSE_std': f"{mse_std:.3f}", 'MAE_std': f"{mae_std:.3f}"}}
 
             print(errors)
             if mse_std is None:
