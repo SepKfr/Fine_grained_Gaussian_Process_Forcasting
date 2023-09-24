@@ -100,6 +100,7 @@ class DeepGPp(DeepGP):
 
     def predict(self, x):
 
-        preds = self.likelihood(x).to_data_independent_dist()
+        dist = self(x)
+        preds = self.likelihood(dist).to_data_independent_dist()
         mean = preds.mean.mean(0)
         return mean
