@@ -38,7 +38,7 @@ class Transformer(nn.Module):
                                             d_k=d_k,
                                             d_v=d_v
                                             ),
-                               n_layers,
+                               1,
                                seed)
 
         self.attn_type = attn_type
