@@ -100,7 +100,7 @@ class Forecast_denoising(nn.Module):
                     mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
                                                              self.de_model.deep_gp, self.d_model))
 
-                    mll_error = -mll(dist, y_true).mean()
+                    mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
         else:
             final_outputs = self.final_projection(dec_outputs)
 
