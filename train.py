@@ -17,7 +17,7 @@ from new_data_loader import DataLoader
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(8):
+with gpytorch.settings.num_likelihood_samples(10):
 
     class Train:
         def __init__(self, exp_name, args, pred_len, seed):
