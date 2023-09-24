@@ -250,14 +250,16 @@ with gpytorch.settings.num_likelihood_samples(10):
         args = parser.parse_args()
 
         random.seed(1992)
-        seed = random.randint(1000, 9999)
+        seeds = [random.randint(1000, 9999) for _ in range(3)]
 
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.manual_seed(seed)
+        for seed in seeds:
 
-        for pred_len in [96, 192]:
-            Train(args.exp_name, args, pred_len, seed)
+            np.random.seed(seed)
+            random.seed(seed)
+            torch.manual_seed(seed)
+
+            for pred_len in [96, 192]:
+                Train(args.exp_name, args, pred_len, seed)
 
 
     if __name__ == '__main__':
