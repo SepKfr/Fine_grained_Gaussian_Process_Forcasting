@@ -306,7 +306,7 @@ def main():
     mse_192_mean = mse_192.mean().item()
     mse_192_std = mse_192.std().item()
 
-    mae_192_mean = mae_192.mean().ietm()
+    mae_192_mean = mae_192.mean().item()
     mae_192_std = mae_192.std().item()
 
     train_96.write_to_file(mse_96_mean, mae_96_mean, mse_96_std, mae_96_std)
