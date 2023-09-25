@@ -82,7 +82,7 @@ class Forecast_denoising(nn.Module):
 
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_outputs, dec_outputs)
                 res_outputs = self.final_projection(dec_outputs_res)
-                final_outputs = self.final_projection(self.norm(dec_outputs + self.ffn(dec_outputs_res)))
+                final_outputs = self.norm(self.final_projection((dec_outputs + dec_outputs_res)))
 
                 if y_true is not None:
                     residual = y_true - res_outputs
