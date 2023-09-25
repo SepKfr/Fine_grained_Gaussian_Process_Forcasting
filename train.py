@@ -227,12 +227,12 @@ with gpytorch.settings.num_likelihood_samples(1):
             predictions = torch.from_numpy(predictions)
             test_y = torch.from_numpy(test_y_tot)
 
+            mse_loss_mean = nn.MSELoss()(predictions, test_y).item()
+
+            mae_loss_mean = nn.L1Loss()(predictions, test_y).item()
+
             mse_loss = nn.MSELoss(reduction='none')(predictions, test_y)
-
             mae_loss = nn.L1Loss(reduction='none')(predictions, test_y)
-
-            mse_loss_mean = mse_loss.mean().item()
-            mae_loss_mean = mae_loss.mean().item()
 
             mse_loss_std = np.sqrt(mse_loss.std().item()) / np.sqrt(self.pred_len)
             mae_loss_std = np.sqrt(mae_loss.std().item()) / np.sqrt(self.pred_len)
