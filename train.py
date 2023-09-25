@@ -234,8 +234,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             mse_loss_mean = mse_loss.mean().item()
             mae_loss_mean = mae_loss.mean().item()
 
-            mse_loss_std = torch.sqrt(mse_loss.std().item()) / torch.sqrt(self.pred_len)
-            mae_loss_std = torch.sqrt(mae_loss.std().item()) / torch.sqrt(self.pred_len)
+            mse_loss_std = np.sqrt(mse_loss.std().item()) / np.sqrt(self.pred_len)
+            mae_loss_std = np.sqrt(mae_loss.std().item()) / np.sqrt(self.pred_len)
 
             self.write_to_file(mse_loss_mean, mae_loss_mean, mse_loss_std, mae_loss_std)
 
