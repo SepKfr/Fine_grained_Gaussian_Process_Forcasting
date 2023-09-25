@@ -194,10 +194,7 @@ with gpytorch.settings.num_likelihood_samples(1):
                           'MSE_std': f"{mse_std:.3f}", 'MAE_std': f"{mae_std:.3f}"}}
 
             print(errors)
-            if mse_std is None:
-                error_path = "Final_errors_{}.csv".format(self.exp_name)
-            else:
-                error_path = "Final_errors_mean_std{}.csv".format(self.exp_name)
+            error_path = "ICLR_errors_{}.csv".format(self.exp_name)
 
             df = pd.DataFrame.from_dict(errors, orient='index')
 
