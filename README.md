@@ -1,6 +1,6 @@
 # Corruption-resilient Forecasting Models
 
-This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to Neurips 2023.
+This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to ICLR 2024.
 
 ## Abstract 
 
