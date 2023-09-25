@@ -1,6 +1,6 @@
 # Corruption-resilient Forecasting Models
 
-This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to Neurips 2023.
+This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to ICLR 2024.
 
 ## Abstract 
 
@@ -8,8 +8,6 @@ Time series forecasting is challenging due to complex temporal dependencies and 
 Our extensive experiments demonstrate that our proposed corruption-resilient forecasting approach is able to improve the forecasting accuracy of several state-of-the-art forecasting models as well as several other denoising approaches. 
 
 ## Supplementary Explanations on How We Obtain the Final Predictions
-
-Please refer to [Supplementary_Explanation](https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/Supplementary_Explanation.pdf) for a detailed explanation on how we obtain the final predictions.
 
 ## Supplementary of Main Results
 
@@ -28,7 +26,7 @@ numpy >= 1.23.5
 ## Data Loading 
 
 ```
-python data_loader.py --expt_name solar
+python new_data_loader.py --expt_name solar
 ```
 
 After running the above python script, a csv file containing the solar dataset is created. In order to generate csv files regarding our other datasets, simply change the expt_name to the desired datatset. You can choose from ```{traffic, electricity, solar}```.
