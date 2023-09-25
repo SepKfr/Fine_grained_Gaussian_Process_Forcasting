@@ -84,5 +84,5 @@ class DeepGPp(DeepGP):
 
         dist = self(x)
         preds = self.likelihood(dist).to_data_independent_dist()
-        mean = self.embedding(preds.mean.mean(0).unsqueeze(-1))
+        mean = self.embedding(preds.mean.mean(0).unsqueeze(-1)) * 0.05
         return dist, mean
