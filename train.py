@@ -16,7 +16,7 @@ from new_data_loader import DataLoader
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(10):
+with gpytorch.settings.num_likelihood_samples(1):
 
     class Train:
         def __init__(self, exp_name, args, pred_len, seed):
@@ -40,9 +40,9 @@ with gpytorch.settings.num_likelihood_samples(10):
                                              max_encoder_length=96 + 2 * pred_len,
                                              target_col=target_col[exp_name],
                                              pred_len=pred_len,
-                                             max_train_sample=12800,
-                                             max_test_sample=1280,
-                                             batch_size=128)
+                                             max_train_sample=6400,
+                                             max_test_sample=640,
+                                             batch_size=64)
 
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -230,11 +230,17 @@ with gpytorch.settings.num_likelihood_samples(10):
             predictions = torch.from_numpy(predictions)
             test_y = torch.from_numpy(test_y_tot)
 
-            mse_loss = nn.MSELoss()(predictions, test_y).item()
+            mse_loss = nn.MSELoss(reduction='none')(predictions, test_y)
 
-            mae_loss = nn.L1Loss()(predictions, test_y).item()
+            mae_loss = nn.L1Loss(reduction='none')(predictions, test_y)
 
-            self.write_to_file(mse_loss, mae_loss)
+            mse_loss_mean = mse_loss.mean().item()
+            mae_loss_mean = mae_loss.mean().item()
+
+            mse_loss_std = torch.sqrt(mse_loss.std().item()) / torch.sqrt(self.pred_len)
+            mae_loss_std = torch.sqrt(mae_loss.std().item()) / torch.sqrt(self.pred_len)
+
+            self.write_to_file(mse_loss_mean, mae_loss_mean, mse_loss_std, mae_loss_std)
 
             return predictions, test_y
 
@@ -258,59 +264,18 @@ def main():
 
     args = parser.parse_args()
 
-    random.seed(2018)
-    seeds = [random.randint(1000, 9999) for _ in range(3)]
-    preds_over_run_96 = []
-    preds_over_run_192 = []
-    test_y_96 = None
-    test_y_192 = None
+    random.seed(1234)
+    seeds = [random.randint(1000, 9999) for _ in range(1)]
+    pred_lens = [96, 192, 336, 720]
 
-    for seed in seeds:
+    for pred_len in pred_lens:
 
-        np.random.seed(seed)
-        random.seed(seed)
-        torch.manual_seed(seed)
+        for seed in seeds:
 
-        train_96 = Train(args.exp_name, args, 96, seed)
-        train_192 = Train(args.exp_name, args, 192, seed)
-        preds_over_run_96.append(train_96.predictions)
-        preds_over_run_192.append(train_192.predictions)
-        test_y_96 = train_96.test_y
-        test_y_192 = train_192.test_y
-
-    mse_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1], test_y_96.shape[2])
-    mae_loss_over_runs_96 = torch.zeros(3, test_y_96.shape[0], test_y_96.shape[1], test_y_96.shape[2])
-
-    mse_loss_over_runs_192 = torch.zeros(3, test_y_96.shape[0], test_y_192.shape[1], test_y_192.shape[2])
-    mae_loss_over_runs_192 = torch.zeros(3, test_y_96.shape[0], test_y_192.shape[1], test_y_192.shape[2])
-
-    for i in range(3):
-
-        mse_loss_over_runs_96[i] = F.mse_loss(preds_over_run_96[i], test_y_96, reduction="none")
-        mae_loss_over_runs_96[i] = F.l1_loss(preds_over_run_96[i], test_y_96, reduction="none")
-
-        mse_loss_over_runs_192[i] = F.mse_loss(preds_over_run_192[i], test_y_192, reduction="none")
-        mae_loss_over_runs_192[i] = F.l1_loss(preds_over_run_192[i], test_y_192, reduction="none")
-
-    mse_96 = mse_loss_over_runs_96.mean(dim=0)
-    mae_96 = mae_loss_over_runs_96.mean(dim=0)
-    mse_192 = mse_loss_over_runs_192.mean(dim=0)
-    mae_192 = mae_loss_over_runs_192.mean(dim=0)
-
-    mse_96_mean = mse_96.mean().item()
-    mse_96_std = mse_96.std().item()
-
-    mae_96_mean = mae_96.mean().item()
-    mae_96_std = mae_96.std().item()
-
-    mse_192_mean = mse_192.mean().item()
-    mse_192_std = mse_192.std().item()
-
-    mae_192_mean = mae_192.mean().item()
-    mae_192_std = mae_192.std().item()
-
-    train_96.write_to_file(mse_96_mean, mae_96_mean, mse_96_std, mae_96_std)
-    train_192.write_to_file(mse_192_mean, mae_192_mean, mse_192_std, mae_192_std)
+            np.random.seed(seed)
+            random.seed(seed)
+            torch.manual_seed(seed)
+            Train(args.exp_name, args, pred_len, seed)
 
 
 if __name__ == '__main__':
