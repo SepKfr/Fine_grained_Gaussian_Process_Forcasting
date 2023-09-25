@@ -56,25 +56,6 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
         covar_x = self.covar_module(x)
         return MultivariateNormal(mean_x, covar_x)
 
-    def __call__(self, x, *other_inputs, **kwargs):
-        """
-        Overriding __call__ isn't strictly necessary, but it lets us add concatenation based skip connections
-        easily. For example, hidden_layer2(hidden_layer1_outputs, inputs) will pass the concatenation of the first
-        hidden layer's outputs and the input data to hidden_layer2.
-        """
-        if len(other_inputs):
-            if isinstance(x, gpytorch.distributions.MultitaskMultivariateNormal):
-                x = x.rsample()
-
-            processed_inputs = [
-                inp.unsqueeze(0).expand(gpytorch.settings.num_likelihood_samples.value(), *inp.shape)
-                for inp in other_inputs
-            ]
-
-            x = torch.cat([x] + processed_inputs, dim=-1)
-
-        return super().__call__(x, are_samples=bool(len(other_inputs)))
-
 
 class DeepGPp(DeepGP):
     def __init__(self, nu, num_hidden_dims, seed):

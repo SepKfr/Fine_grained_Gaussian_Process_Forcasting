@@ -113,8 +113,8 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [16])
-            w_steps = trial.suggest_categorical("w_steps", [4000])
+            d_model = trial.suggest_categorical("d_model", [32])
+            w_steps = trial.suggest_categorical("w_steps", [8000])
             n_heads = trial.suggest_categorical("n_heads", [8])
             stack_size = trial.suggest_categorical("stack_size", [2])
             nu = trial.suggest_categorical("nu", [0])
@@ -160,7 +160,6 @@ with gpytorch.settings.num_likelihood_samples(1):
                     total_loss += loss_train.item()
                     optimizer.zero_grad()
                     loss_train.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                     optimizer.step_and_update_lr()
 
                 model.eval()
