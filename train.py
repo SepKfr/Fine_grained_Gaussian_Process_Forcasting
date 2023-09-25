@@ -264,6 +264,7 @@ def main():
     random.seed(1234)
     seeds = [random.randint(1000, 9999) for _ in range(1)]
     pred_lens = [96, 192, 336, 720]
+    pred_lens.reverse()
 
     for pred_len in pred_lens:
 
