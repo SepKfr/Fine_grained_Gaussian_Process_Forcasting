@@ -86,7 +86,7 @@ class Forecast_denoising(nn.Module):
 
                 if y_true is not None:
                     residual = y_true - res_outputs
-                    loss = nn.MSELoss()(residual, res_outputs)
+                    loss = torch.nn.HuberLoss()(residual, res_outputs)
 
                 return final_outputs, loss
 
@@ -99,6 +99,6 @@ class Forecast_denoising(nn.Module):
             final_outputs = self.final_projection(dec_outputs)
 
         if y_true is not None and not self.residual:
-            loss = nn.MSELoss()(final_outputs, y_true)
+            loss = torch.nn.HuberLoss()(final_outputs, y_true)
 
         return final_outputs, loss
