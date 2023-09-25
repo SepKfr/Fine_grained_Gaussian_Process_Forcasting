@@ -92,7 +92,6 @@ class DeepGPp(DeepGP):
         self.num_hidden_dims = num_hidden_dims
         self.hidden_layer = hidden_layer
         self.embedding = nn.Linear(1, num_hidden_dims)
-        self.dropout = nn.Dropout(0.1)
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
 
     def forward(self, inputs):
@@ -104,5 +103,5 @@ class DeepGPp(DeepGP):
 
         dist = self(x)
         preds = self.likelihood(dist).to_data_independent_dist()
-        mean = self.dropout(self.embedding(preds.mean.mean(0).unsqueeze(-1)))
+        mean = self.embedding(preds.mean.mean(0).unsqueeze(-1))
         return dist, mean
