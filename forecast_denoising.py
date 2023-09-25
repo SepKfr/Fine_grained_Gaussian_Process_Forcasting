@@ -95,16 +95,10 @@ class Forecast_denoising(nn.Module):
                 dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
                 final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-                if self.gp and self.training:
-
-                    mll = DeepApproximateMLL(VariationalELBO(self.de_model.deep_gp.likelihood,
-                                                             self.de_model.deep_gp, self.d_model))
-
-                    mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
         else:
             final_outputs = self.final_projection(dec_outputs)
 
         if y_true is not None and not self.residual:
-            loss = nn.MSELoss()(final_outputs, y_true) + 1e-3 * mll_error
+            loss = nn.MSELoss()(final_outputs, y_true)
 
         return final_outputs, loss
