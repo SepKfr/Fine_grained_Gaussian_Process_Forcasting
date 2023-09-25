@@ -9,8 +9,6 @@ Our extensive experiments demonstrate that our proposed corruption-resilient for
 
 ## Supplementary Explanations on How We Obtain the Final Predictions
 
-Please refer to [Supplementary_Explanation](https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/Supplementary_Explanation.pdf) for a detailed explanation on how we obtain the final predictions.
-
 ## Supplementary of Main Results
 
 Please refer to [Supplementary_Results](https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/Supplementary_Results.pdf) for supplementary of main results. 
