@@ -41,7 +41,7 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist, eps_gp = self.deep_gp.predict(x)
-        x_noisy = self.norm(x + self.ffn(eps_gp))
+        x_noisy = x.add_(eps_gp * 0.1)
 
         return x_noisy, dist
 
