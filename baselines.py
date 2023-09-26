@@ -100,7 +100,7 @@ class Baselines:
 
     def get_dlinear_model(self):
         return DLinear(pred_len=self.pred_len,
-                       seq_len=8 * 24)
+                       seq_len=8 * 24).to(self.device)
 
     def run_optuna(self, args):
 
