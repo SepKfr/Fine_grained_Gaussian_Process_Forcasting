@@ -29,7 +29,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.gp = True if args.gp == "True" else False
             self.no_noise = True if args.no_noise == "True" else False
             self.residual = True if args.residual == "True" else False
-            self.input_corrupt = True if args.input_corrupt == "True" else False
+            self.input_corrupt = True if args.input_corrupt_training == "True" else False
             self.iso = True if args.iso == "True" else False
             self.data = data
             self.len_data = len(data)
