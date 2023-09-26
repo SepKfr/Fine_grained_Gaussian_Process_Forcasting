@@ -16,9 +16,9 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        if gp:
-            self.deep_gp = DeepGPp(d, seed)
-            self.proj_up = nn.Linear(1, d)
+
+        self.deep_gp = DeepGPp(d, seed)
+        self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual

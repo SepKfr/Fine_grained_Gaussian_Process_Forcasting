@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from gpytorch.mlls import DeepApproximateMLL, VariationalELBO
 
+from denoising_model.DeepGP import DeepGPp
 from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
@@ -61,19 +62,32 @@ class Forecast_denoising(nn.Module):
         self.final_projection = nn.Linear(d_model, 1)
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
+        self.deep_gp = DeepGPp(d_model, seed)
 
     def forward(self, enc_inputs, dec_inputs, train_y=None):
 
         mll_error = 0
         loss = 0
         y_true = train_y[:, -self.pred_len:, :] if train_y is not None else None
-        enc_inputs = self.enc_embedding(enc_inputs)
-        dec_inputs = self.dec_embedding(dec_inputs)
+
+        if self.input_corrupt and self.training:
+
+            enc_inputs = self.enc_embedding(enc_inputs)
+            dec_inputs = self.dec_embedding(dec_inputs)
+            dist = self.deep_gp(enc_inputs)
+            enc_eps_gp = dist.sample().permute(1, 2, 0)
+            dist = self.deep_gp(dec_inputs)
+            dec_eps_gp = dist.sample().permute(1, 2, 0)
+            enc_inputs = enc_inputs.add_(enc_eps_gp)
+            dec_inputs = dec_inputs.add_(dec_eps_gp)
+        else:
+            enc_inputs = self.enc_embedding(enc_inputs)
+            dec_inputs = self.dec_embedding(dec_inputs)
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
         forecasting_model_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-        if self.denoise or (self.input_corrupt and self.training):
+        if self.denoise:
 
             de_model_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
             final_outputs = self.final_projection(de_model_outputs[:, -self.pred_len:, :])
