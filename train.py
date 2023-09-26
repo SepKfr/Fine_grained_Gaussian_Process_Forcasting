@@ -185,11 +185,12 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             return val_loss
 
-        def write_to_file(self, mse_loss, mae_loss, mse_std=None, mae_std=None):
+        def write_to_file(self, mse_loss, mae_loss, huber_loss, mse_std=None, mae_std=None):
 
-            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}", 'HUBER': f"{huber_loss: .3f}"}}
             if mse_std is not None:
                 errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
+                                            'HUBER': f"{huber_loss: .3f}",
                           'MSE_std': f"{mse_std:.3f}", 'MAE_std': f"{mae_std:.3f}"}}
 
             print(errors)
@@ -230,13 +231,15 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             mae_loss_mean = nn.L1Loss()(predictions, test_y).item()
 
+            huber_loss_mean = nn.HuberLoss()(predictions, test_y).item()
+
             mse_loss = nn.MSELoss(reduction='none')(predictions, test_y)
             mae_loss = nn.L1Loss(reduction='none')(predictions, test_y)
 
             mse_loss_std = np.sqrt(mse_loss.std().item()) / np.sqrt(self.pred_len)
             mae_loss_std = np.sqrt(mae_loss.std().item()) / np.sqrt(self.pred_len)
 
-            self.write_to_file(mse_loss_mean, mae_loss_mean, mse_loss_std, mae_loss_std)
+            self.write_to_file(mse_loss_mean, mae_loss_mean, huber_loss_mean, mse_loss_std, mae_loss_std)
 
             return predictions, test_y
 
