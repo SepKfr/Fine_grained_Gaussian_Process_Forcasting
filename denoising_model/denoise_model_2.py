@@ -18,9 +18,7 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        if gp:
-            self.deep_gp = DeepGPp(nu, d, seed)
-            self.proj_up = nn.Linear(1, d)
+        self.deep_gp = DeepGPp(nu, d, seed)
         self.gp = gp
 
         self.residual = residual
@@ -31,10 +29,6 @@ class denoise_model_2(nn.Module):
         self.device = device
         self.n_noise = n_noise
         self.residual = residual
-        self.ffn = PoswiseFeedForwardNet(
-            d_model=d, d_ff=d * 4, seed=seed)
-        self.ffn_gp = PoswiseFeedForwardNet(
-            d_model=d, d_ff=d * 4, seed=seed)
 
     def add_gp_noise(self, x):
 
