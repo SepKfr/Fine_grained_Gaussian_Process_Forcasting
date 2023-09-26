@@ -63,9 +63,9 @@ class SolarFormatter(ElectricityFormatter):
         """Returns fixed model parameters for experiments."""
 
         fixed_params = {
-            'total_time_steps': 96 + 48,
-            'num_encoder_steps': 96,
-            'num_decoder_steps':  48,
+            'total_time_steps': 8 * 24 + self.pred_len,
+            'num_encoder_steps': 4 * 24,
+            'num_decoder_steps': self.pred_len,
             'num_epochs': 50,
         }
 

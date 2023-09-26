@@ -17,18 +17,18 @@ def run_ARIMA(exp_name, pred_len):
                   }
 
     dataloader_obj = DataLoader(exp_name,
-                             max_encoder_length=96 + 2 * pred_len,
+                             max_encoder_length=8 * 24,
                              target_col=target_col[exp_name],
                              pred_len=pred_len,
-                             max_train_sample=1280,
-                             max_test_sample=1280,
-                             batch_size=128)
+                             max_train_sample=32000,
+                             max_test_sample=3840,
+                             batch_size=256)
 
     total_b = len(dataloader_obj.test_loader)
     _, _, test_y = next(iter(dataloader_obj.test_loader))
 
-    predictions = np.zeros((total_b*128, pred_len))
-    test_y_tot = np.zeros((total_b*128, pred_len))
+    predictions = np.zeros((total_b*256, pred_len))
+    test_y_tot = np.zeros((total_b*256, pred_len))
 
     j = 0
 
@@ -68,5 +68,5 @@ def run_ARIMA(exp_name, pred_len):
 
 
 for data_set in ["traffic", "electricity", "solar", "air_quality"]:
-    for pred_len in [96, 192]:
+    for pred_len in [24, 48, 96, 192]:
         run_ARIMA(data_set, pred_len)

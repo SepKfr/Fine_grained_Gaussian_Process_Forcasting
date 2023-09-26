@@ -32,8 +32,10 @@ class TrafficFormatter(GenericDataFormatter):
         ('categorical_id', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
     ]
 
-    def __init__(self):
+    def __init__(self, pred_len):
         """Initialises formatter."""
+
+        self.pred_len = pred_len
 
     def transform_data(self, df):
         """Splits data_set frame into training-validation-test data_set frames.
@@ -152,9 +154,9 @@ class TrafficFormatter(GenericDataFormatter):
         """Returns fixed model parameters for experiments."""
 
         fixed_params = {
-            'total_time_steps': 96 + 48 ,
-            'num_encoder_steps': 96,
-            'num_decoder_steps': 48,
+            'total_time_steps': 8 * 24 + self.pred_len,
+            'num_encoder_steps': 4 * 24,
+            'num_decoder_steps': self.pred_len,
             'num_epochs': 50,
             'early_stopping_patience': 5,
             'multiprocessing_workers': 5

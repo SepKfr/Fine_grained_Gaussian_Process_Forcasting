@@ -62,12 +62,12 @@ class Baselines:
         self.errors = dict()
 
         self.dataloader_obj = DataLoader(self.exp_name,
-                                         max_encoder_length=96 + 2 * pred_len,
+                                         max_encoder_length=8 * 24,
                                          target_col=target_col[self.exp_name],
                                          pred_len=pred_len,
-                                         max_train_sample=12800,
-                                         max_test_sample=1280,
-                                         batch_size=128)
+                                         max_train_sample=32000,
+                                         max_test_sample=3840,
+                                         batch_size=256)
 
         self.param_history = []
         self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -94,13 +94,13 @@ class Baselines:
     def get_nbeats_model(self, d_model, n_layers):
 
         return NBeats.NBeatsNet(forecast_length=self.pred_len,
-                                backcast_length=96 + self.pred_len*2,
+                                backcast_length=8 * 24,
                                 hidden_layer_units=d_model,
                                 device=self.device).to(self.device)
 
     def get_dlinear_model(self):
         return DLinear(pred_len=self.pred_len,
-                       seq_len=96 + 2 * self.pred_len).to(self.device)
+                       seq_len=8 * 24)
 
     def run_optuna(self, args):
 
@@ -175,12 +175,14 @@ class Baselines:
                     loss_train = DeepAR.loss_fn(mu, sigma, y)
                 else:
                     outputs = model(x)
-                    loss_train = nn.MSELoss()(y, outputs)
+                    if len(outputs) == 2:
+                        loss_train = nn.MSELoss()(y, outputs[1].unsqueeze(-1))
+                    else:
+                        loss_train = nn.MSELoss()(y, outputs)
 
                 total_loss += loss_train.item()
                 optimizer.zero_grad()
                 loss_train.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                 optimizer.step_and_update_lr()
 
             model.eval()
@@ -198,7 +200,10 @@ class Baselines:
                     loss_eval = DeepAR.loss_fn(mu, sigma, valid_y)
                 else:
                     outputs = model(valid_x)
-                    loss_eval = nn.MSELoss()(valid_y, outputs)
+                    if len(outputs) == 2:
+                        loss_eval = nn.MSELoss()(valid_y, outputs[1].unsqueeze(-1))
+                    else:
+                        loss_eval = nn.MSELoss()(valid_y, outputs)
 
                 test_loss += loss_eval.item()
 
@@ -243,6 +248,8 @@ class Baselines:
 
             else:
                 output = self.best_model(x)
+                if len(output) == 2:
+                    output = output[1].unsqueeze(-1)
                 predictions[j] = output.squeeze(-1).cpu().detach().numpy()
 
             test_y_tot[j] = y.squeeze(-1).cpu().detach().numpy()
@@ -275,7 +282,7 @@ class Baselines:
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--exp_name", type=str, default='traffic')
-parser.add_argument("--model_name", type=str, default='tcn')
+parser.add_argument("--model_name", type=str, default='DeepAR')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--n_trials", type=int, default=50)
 parser.add_argument("--num_epochs", type=int, default=1)
@@ -289,5 +296,5 @@ np.random.seed(seed)
 random.seed(seed)
 torch.manual_seed(seed)
 
-for pred_len in [96, 192]:
+for pred_len in [24, 48, 72, 96]:
     baseline = Baselines(args, pred_len, seed)

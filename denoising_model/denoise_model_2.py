@@ -4,13 +4,11 @@ import numpy as np
 import torch
 import random
 from denoising_model.DeepGP import DeepGPp
-from modules.feedforward import PoswiseFeedForwardNet
-
 torch.autograd.set_detect_anomaly(True)
 
 
 class denoise_model_2(nn.Module):
-    def __init__(self, nu, model, gp, d, device, seed, n_noise=False, residual=False):
+    def __init__(self, model, gp, d, device, seed, n_noise=False, residual=False):
         super(denoise_model_2, self).__init__()
 
         np.random.seed(seed)
@@ -18,12 +16,13 @@ class denoise_model_2(nn.Module):
         torch.manual_seed(seed)
 
         self.denoising_model = model
-        self.deep_gp = DeepGPp(nu, d, seed)
+        if gp:
+            self.deep_gp = DeepGPp(d, seed)
+            self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
-        self.norm1 = nn.LayerNorm(d)
 
         self.d = d
         self.device = device
@@ -34,8 +33,12 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        dist, eps_gp = self.deep_gp.predict(x)
-        x_noisy = self.norm(x + eps_gp)
+        dist = self.deep_gp(x)
+        eps_gp = dist.sample().permute(1, 2, 0)
+
+        eps_gp = self.proj_up(eps_gp)
+
+        x_noisy = x + eps_gp
 
         return x_noisy, dist
 
@@ -43,12 +46,14 @@ class denoise_model_2(nn.Module):
 
         eps_enc = torch.randn_like(enc_inputs)
         eps_dec = torch.randn_like(dec_inputs)
-        dist_dec = None
+        dist = None
 
         if self.gp:
 
-            enc_noisy, dist_enc = self.add_gp_noise(enc_inputs)
-            dec_noisy, dist_dec = self.add_gp_noise(dec_inputs)
+            inputs = torch.cat([enc_inputs, dec_inputs], dim=1)
+            input_noisy, dist = self.add_gp_noise(inputs)
+            enc_noisy = input_noisy[:, :enc_inputs.shape[1], :]
+            dec_noisy = input_noisy[:, -enc_inputs.shape[1]:, :]
 
         elif self.n_noise:
 
@@ -61,6 +66,6 @@ class denoise_model_2(nn.Module):
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        dec_output = self.norm(dec_inputs + dec_rec)
+        dec_output = dec_inputs + dec_rec
 
-        return dec_output, dist_dec
+        return dec_output, dist

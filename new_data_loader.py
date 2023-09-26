@@ -35,7 +35,7 @@ class DataLoader:
         data_csv_path = "{}.csv".format(exp_name)
         data = pd.read_csv(data_csv_path, dtype={'date': str})
         data.sort_values(by=["id", "hours_from_start"], inplace=True)
-        data = data_formatter[exp_name]().transform_data(data)
+        data = data_formatter[exp_name](pred_len).transform_data(data)
 
         total_batches = int(len(data) / self.batch_size)
         train_len = int(total_batches * batch_size * 0.8)

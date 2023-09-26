@@ -1,18 +1,16 @@
 import random
-import gpytorch
 import numpy as np
 import torch
 import torch.nn as nn
 from gpytorch.mlls import DeepApproximateMLL, VariationalELBO
+
 from denoising_model.denoise_model_2 import denoise_model_2
 from forecasting_models.LSTM import RNN
-from modules.feedforward import PoswiseFeedForwardNet
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
 
-
 class Forecast_denoising(nn.Module):
-    def __init__(self, nu: float, model_name: str, config: tuple, gp: bool,
+    def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
                  seed: int, pred_len: int, attn_type: str,
                  no_noise: bool, residual: bool, input_corrupt: bool):
@@ -27,6 +25,7 @@ class Forecast_denoising(nn.Module):
 
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
+        self.gp = gp
 
         if "LSTM" in model_name:
 
@@ -40,65 +39,61 @@ class Forecast_denoising(nn.Module):
 
         else:
 
-            self.forecasting_model = Transformer(pred_len=pred_len,
+            self.forecasting_model = Transformer(src_input_size=src_input_size,
+                                                 tgt_input_size=tgt_input_size,
+                                                 pred_len=pred_len,
                                                  d_model=d_model,
                                                  d_ff=d_model * 4,
                                                  d_k=d_k, d_v=d_k, n_heads=n_heads,
-                                                 n_layers=stack_size, device=device,
+                                                 n_layers=stack_size, src_pad_index=0,
+                                                 tgt_pad_index=0, device=device,
                                                  attn_type=attn_type,
                                                  seed=seed,
                                                  )
 
-        self.de_model = denoise_model_2(nu,
-                                        self.forecasting_model, gp,
+        self.d = d_model
+        self.de_model = denoise_model_2(self.forecasting_model, gp,
                                         d_model, device, seed,
                                         n_noise=no_noise,
-                                        residual=residual,
-                                        )
-        self.norm = nn.LayerNorm(d_model)
-        self.gp = gp
+                                        residual=residual)
         self.denoise = denoise
         self.residual = residual
-        self.d_model = d_model
         self.final_projection = nn.Linear(d_model, 1)
         self.enc_embedding = nn.Linear(src_input_size, d_model)
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
-        self.ffn = PoswiseFeedForwardNet(
-            d_model=d_model, d_ff=d_model * 4, seed=seed)
 
-    def forward(self, enc_inputs, dec_inputs, y_true=None):
+    def forward(self, enc_inputs, dec_inputs, train_y=None):
 
-        enc_inputs = self.enc_embedding(enc_inputs)
-        dec_inputs = self.dec_embedding(dec_inputs)
         mll_error = 0
         loss = 0
+        y_true = train_y[:, -self.pred_len:, :] if train_y is not None else None
+        enc_inputs = self.enc_embedding(enc_inputs)
+        dec_inputs = self.dec_embedding(dec_inputs)
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
-        denoise = False if self.input_corrupt else self.denoise
+        forecasting_model_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-        if denoise or (self.input_corrupt and self.training):
+        if self.denoise or (self.input_corrupt and self.training):
+
+            de_model_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
+            final_outputs = self.final_projection(de_model_outputs[:, -self.pred_len:, :])
+
+            if self.gp and self.training:
+                mll = DeepApproximateMLL(
+                    VariationalELBO(self.de_model.deep_gp.likelihood, self.de_model.deep_gp, self.d))
+                mll_error = -mll(dist, train_y[:, :-self.pred_len, :].permute(2, 0, 1)).mean()
 
             if self.residual:
 
                 enc_outputs_res, dec_outputs_res = self.forecasting_model(enc_outputs, dec_outputs)
-                res_outputs = self.final_projection(dec_outputs_res)
-                final_outputs = self.final_projection(self.norm(dec_outputs + dec_outputs_res))
-
+                res_outputs = self.final_projection(dec_outputs_res[:, -self.pred_len:, :])
+                final_outputs = forecasting_model_outputs + res_outputs
                 if y_true is not None:
-                    residual = y_true - res_outputs
-                    loss = torch.nn.HuberLoss()(residual, res_outputs)
-
-                return final_outputs, loss
-
-            else:
-
-                dec_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
-                final_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
-
+                    residual = y_true - forecasting_model_outputs
+                    loss = nn.MSELoss()(y_true, residual)
         else:
-            final_outputs = self.final_projection(dec_outputs)
+            final_outputs = forecasting_model_outputs
 
-        if y_true is not None and not self.residual:
-            loss = torch.nn.HuberLoss()(final_outputs, y_true)
-
+        if y_true is not None:
+            loss = nn.MSELoss()(y_true, final_outputs) + 0.01 * mll_error
         return final_outputs, loss
