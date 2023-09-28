@@ -289,12 +289,12 @@ parser.add_argument("--num_epochs", type=int, default=1)
 parser.add_argument("--seed", type=int, default=2021)
 args = parser.parse_args()
 
-random.seed(1992)
-seed = random.randint(1000, 9999)
+random.seed(2021)
+seeds = [random.randint(1000, 9999) for _ in range(2)]
 
-np.random.seed(seed)
-random.seed(seed)
-torch.manual_seed(seed)
-
-for pred_len in [24, 48, 72, 96]:
-    baseline = Baselines(args, pred_len, seed)
+for seed in seeds:
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    for pred_len in [24, 48, 72, 96]:
+        baseline = Baselines(args, pred_len, seed)
