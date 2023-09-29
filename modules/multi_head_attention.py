@@ -44,8 +44,6 @@ class MultiHeadAttention(nn.Module):
 
         # ATA forecasting model
 
-        context = None
-
         if self.attn_type == "ATA":
             context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
             Q=q_s, K=k_s, V=v_s)
