@@ -3,8 +3,10 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
+from forecasting_models.ACAT import ACAT
 from forecasting_models.ATA import ATA
 from forecasting_models.ConvAttn import ConvAttn
+from forecasting_models.BasicAttn import BasicAttn
 from forecasting_models.Informer import ProbAttention
 from forecasting_models.Autoformer import AutoCorrelation
 
@@ -48,6 +50,9 @@ class MultiHeadAttention(nn.Module):
             context, attn = ATA(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
             Q=q_s, K=k_s, V=v_s)
 
+        elif self.attn_type == "ACAT":
+            context, attn = ACAT(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)
+
         # Autoformer forecasting model
 
         elif self.attn_type == "autoformer":
@@ -65,6 +70,9 @@ class MultiHeadAttention(nn.Module):
 
         elif self.attn_type == "informer":
             context, attn = ProbAttention(mask_flag=False, seed=self.seed)(q_s, k_s, v_s)
+
+        else:
+            context, attn = BasicAttn(d_k=self.d_k, device=self.device, seed=self.seed)
 
         context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.n_heads * self.d_v)
         outputs = self.fc(context)
