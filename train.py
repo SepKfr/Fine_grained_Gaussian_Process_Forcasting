@@ -116,7 +116,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             d_model = trial.suggest_categorical("d_model", [16, 32])
 
-            w_steps = trial.suggest_categorical("w_steps", [1000, 8000])
+            w_steps = trial.suggest_categorical("w_steps", [1000])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             n_heads = self.model_params['num_heads']
