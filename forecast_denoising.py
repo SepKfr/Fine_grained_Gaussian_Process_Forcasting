@@ -109,5 +109,5 @@ class Forecast_denoising(nn.Module):
             final_outputs = forecasting_model_outputs
 
         if y_true is not None:
-            loss = nn.MSELoss()(y_true, final_outputs) + 0.01 * mll_error
+            loss = nn.MSELoss()(y_true, final_outputs) + 0.001 * mll_error
         return final_outputs, loss
