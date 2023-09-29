@@ -34,7 +34,7 @@ class ACAT(nn.Module):
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
 
-    def forward(self, Q, K, V, attn_mask):
+    def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]

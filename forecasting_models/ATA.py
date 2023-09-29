@@ -3,9 +3,6 @@ import torch.nn as nn
 import numpy as np
 import random
 
-torch.backends.cudnn.benchmark = False
-torch.backends.cudnn.deterministic = True
-
 
 class ATA(nn.Module):
     def __init__(self, d_k, device, h, seed):
@@ -38,7 +35,7 @@ class ATA(nn.Module):
 
         self.factor = 1
 
-    def forward(self, Q, K, V, attn_mask):
+    def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
