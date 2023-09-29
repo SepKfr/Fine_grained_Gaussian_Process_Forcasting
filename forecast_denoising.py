@@ -70,19 +70,8 @@ class Forecast_denoising(nn.Module):
         loss = 0
         y_true = train_y[:, -self.pred_len:, :] if train_y is not None else None
 
-        if self.input_corrupt and self.training:
-
-            enc_inputs = self.enc_embedding(enc_inputs)
-            dec_inputs = self.dec_embedding(dec_inputs)
-            dist = self.deep_gp(enc_inputs)
-            enc_eps_gp = dist.sample().permute(1, 2, 0)
-            dist = self.deep_gp(dec_inputs)
-            dec_eps_gp = dist.sample().permute(1, 2, 0)
-            enc_inputs = enc_inputs.add_(enc_eps_gp)
-            dec_inputs = dec_inputs.add_(dec_eps_gp)
-        else:
-            enc_inputs = self.enc_embedding(enc_inputs)
-            dec_inputs = self.dec_embedding(dec_inputs)
+        enc_inputs = self.enc_embedding(enc_inputs)
+        dec_inputs = self.dec_embedding(dec_inputs)
 
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
         forecasting_model_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
