@@ -49,7 +49,8 @@ class MultiHeadAttention(nn.Module):
             Q=q_s, K=k_s, V=v_s)
 
         elif self.attn_type == "ACAT":
-            context, attn = ACAT(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)
+            context, attn = ACAT(d_k=self.d_k, device=self.device, h=self.n_heads, seed=self.seed)(
+            Q=q_s, K=k_s, V=v_s)
 
         # Autoformer forecasting model
 
