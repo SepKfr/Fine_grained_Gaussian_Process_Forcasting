@@ -13,7 +13,6 @@ class ATA(nn.Module):
         random.seed(seed)
         np.random.seed(seed)
 
-        self.device = device
         self.d_k = d_k
         self.filter_length = [1, 3, 7, 9]
 
@@ -22,16 +21,16 @@ class ATA(nn.Module):
                           nn.BatchNorm1d(d_k*h),
                           nn.ReLU())
             for f in self.filter_length
-            ]).to(device)
+            ])
 
         self.conv_list_q = nn.ModuleList([
             nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
                           nn.BatchNorm1d(d_k*h),
                           nn.ReLU())
-            for f in self.filter_length]).to(device)
+            for f in self.filter_length])
 
-        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False).to(device)
-        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False).to(device)
+        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False)
+        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k, bias=False)
 
         self.factor = 1
 
