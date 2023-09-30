@@ -17,20 +17,22 @@ class ATA(nn.Module):
         self.filter_length = [1, 3, 7, 9]
 
         self.conv_list_k = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(d_k*h),
+            nn.Sequential(nn.Conv1d(
+                in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2), device=device),
+                          nn.BatchNorm1d(d_k*h, device=device),
                           nn.ReLU())
             for f in self.filter_length
-            ]).to(device)
+            ])
 
         self.conv_list_q = nn.ModuleList([
-            nn.Sequential(nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2)),
-                          nn.BatchNorm1d(d_k*h),
+            nn.Sequential(
+                nn.Conv1d(in_channels=d_k*h, out_channels=d_k*h, kernel_size=f, padding=int((f-1)/2), device=device),
+                          nn.BatchNorm1d(d_k*h, device=device),
                           nn.ReLU())
             for f in self.filter_length]).to(device)
 
-        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k).to(device)
-        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k).to(device)
+        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k, device=device)
+        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k, device=device)
 
         self.factor = 1
 
