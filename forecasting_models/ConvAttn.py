@@ -26,7 +26,7 @@ class ConvAttn(nn.Module):
                                 kernel_size=kernel,
                                 padding=int(kernel / 2), bias=False).to(device)
 
-    def forward(self, Q, K, V, attn_mask):
+    def forward(self, Q, K, V):
 
         b, h, l, d_k = Q.shape
         l_k = K.shape[2]
