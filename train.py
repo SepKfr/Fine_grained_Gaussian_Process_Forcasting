@@ -228,14 +228,14 @@ with gpytorch.settings.num_likelihood_samples(1):
     def main():
 
         parser = argparse.ArgumentParser(description="preprocess argument parser")
-        parser.add_argument("--attn_type", type=str, default='')
-        parser.add_argument("--model_name", type=str, default="LSTM")
+        parser.add_argument("--attn_type", type=str, default='autoformer')
+        parser.add_argument("--model_name", type=str, default="autoformer")
         parser.add_argument("--exp_name", type=str, default='traffic')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=str, default="False")
-        parser.add_argument("--gp", type=str, default="False")
+        parser.add_argument("--denoising", type=str, default="True")
+        parser.add_argument("--gp", type=str, default="True")
         parser.add_argument("--residual", type=str, default="False")
         parser.add_argument("--no-noise", type=str, default="False")
         parser.add_argument("--input_corrupt_training", type=str, default="False")
