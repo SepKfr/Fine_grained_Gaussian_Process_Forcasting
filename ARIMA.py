@@ -67,6 +67,6 @@ def run_ARIMA(exp_name, pred_len):
         df.to_csv(error_path)
 
 
-for data_set in ["traffic", "electricity", "solar", "air_quality"]:
+for data_set in ["watershed"]:
     for pred_len in [24, 48, 96, 192]:
         run_ARIMA(data_set, pred_len)
