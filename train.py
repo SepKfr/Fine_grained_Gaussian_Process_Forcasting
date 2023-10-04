@@ -22,7 +22,7 @@ torch.autograd.set_detect_anomaly(True)
 
 with gpytorch.settings.num_likelihood_samples(1):
     class Train:
-        def __init__(self, data, args, pred_len):
+        def __init__(self, data, args, pred_len, seed):
 
             config = ExperimentConfig(pred_len, args.exp_name)
             self.denoising = True if args.denoising == "True" else False
@@ -39,7 +39,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.num_encoder_steps = self.params['num_encoder_steps']
             self.column_definition = self.params["column_definition"]
             self.pred_len = pred_len
-            self.seed = args.seed
+            self.seed = seed
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
             self.model_params = self.formatter.get_default_model_params()
@@ -244,15 +244,16 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         args = parser.parse_args()
 
-        np.random.seed(args.seed)
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-
         data_csv_path = "{}.csv".format(args.exp_name)
         raw_data = pd.read_csv(data_csv_path, dtype={'date': str})
 
-        for pred_len in [24, 48, 72, 96]:
-            Train(raw_data, args, pred_len)
+        seeds = [random.randint(1000, 9999) for _ in range(3)]
+        for seed in seeds:
+            np.random.seed(seed)
+            random.seed(seed)
+            torch.manual_seed(seed)
+            for pred_len in [24, 48, 72, 96]:
+                Train(raw_data, args, pred_len, seed)
 
 
     if __name__ == '__main__':
