@@ -13,7 +13,8 @@ def run_ARIMA(exp_name, pred_len):
                   "electricity": "power_usage",
                   "exchange": "value",
                   "solar": "Power(MW)",
-                  "air_quality": "NO2"
+                  "air_quality": "NO2",
+                  "watershed": "Conductivity"
                   }
 
     dataloader_obj = DataLoader(exp_name,

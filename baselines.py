@@ -47,7 +47,8 @@ class Baselines:
                       "electricity": "power_usage",
                       "exchange": "value",
                       "solar": "Power(MW)",
-                      "air_quality": "NO2"
+                      "air_quality": "NO2",
+                      "watershed": "Conductivity"
                       }
 
         self.model_id = args.model_name
@@ -290,11 +291,11 @@ parser.add_argument("--seed", type=int, default=2021)
 args = parser.parse_args()
 
 random.seed(2021)
-seeds = [random.randint(1000, 9999) for _ in range(2)]
+seeds = [random.randint(1000, 9999) for _ in range(3)]
 
 for seed in seeds:
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
-    for pred_len in [24, 48, 72, 96]:
+    for pred_len in [96]:
         baseline = Baselines(args, pred_len, seed)
