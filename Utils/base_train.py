@@ -26,15 +26,6 @@ from torch.utils.data import TensorDataset
 InputTypes = base.InputTypes
 
 
-class ModelData:
-
-    def __init__(self, enc, dec, y_true, y_id, device):
-        self.enc = enc.to(device)
-        self.dec = dec.to(device)
-        self.y_true = y_true.to(device)
-        self.y_id = y_id
-
-
 def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_len, column_definition, tgt_all=False):
 
     id_col = utils.get_single_col_by_input_type(InputTypes.ID, column_definition)
@@ -161,20 +152,3 @@ def batch_sampled_data(data, train_percent, max_samples, time_steps,
 
     return train_data, valid_data, test_data
 
-
-def inverse_output(predictions, outputs, test_id):
-
-    def format_outputs(preds):
-        flat_prediction = pd.DataFrame(
-            preds[:, :, 0],
-            columns=[
-                't+{}'.format(i)
-                for i in range(preds.shape[1])
-            ]
-        )
-        flat_prediction['identifier'] = test_id[:, 0, 0]
-        return flat_prediction
-
-    process_map = {'predictions': format_outputs(predictions.cpu().detach().numpy()),
-                   'targets': format_outputs(outputs.cpu().detach().numpy())}
-    return process_map
