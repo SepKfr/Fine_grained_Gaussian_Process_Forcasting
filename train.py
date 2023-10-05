@@ -213,7 +213,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
             print(errors)
 
-            error_path = "Previous_set_up_Final_errors_{}.csv".format(self.exp_name)
+            error_path = "Long_horizon_Previous_set_up_Final_errors_{}.csv".format(self.exp_name)
 
             df = pd.DataFrame.from_dict(errors, orient='index')
 
@@ -252,7 +252,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [96]:
+            for pred_len in [192, 336, 720]:
                 Train(raw_data, args, pred_len, seed)
 
 
