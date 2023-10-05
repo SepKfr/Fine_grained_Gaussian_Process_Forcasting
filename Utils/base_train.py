@@ -35,27 +35,6 @@ class ModelData:
         self.y_id = y_id
 
 
-def batching(batch_size, x_en, x_de, y_t, test_id):
-
-    batch_n = int(x_en.shape[0] / batch_size)
-    start = 0
-    X_en = torch.zeros(batch_n, batch_size, x_en.shape[1], x_en.shape[2])
-    X_de = torch.zeros(batch_n, batch_size, x_de.shape[1], x_de.shape[2])
-    Y_t = torch.zeros(batch_n, batch_size, y_t.shape[1], y_t.shape[2])
-    tst_id = np.empty((batch_n, batch_size, test_id.shape[1], x_en.shape[2]), dtype=object)
-    i = 0
-    while start+batch_size <= x_en.shape[0]:
-
-        X_en[i, :, :, :] = x_en[start:start+batch_size, :, :]
-        X_de[i, :, :, :] = x_de[start:start+batch_size, :, :]
-        Y_t[i, :, :, :] = y_t[start:start+batch_size, :, :]
-        tst_id[i, :, :, :] = test_id[start:start+batch_size, :, :]
-        start += batch_size
-        i += 1
-
-    return X_en, X_de, Y_t, tst_id
-
-
 def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_len, column_definition, tgt_all=False):
 
     id_col = utils.get_single_col_by_input_type(InputTypes.ID, column_definition)
