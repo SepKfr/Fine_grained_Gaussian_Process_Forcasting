@@ -44,7 +44,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.len_data = len(data)
 
             self.dataloader_obj = DataLoader(args.exp_name,
-                                             max_encoder_length=96 + pred_len,
+                                             max_encoder_length=192 + pred_len,
                                              target_col=target_col[args.exp_name],
                                              pred_len=pred_len,
                                              max_train_sample=32000,
