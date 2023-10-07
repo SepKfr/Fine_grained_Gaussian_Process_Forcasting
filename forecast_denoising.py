@@ -64,11 +64,10 @@ class Forecast_denoising(nn.Module):
         self.dec_embedding = nn.Linear(tgt_input_size, d_model)
         self.deep_gp = DeepGPp(d_model, seed)
 
-    def forward(self, enc_inputs, dec_inputs, train_y=None):
+    def forward(self, enc_inputs, dec_inputs, y_true=None):
 
         mll_error = 0
         loss = 0
-        y_true = train_y[:, -self.pred_len:, :] if train_y is not None else None
 
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
@@ -84,7 +83,7 @@ class Forecast_denoising(nn.Module):
             if self.gp and self.training:
                 mll = DeepApproximateMLL(
                     VariationalELBO(self.de_model.deep_gp.likelihood, self.de_model.deep_gp, self.d))
-                mll_error = -mll(dist, train_y[:, :-self.pred_len, :].permute(2, 0, 1)).mean()
+                mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
 
             if self.residual:
 
