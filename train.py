@@ -17,21 +17,12 @@ from optuna.trial import TrialState
 from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
-from new_data_loader import DataLoader
 
 torch.autograd.set_detect_anomaly(True)
 
 with gpytorch.settings.num_likelihood_samples(1):
     class Train:
         def __init__(self, data, args, pred_len, seed):
-
-            target_col = {"traffic": "values",
-                          "electricity": "power_usage",
-                          "exchange": "value",
-                          "solar": "Power(MW)",
-                          "air_quality": "NO2",
-                          "watershed": "Conductivity"
-                          }
 
             config = ExperimentConfig(pred_len, args.exp_name)
             self.denoising = True if args.denoising == "True" else False
@@ -42,24 +33,22 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.iso = True if args.iso == "True" else False
             self.data = data
             self.len_data = len(data)
-
-            self.dataloader_obj = DataLoader(args.exp_name,
-                                             max_encoder_length=192 + pred_len,
-                                             target_col=target_col[args.exp_name],
-                                             pred_len=pred_len,
-                                             max_train_sample=32000,
-                                             max_test_sample=3840,
-                                             batch_size=256)
-
+            self.formatter = config.make_data_formatter()
+            self.params = self.formatter.get_experiment_params()
+            self.total_time_steps = self.params['total_time_steps']
+            self.num_encoder_steps = self.params['num_encoder_steps']
+            self.column_definition = self.params["column_definition"]
             self.pred_len = pred_len
             self.seed = seed
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
+            self.model_params = self.formatter.get_default_model_params()
+            self.batch_size = self.model_params['minibatch_size'][0]
             self.attn_type = args.attn_type
             self.criterion = nn.MSELoss()
             self.mae_loss = nn.L1Loss()
             self.num_epochs = args.num_epochs
-            self.model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
+            self.model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                           "_denoise" if self.denoising else "",
                                                           "_gp" if self.gp else "",
                                                           "_predictions" if self.no_noise else "",
@@ -71,8 +60,24 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.param_history = []
             self.exp_name = args.exp_name
             self.best_model = nn.Module()
+            self.train, self.valid, self.test, self.n_batches = self.split_data()
             self.run_optuna(args)
             self.evaluate()
+
+        def split_data(self):
+
+            data = self.formatter.transform_data(self.data)
+
+            train_max, valid_max = self.formatter.get_num_samples_for_calibration()
+            n_batches = int(train_max / self.batch_size)
+            max_samples = (train_max, valid_max)
+
+            train, valid, test = batch_sampled_data(data, 0.8, max_samples, self.params['total_time_steps'],
+                                                    self.params['num_encoder_steps'], self.pred_len,
+                                                    self.params["column_definition"],
+                                                    self.batch_size)
+
+            return train, valid, test, n_batches
 
         def run_optuna(self, args):
 
@@ -99,7 +104,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         def objective(self, trial):
 
-            train_enc, train_dec, train_y = next(iter(self.dataloader_obj.train_loader))
+            train_enc, train_dec, train_y = next(iter(self.train))
 
             src_input_size = train_enc.shape[2]
             tgt_input_size = train_dec.shape[2]
@@ -114,7 +119,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             w_steps = trial.suggest_categorical("w_steps", [1000])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
-            n_heads = 8
+            n_heads = self.model_params['num_heads']
 
             if [d_model, stack_size, w_steps] in self.param_history:
                 raise optuna.exceptions.TrialPruned()
@@ -125,6 +130,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             assert d_model % d_k == 0
 
             config = src_input_size, tgt_input_size, d_model, n_heads, d_k, stack_size
+
+            train_enc, train_dec, _ = next(iter(self.train))
 
             model = Forecast_denoising(model_name=self.model_name,
                                        config=config,
@@ -146,7 +153,7 @@ with gpytorch.settings.num_likelihood_samples(1):
                 total_loss = 0
                 model.train()
 
-                for train_enc, train_dec, train_y in self.dataloader_obj.train_loader:
+                for train_enc, train_dec, train_y in self.train:
 
                     output_fore_den, loss = model(train_enc.to(self.device), train_dec.to(self.device),
                                                   train_y.to(self.device))
@@ -157,7 +164,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
                 model.eval()
                 test_loss = 0
-                for valid_enc, valid_dec, valid_y in self.dataloader_obj.valid_loader:
+                for valid_enc, valid_dec, valid_y in self.valid:
                     output, loss = model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
                     test_loss += loss.item()
 
@@ -179,15 +186,15 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             self.best_model.eval()
 
-            _, _, test_y = next(iter(self.dataloader_obj.test_loader))
-            total_b = len(list(iter(self.dataloader_obj.test_loader)))
+            _, _, test_y = next(iter(self.test))
+            total_b = len(list(iter(self.test)))
 
             predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
             test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
 
             j = 0
 
-            for test_enc, test_dec, test_y in self.dataloader_obj.test_loader:
+            for test_enc, test_dec, test_y in self.test:
                 output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
                 predictions[j] = output.squeeze(-1).cpu().detach().numpy()
                 test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
