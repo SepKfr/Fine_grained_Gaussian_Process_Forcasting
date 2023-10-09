@@ -100,10 +100,11 @@ class WatershedFormatter(DataFormatter):
     def get_fixed_params(self):
         """Returns fixed model parameters for experiments."""
 
+        decoder_steps = 96 if self.pred_len <= 96 else self.pred_len
         fixed_params = {
-            'total_time_steps': 192 + 2 * self.pred_len,
-            'num_encoder_steps': 192,
-            'num_decoder_steps': self.pred_len,
+            'total_time_steps': 96 + decoder_steps + self.pred_len,
+            'num_encoder_steps': 96,
+            'num_decoder_steps': decoder_steps,
             'num_epochs': 50,
             'early_stopping_patience': 5,
             'multiprocessing_workers': 5
