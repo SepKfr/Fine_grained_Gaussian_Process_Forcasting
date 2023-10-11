@@ -252,7 +252,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [96, 192, 336, 720]:
+            for pred_len in [720, 336, 192, 96]:
                 Train(raw_data, args, pred_len, seed)
 
 
