@@ -247,6 +247,8 @@ with gpytorch.settings.num_likelihood_samples(1):
         data_csv_path = "{}.csv".format(args.exp_name)
         raw_data = pd.read_csv(data_csv_path, dtype={'date': str})
 
+        random.seed(1234)
+
         seeds = [random.randint(1000, 9999) for _ in range(3)]
         for seed in seeds:
             np.random.seed(seed)
