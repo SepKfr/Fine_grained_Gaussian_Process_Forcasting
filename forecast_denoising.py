@@ -92,10 +92,10 @@ class Forecast_denoising(nn.Module):
                 final_outputs = forecasting_model_outputs + res_outputs
                 if y_true is not None:
                     residual = y_true - forecasting_model_outputs
-                    loss = nn.MSELoss()(y_true, residual)
+                    loss = nn.HuberLoss()(y_true, residual)
         else:
             final_outputs = forecasting_model_outputs
 
         if y_true is not None:
-            loss = nn.MSELoss()(y_true, final_outputs) + 0.001 * mll_error
+            loss = nn.HuberLoss()(y_true, final_outputs) + 0.001 * mll_error
         return final_outputs, loss
