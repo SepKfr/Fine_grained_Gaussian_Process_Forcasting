@@ -100,7 +100,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
 
                 config = src_input_size, tgt_input_size, d, n_heads, d_k, layer
 
-                model = Forecast_denoising(model_name=args.name,
+                model = Forecast_denoising(model_name=model_name,
                                            config=config,
                                            gp=gp,
                                            denoise=denoising,
