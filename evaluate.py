@@ -1,8 +1,5 @@
 import argparse
-import json
 import random
-from collections import OrderedDict
-
 import gpytorch
 import numpy as np
 import pandas as pd
@@ -24,6 +21,7 @@ parser.add_argument("--dae", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 parser.add_argument("--no_noise", type=str, default="False")
 parser.add_argument("--residual", type=str, default="False")
+parser.add_argument("--iso", type=str, default="False")
 parser.add_argument("--input_corrupt", type=str, default="False")
 
 args = parser.parse_args()
@@ -61,6 +59,7 @@ total_b = len(list(iter(test)))
 model_path = "models_{}_{}".format(args.exp_name, pred_len)
 model_params = formatter.get_default_model_params()
 
+
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
@@ -76,11 +75,20 @@ denoising = True if args.dae == "True" else False
 gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
+iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt == "True" else False
-input_corrupt_iso = True if args.input_corrupt_iso == "True" else False
 
 
 for i, seed in enumerate([8220, 2914, 1122]):
+
+    model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
+                                                "_denoise" if denoising else "",
+                                                "_gp" if gp else "",
+                                                "_predictions" if no_noise else "",
+                                                "_iso" if iso else "",
+                                                "_residual" if residual else "",
+                                                "_input_corrupt" if input_corrupt else "")
+
     for d in d_model:
         for layer in stack_size:
             try:
@@ -105,8 +113,9 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                            input_corrupt=input_corrupt).to(device)
                 model.to(device)
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
-                                        "{}_{}".format(args.name, seed)), map_location=device)
+                print("Successful...")
+
+                checkpoint = torch.load(os.path.join("models_{}".format(model_name)), map_location=device)
 
                 state_dict = checkpoint['model_state_dict']
 
@@ -167,7 +176,7 @@ m_mae_men = torch.mean(mae_std_mean).item() / normaliser
 results = torch.zeros(2, args.pred_len)
 
 
-test_loss = mse(predictions_mean, test_y_tot).item() / normaliser
+mse_loss = mse(predictions_mean, test_y_tot).item() / normaliser
 mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 
 
@@ -183,23 +192,23 @@ if not os.path.exists("predictions"):
 
 df.to_csv(os.path.join("predictions", "{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len)))
 
-erros = dict()
-erros["{}".format(args.name)] = list()
-erros["{}".format(args.name)].append(float("{:.3f}".format(test_loss)))
-erros["{}".format(args.name)].append(float("{:.3f}".format(mae_loss)))
+model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
+                                                "_denoise" if denoising else "",
+                                                "_gp" if gp else "",
+                                                "_predictions" if no_noise else "",
+                                                "_iso" if iso else "",
+                                                "_residual" if residual else "",
+                                                "_input_corrupt" if input_corrupt else "")
 
-error_path = "Final_final_errors_{}_{}.json".format(args.exp_name, pred_len)
+error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
+errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+
+df = pd.DataFrame.from_dict(errors, orient='index')
 
 if os.path.exists(error_path):
-    with open(error_path) as json_file:
-        json_dat = json.load(json_file)
-        if json_dat.get("{}".format(args.name)) is None:
-            json_dat["{}".format(args.name)] = list()
-        json_dat["{}".format(args.name)].append(float("{:.3f}".format(test_loss)))
-        json_dat["{}".format(args.name)].append(float("{:.3f}".format(mae_loss)))
 
-    with open(error_path, "w") as json_file:
-        json.dump(json_dat, json_file)
+    df_old = pd.read_csv(error_path)
+    df_new = pd.concat([df_old, df], axis=0)
+    df_new.to_csv(error_path)
 else:
-    with open(error_path, "w") as json_file:
-        json.dump(erros, json_file)
+    df.to_csv(error_path)
