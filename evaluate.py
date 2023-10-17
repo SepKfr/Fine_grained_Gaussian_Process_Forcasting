@@ -17,12 +17,12 @@ parser.add_argument("--model_name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='autoformer')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
-parser.add_argument("--dae", type=str, default="False")
+parser.add_argument("--denoising", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
-parser.add_argument("--no_noise", type=str, default="False")
+parser.add_argument("--no-noise", type=str, default="False")
 parser.add_argument("--residual", type=str, default="False")
 parser.add_argument("--iso", type=str, default="False")
-parser.add_argument("--input_corrupt", type=str, default="False")
+parser.add_argument("--input_corrupt_training", type=str, default="False")
 
 args = parser.parse_args()
 
@@ -76,7 +76,7 @@ gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
 residual = True if args.residual == "True" else False
 iso = True if args.iso == "True" else False
-input_corrupt = True if args.input_corrupt == "True" else False
+input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
 for i, seed in enumerate([8220, 2914, 1122]):
