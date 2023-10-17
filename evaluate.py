@@ -15,9 +15,9 @@ from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
-parser.add_argument("--attn_type", type=str, default='KittyCat')
-parser.add_argument("--name", type=str, default='KittyCat')
-parser.add_argument("--exp_name", type=str, default='traffic')
+parser.add_argument("--attn_type", type=str, default='autoformer')
+parser.add_argument("--name", type=str, default='autoformer')
+parser.add_argument("--exp_name", type=str, default='autoformer')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--dae", type=str, default="False")
@@ -25,13 +25,12 @@ parser.add_argument("--gp", type=str, default="False")
 parser.add_argument("--no_noise", type=str, default="False")
 parser.add_argument("--residual", type=str, default="False")
 parser.add_argument("--input_corrupt", type=str, default="False")
-parser.add_argument("--input_corrupt_iso", type=str, default="False")
 
 args = parser.parse_args()
 
 kernel = [9]
 n_heads = 8
-d_model = [32]
+d_model = [16, 32]
 batch_size = 256
 
 config = ExperimentConfig(args.pred_len, args.exp_name)
@@ -81,7 +80,7 @@ input_corrupt = True if args.input_corrupt == "True" else False
 input_corrupt_iso = True if args.input_corrupt_iso == "True" else False
 
 
-for i, seed in enumerate([7631, 9873, 5249]):
+for i, seed in enumerate([8220, 2914, 1122]):
     for d in d_model:
         for layer in stack_size:
             try:
@@ -103,26 +102,13 @@ for i, seed in enumerate([7631, 9873, 5249]):
                                            attn_type=args.attn_type,
                                            no_noise=no_noise,
                                            residual=residual,
-                                           input_corrupt=input_corrupt,
-                                           input_corrupt_iso=input_corrupt_iso).to(device)
+                                           input_corrupt=input_corrupt).to(device)
                 model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
                                         "{}_{}".format(args.name, seed)), map_location=device)
 
-                if gp:
-                    state_dict = checkpoint['model_state_dict']
-                else:
-                    state_dict = checkpoint['model_state_dict']
-                    new_state_dict = OrderedDict()
-                    for key, value in state_dict.items():
-
-                        if "deep_gp" not in key:
-                            if "mean_proj" not in key:
-                                if "proj_up" not in key:
-                                    new_state_dict[key] = value
-
-                    state_dict = new_state_dict
+                state_dict = checkpoint['model_state_dict']
 
                 model.load_state_dict(state_dict)
 
