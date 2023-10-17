@@ -10,6 +10,7 @@ from forecasting_models.LSTM import RNN
 from modules.transformer import Transformer
 torch.autograd.set_detect_anomaly(True)
 
+
 class Forecast_denoising(nn.Module):
     def __init__(self, model_name:str, config: tuple, gp: bool,
                  denoise: bool, device: torch.device,
@@ -92,10 +93,10 @@ class Forecast_denoising(nn.Module):
                 final_outputs = forecasting_model_outputs + res_outputs
                 if y_true is not None:
                     residual = y_true - forecasting_model_outputs
-                    loss = nn.HuberLoss()(y_true, residual)
+                    loss = nn.MSELoss()(y_true, residual)
         else:
             final_outputs = forecasting_model_outputs
 
         if y_true is not None:
-            loss = nn.HuberLoss()(y_true, final_outputs) + 0.001 * mll_error
+            loss = nn.MSELoss()(y_true, final_outputs) + 0.001 * mll_error
         return final_outputs, loss
