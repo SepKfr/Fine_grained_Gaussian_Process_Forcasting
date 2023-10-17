@@ -197,8 +197,8 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_input_corrupt" if input_corrupt else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"},
-                       'MSE_std': f"{std_mse:.4f}", 'MAE_std': f"{std_mae: .4f}"}
+errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
+                       'MSE_std': f"{std_mse:.4f}", 'MAE_std': f"{std_mae: .4f}"}}
 
 df = pd.DataFrame.from_dict(errors, orient='index')
 
