@@ -115,7 +115,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
 
                 print("Successful...")
 
-                checkpoint = torch.load(os.path.join("models_{}".format(model_name)), map_location=device)
+                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len)), map_location=device)
 
                 state_dict = checkpoint['model_state_dict']
 
