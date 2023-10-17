@@ -13,7 +13,7 @@ from forecast_denoising import Forecast_denoising
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--attn_type", type=str, default='autoformer')
-parser.add_argument("--name", type=str, default='autoformer')
+parser.add_argument("--model_name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='autoformer')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
