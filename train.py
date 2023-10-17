@@ -178,7 +178,7 @@ with gpytorch.settings.num_likelihood_samples(1):
                         self.best_val = val_loss
                         self.best_model = model
                         torch.save({'model_state_dict': self.best_model.state_dict()},
-                                   os.path.join(self.model_path, "{}_{}".format(self.model_name, self.seed)))
+                                   os.path.join(self.model_path, "{}".format(self.model_name)))
 
             return val_loss
 

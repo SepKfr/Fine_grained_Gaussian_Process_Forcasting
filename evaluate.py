@@ -113,7 +113,8 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                            input_corrupt=input_corrupt).to(device)
                 model.to(device)
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len), model_name), map_location=device)
+                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
+                                                     "{}_{}".format(model_name, seed)), map_location=device)
 
                 state_dict = checkpoint['model_state_dict']
 
