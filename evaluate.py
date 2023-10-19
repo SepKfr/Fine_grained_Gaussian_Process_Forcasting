@@ -141,23 +141,21 @@ for i, seed in enumerate([8220, 2914, 1122]):
                 pass
 
 
-mse_std_mean = torch.zeros(3)
-mae_std_mean = torch.zeros(3)
-
-predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
+mse_std_mean = torch.zeros(pred_len)
+mae_std_mean = torch.zeros(pred_len)
 
 predictions = torch.from_numpy(predictions)
 
-for i in range(3):
-    mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
-    mae_std_mean[i] = mae(predictions[i, :], test_y_tot)
+for i in range(pred_len):
+    mse_std_mean[i] = mse(predictions[i], test_y_tot[i])
+    mae_std_mean[i] = mae(predictions[i], test_y_tot[i])
 
-normaliser = test_y_tot.abs().mean()
+#normaliser = test_y_tot.abs().mean()
 
-mse_std = mse_std_mean.std(dim=0) / np.sqrt(3)
-mae_std = mae_std_mean.std(dim=0) / np.sqrt(3)
-m_mse_men = torch.mean(mse_std_mean).item() / normaliser
-m_mae_men = torch.mean(mae_std_mean).item() / normaliser
+mse_std = mse_std_mean.std(dim=0) / np.sqrt(pred_len)
+mae_std = mae_std_mean.std(dim=0) / np.sqrt(pred_len)
+m_mse_men = torch.mean(mse_std_mean).item()
+m_mae_men = torch.mean(mae_std_mean).item()
 
 
 # for i in range(3):
@@ -174,20 +172,6 @@ m_mae_men = torch.mean(mae_std_mean).item() / normaliser
 # mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
 # mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
 
-results = torch.zeros(2, args.pred_len)
-
-
-mse_loss = mse(predictions_mean, test_y_tot).item() / normaliser
-mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-
-
-for j in range(args.pred_len):
-
-    results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
-    results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
-
-std_mse = results[0].std() / np.sqrt(3)
-std_mae = results[1].std() / np.sqrt(3)
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                 "_denoise" if denoising else "",
                                                 "_gp" if gp else "",
@@ -197,8 +181,8 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_input_corrupt" if input_corrupt else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
-                       'MSE_std': f"{std_mse:.4f}", 'MAE_std': f"{std_mae: .4f}"}}
+errors = {model_name: {'MSE': f"{m_mse_men:.3f}", 'MAE': f"{m_mae_men: .3f}",
+                       'MSE_std': f"{mse_std:.4f}", 'MAE_std': f"{mae_std: .4f}"}}
 
 df = pd.DataFrame.from_dict(errors, orient='index')
 
