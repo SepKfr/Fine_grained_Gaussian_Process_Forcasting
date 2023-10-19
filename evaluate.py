@@ -148,8 +148,8 @@ predictions = torch.from_numpy(predictions)
 predictions = torch.mean(predictions, dim=0)
 
 for i in range(pred_len):
-    mse_std_mean[i] = mse(predictions[i], test_y_tot[i])
-    mae_std_mean[i] = mae(predictions[i], test_y_tot[i])
+    mse_std_mean[i] = mse(predictions[:, :, i], test_y_tot[:, :, i])
+    mae_std_mean[i] = mae(predictions[:, :, i], test_y_tot[:, :, i])
 
 #normaliser = test_y_tot.abs().mean()
 
