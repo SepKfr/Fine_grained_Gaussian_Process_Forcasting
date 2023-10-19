@@ -145,7 +145,7 @@ mse_std_mean = torch.zeros(pred_len)
 mae_std_mean = torch.zeros(pred_len)
 
 predictions = torch.from_numpy(predictions)
-predictions = predictions.mean(dim=0)
+predictions = torch.mean(predictions, dim=0)
 
 for i in range(pred_len):
     mse_std_mean[i] = mse(predictions[i], test_y_tot[i])
