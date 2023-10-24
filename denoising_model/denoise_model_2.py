@@ -35,7 +35,7 @@ class denoise_model_2(nn.Module):
 
         dist = self.deep_gp(x)
         eps_gp = self.proj_1(dist.sample().permute(1, 2, 0))
-        x_noisy = self.norm(x + eps_gp)
+        x_noisy = x + eps_gp
 
         return x_noisy, dist
 
@@ -61,6 +61,6 @@ class denoise_model_2(nn.Module):
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        dec_output = self.norm(dec_inputs + dec_rec)
+        dec_output = dec_inputs + dec_rec
 
         return dec_output, dist
