@@ -22,7 +22,7 @@ parser.add_argument("--gp", type=lambda x: str(x).lower() == 'true', default="Fa
 parser.add_argument("--no-noise", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--residual", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--iso", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--input_corrupt", type=lambda x: str(x).lower() == 'true', default="False")
+parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == 'true', default="False")
 
 args = parser.parse_args()
 
@@ -80,7 +80,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                                 "_predictions" if args.no_noise else "",
                                                 "_iso" if args.iso else "",
                                                 "_residual" if args.residual else "",
-                                                "_input_corrupt" if args.input_corrupt else "")
+                                                "_input_corrupt" if args.input_corrupt_training else "")
 
     for d in d_model:
         for layer in stack_size:
@@ -103,7 +103,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                            attn_type=args.attn_type,
                                            no_noise=args.no_noise,
                                            residual=args.residual,
-                                           input_corrupt=args.input_corrupt).to(device)
+                                           input_corrupt=args.input_corrupt_training).to(device)
                 model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
