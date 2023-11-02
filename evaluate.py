@@ -174,7 +174,7 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_predictions" if args.no_noise else "",
                                                 "_iso" if args.iso else "",
                                                 "_residual" if args.residual else "",
-                                                "_input_corrupt" if args.input_corrupt else "")
+                                                "_input_corrupt" if args.input_corrupt_training else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_v2_{}.csv".format(args.exp_name)
 errors = {model_name: {'MSE': f"{m_mse_men:.3f}", 'MAE': f"{m_mae_men: .3f}",
