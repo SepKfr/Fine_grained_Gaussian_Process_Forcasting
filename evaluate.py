@@ -22,7 +22,7 @@ parser.add_argument("--gp", type=lambda x: str(x).lower() == 'true', default="Fa
 parser.add_argument("--no-noise", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--residual", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--iso", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == 'true', default="False")
+parser.add_argument("--input_corrupt", type=lambda x: str(x).lower() == 'true', default="False")
 
 args = parser.parse_args()
 
