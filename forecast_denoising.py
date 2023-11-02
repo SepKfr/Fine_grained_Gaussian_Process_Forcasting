@@ -76,7 +76,7 @@ class Forecast_denoising(nn.Module):
         enc_outputs, dec_outputs = self.forecasting_model(enc_inputs, dec_inputs)
         forecasting_model_outputs = self.final_projection(dec_outputs[:, -self.pred_len:, :])
 
-        if self.denoise:
+        if self.denoise or (self.input_corrupt and self.training):
 
             de_model_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
             final_outputs = self.final_projection(de_model_outputs[:, -self.pred_len:, :])

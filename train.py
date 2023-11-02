@@ -1,18 +1,15 @@
 import gpytorch
-from gpytorch.mlls import DeepApproximateMLL, VariationalELBO
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
 import numpy as np
 import torch
 import argparse
-import json
 import os
 import torch.nn.functional as F
 import random
 import pandas as pd
 import optuna
-from optuna.samplers import TPESampler
 from optuna.trial import TrialState
 from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
@@ -25,12 +22,12 @@ with gpytorch.settings.num_likelihood_samples(1):
         def __init__(self, data, args, pred_len, seed):
 
             config = ExperimentConfig(pred_len, args.exp_name)
-            self.denoising = True if args.denoising == "True" else False
-            self.gp = True if args.gp == "True" else False
-            self.no_noise = True if args.no_noise == "True" else False
-            self.residual = True if args.residual == "True" else False
-            self.input_corrupt = True if args.input_corrupt_training == "True" else False
-            self.iso = True if args.iso == "True" else False
+            self.input_corrupt = args.input_corrupt_training
+            self.denoising = args.denoising if not self.input_corrupt else False
+            self.gp = args.gp
+            self.no_noise = args.no_noise
+            self.residual = args.residual
+            self.iso = args.iso
             self.data = data
             self.len_data = len(data)
             self.formatter = config.make_data_formatter()
@@ -49,12 +46,12 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.mae_loss = nn.L1Loss()
             self.num_epochs = args.num_epochs
             self.model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
-                                                          "_denoise" if self.denoising else "",
-                                                          "_gp" if self.gp else "",
-                                                          "_predictions" if self.no_noise else "",
-                                                          "_iso" if self.iso else "",
-                                                          "_residual" if self.residual else "",
-                                                          "_input_corrupt" if self.input_corrupt else "")
+                                                              "_denoise" if self.denoising else "",
+                                                              "_gp" if self.gp else "",
+                                                              "_predictions" if self.no_noise else "",
+                                                              "_iso" if self.iso else "",
+                                                              "_residual" if self.residual else "",
+                                                              "_input_corrupt" if self.input_corrupt else "")
             self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
             self.best_val = 1e10
             self.param_history = []
@@ -233,12 +230,12 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=str, default="True")
-        parser.add_argument("--gp", type=str, default="True")
-        parser.add_argument("--residual", type=str, default="False")
-        parser.add_argument("--no-noise", type=str, default="False")
-        parser.add_argument("--input_corrupt_training", type=str, default="False")
-        parser.add_argument("--iso", type=str, default="False")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--iso", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--num_epochs", type=int, default=1)
 
         args = parser.parse_args()
