@@ -69,7 +69,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             n_batches = int(train_max / self.batch_size)
             max_samples = (train_max, valid_max)
 
-            train, valid, test = batch_sampled_data(data, 0.8, max_samples, self.params['total_time_steps'],
+            train, valid, test = batch_sampled_data(data, 0.8 if not self.exp_name == "exchange" else 0.4,
+                                                    max_samples, self.params['total_time_steps'],
                                                     self.params['num_encoder_steps'], self.pred_len,
                                                     self.params["column_definition"],
                                                     self.batch_size)
@@ -226,12 +227,12 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser = argparse.ArgumentParser(description="preprocess argument parser")
         parser.add_argument("--attn_type", type=str, default='autoformer')
         parser.add_argument("--model_name", type=str, default="autoformer")
-        parser.add_argument("--exp_name", type=str, default='traffic')
+        parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
-        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")

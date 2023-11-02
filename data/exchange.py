@@ -25,8 +25,14 @@ class ExchangeFormatter(DataFormatter):
 
     _column_definition = [
         ('hours_from_start', DataTypes.REAL_VALUED, InputTypes.TIME),
-        ('Value', DataTypes.REAL_VALUED, InputTypes.TARGET),
+        ('OT', DataTypes.REAL_VALUED, InputTypes.TARGET),
         ('hour', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('0', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('1', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('2', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('3', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('4', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+        ('5', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('day_of_week', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('id', DataTypes.REAL_VALUED, InputTypes.ID),
         ('categorical_id', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
@@ -37,7 +43,7 @@ class ExchangeFormatter(DataFormatter):
 
         model_params = {
             'hidden_layer_size': [8],
-            'minibatch_size': [256],
+            'minibatch_size': [128],
             'num_heads': 8,
             'stack_size': [1],
             'context_lengths': [1, 3, 6, 9]

@@ -29,13 +29,13 @@ import glob
 from tqdm import tqdm
 
 
-from data import air_quality, electricity, traffic, watershed, solar
+from data import air_quality, electricity, traffic, watershed, solar, exchange
 
 
 class ExperimentConfig(object):
     default_experiments = ['electricity', 'traffic', 'air_quality', 'camel',
                            'favorita', 'watershed', 'solar', 'ETTm2', 'weather',
-                           'covid']
+                           'covid', "exchange"]
 
     def __init__(self, pred_len=24, experiment='covid', root_folder=None):
 
@@ -70,7 +70,8 @@ class ExperimentConfig(object):
             'ETTm2': 'ETT.csv',
             'weather': 'weather.csv',
             'camel': 'camel.csv',
-            'covid': 'covid.csv'
+            'covid': 'covid.csv',
+            'exchange': 'exchange.csv'
         }
 
         return os.path.join(self.data_folder, csv_map[self.experiment])
@@ -86,7 +87,8 @@ class ExperimentConfig(object):
             'traffic': traffic.TrafficFormatter,
             'air_quality': air_quality.AirQualityFormatter,
             'watershed': watershed.WatershedFormatter,
-            'solar': solar.SolarFormatter
+            'solar': solar.SolarFormatter,
+            'exchange': exchange.ExchangeFormatter
         }
 
         return data_formatter_class[self.experiment](self.pred_len)
@@ -435,6 +437,27 @@ def process_covid(args):
     df_f.to_csv("covid.csv")
 
     print('Done.')
+
+
+def process_exchange(args):
+
+    exchange = pd.read_csv("~/Downloads/exchange_rate.csv")
+    start_date = pd.to_datetime('1990-01-01')
+    date_range = pd.date_range(start=start_date, periods=len(exchange))
+    exchange["Date"] = date_range
+    exchange.index = exchange["Date"]
+    exchange.sort_index(inplace=True)
+    earliest_time = exchange.index.min()
+    date = exchange.index
+
+    exchange['day_of_week'] = date.dayofweek
+    exchange['hour'] = date.hour
+    exchange['hours_from_start'] = (date - earliest_time).seconds / 60 / 60 + (
+            date - earliest_time).days * 24
+    exchange['days_from_start'] = (date - earliest_time).days
+    exchange['categorical_id'] = 1
+    exchange['id'] = 1
+    exchange.to_csv("exchange.csv")
 
 
 def download_solar(args):
@@ -878,7 +901,8 @@ def main(expt_name, force_download, output_folder):
         'ETTm2': download_ett,
         'weather': download_weather,
         'camel': download_camel,
-        'covid': process_covid
+        'covid': process_covid,
+        'exchange': process_exchange
     }
 
     if expt_name not in download_functions:
