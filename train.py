@@ -45,7 +45,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.criterion = nn.MSELoss()
             self.mae_loss = nn.L1Loss()
             self.num_epochs = args.num_epochs
-            self.model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
+            self.model_name = "{}_{}_{}_{}{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                               "_denoise" if self.denoising else "",
                                                               "_gp" if self.gp else "",
                                                               "_predictions" if self.no_noise else "",
