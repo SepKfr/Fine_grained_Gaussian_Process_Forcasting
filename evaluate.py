@@ -22,7 +22,7 @@ parser.add_argument("--gp", type=lambda x: str(x).lower() == 'true', default="Fa
 parser.add_argument("--no-noise", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--residual", type=lambda x: str(x).lower() == 'true', default="False")
 parser.add_argument("--iso", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == 'true', default="False")
+parser.add_argument("--input_corrupt", type=lambda x: str(x).lower() == 'true', default="False")
 
 args = parser.parse_args()
 
@@ -80,7 +80,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                                 "_predictions" if args.no_noise else "",
                                                 "_iso" if args.iso else "",
                                                 "_residual" if args.residual else "",
-                                                "_input_corrupt" if args.input_corrupt_training else "")
+                                                "_input_corrupt" if args.input_corrupt else "")
 
     for d in d_model:
         for layer in stack_size:
@@ -103,7 +103,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
                                            attn_type=args.attn_type,
                                            no_noise=args.no_noise,
                                            residual=args.residual,
-                                           input_corrupt=args.input_corrupt_training).to(device)
+                                           input_corrupt=args.input_corrupt).to(device)
                 model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
@@ -139,34 +139,19 @@ mae_std_mean = torch.zeros(3, pred_len)
 
 predictions = torch.from_numpy(predictions)
 
-for j in range(3):
-    for i in range(pred_len):
-        mse_std_mean[j, i] = mse(predictions[j, :, :, i], test_y_tot[:, :, i])
-        mae_std_mean[j, i] = mae(predictions[j, :, :, i], test_y_tot[:, :, i])
 
-#normaliser = test_y_tot.abs().mean()
-
-mse_std_mean = torch.mean(mse_std_mean, dim=0)
-mae_std_mean = torch.mean(mae_std_mean, dim=0)
-mse_std = mse_std_mean.std() / np.sqrt(pred_len)
-mae_std = mae_std_mean.std() / np.sqrt(pred_len)
-m_mse_men = torch.mean(mse_std_mean).item()
-m_mae_men = torch.mean(mae_std_mean).item()
+for i in range(3):
+    for j in range(args.pred_len):
+        mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+        mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 
-# for i in range(3):
-#     for j in range(args.pred_len):
-#         mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-#         mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-
-
-
-# mse_mean = mse_std_mean.mean(dim=0)
-# m_mse_men = torch.mean(mse_mean).item() / normaliser
-# mae_mean = mae_std_mean.mean(dim=0)
-# m_mae_men = torch.mean(mae_mean).item() / normaliser
-# mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
-# mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
+mse_mean = mse_std_mean.mean(dim=0)
+m_mse_men = torch.mean(mse_mean).item()
+mae_mean = mae_std_mean.mean(dim=0)
+m_mae_men = torch.mean(mae_mean).item()
+mse_std = torch.mean(mse_mean.std(dim=0)).item() / np.sqrt(pred_len)
+mae_std = torch.mean(mae_mean.std(dim=0)).item() / np.sqrt(pred_len)
 
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                 "_denoise" if args.denoising else "",
@@ -174,7 +159,7 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_predictions" if args.no_noise else "",
                                                 "_iso" if args.iso else "",
                                                 "_residual" if args.residual else "",
-                                                "_input_corrupt" if args.input_corrupt_training else "")
+                                                "_input_corrupt" if args.input_corrupt else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_v2_{}.csv".format(args.exp_name)
 errors = {model_name: {'MSE': f"{m_mse_men:.3f}", 'MAE': f"{m_mae_men: .3f}",
