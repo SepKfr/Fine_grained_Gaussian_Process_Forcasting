@@ -193,6 +193,6 @@ for key in mses.keys():
     plt.axvline(x=total_steps - pred_len, color="black")
     plt.legend([r"${Y}^{*}$", "GP:MSE={:.3f}".format(loss_tuple[0])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "GP")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "GP")), dpi=1000)
     plt.close()
 
