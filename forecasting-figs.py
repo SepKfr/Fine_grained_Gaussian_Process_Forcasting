@@ -166,7 +166,7 @@ for j in range(total_b*batch_size):
 
 inds.sort(reverse=True)
 
-n = min(5, len(inds))
+n = (len(inds))
 
 direc = os.path.join("prediction_plots_3", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
