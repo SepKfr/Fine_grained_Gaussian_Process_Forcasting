@@ -98,15 +98,15 @@ def get_pred_tgt(denoise, gp, iso):
 
                     model = Forecast_denoising(model_name=model_name,
                                                config=config,
-                                               gp=args.gp,
+                                               gp=gp,
                                                denoise=args.denoising,
                                                device=device,
                                                seed=seed,
                                                pred_len=pred_len,
                                                attn_type=args.attn_type,
-                                               no_noise=args.no_noise,
-                                               residual=args.residual,
-                                               input_corrupt=args.input_corrupt_training).to(device)
+                                               no_noise=False,
+                                               residual=False,
+                                               input_corrupt=False).to(device)
                     model.to(device)
 
                     checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
