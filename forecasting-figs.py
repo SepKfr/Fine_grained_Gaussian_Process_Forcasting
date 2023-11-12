@@ -146,7 +146,6 @@ preds, _ = get_pred_tgt(False, False, False)
 
 
 diff_1 = 0
-inds = []
 mses = dict()
 best_loss = 1e10
 
@@ -161,38 +160,36 @@ for j in range(total_b*batch_size):
         if best_loss < random_loss and best_loss < pred_loss:
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
-            inds.append(j)
 
 
-inds.sort(reverse=True)
+mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 
-n = (len(inds))
 
 direc = os.path.join("prediction_plots_3", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
-for i in range(0, n):
+for key in mses.keys():
 
-    loss_tuple = mses.get(inds[i])
+    loss_tuple = mses.get(key)
 
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
-    plt.plot(np.arange(total_steps - pred_len, total_steps), preds[inds[i]], color="lime", alpha=0.5)
+    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds[key], color="lime", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
     plt.legend([r"${Y}^{*}$", "No:MSE={:.3f}".format(loss_tuple[-1])])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "No")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
-    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[inds[i]], color="orchid", alpha=0.5)
+    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[key], color="orchid", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
     plt.legend([r"${Y}^{*}$", "Iso:MSE={:.3f}".format(loss_tuple[1])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "iso")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "iso")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(total_steps), tgt[inds[i]], color="gray")
-    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_gp[inds[i]], color="darkblue", alpha=0.5)
+    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), preds_gp[key], color="darkblue", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black")
     plt.legend([r"${Y}^{*}$", "GP:MSE={:.3f}".format(loss_tuple[0])])
     plt.tight_layout()
