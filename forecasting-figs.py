@@ -122,7 +122,7 @@ def get_pred_tgt(denoise, gp, iso):
 
                     j = 0
                     for test_enc, test_dec, test_y in test:
-                        if args.gp:
+                        if gp:
                             with gpytorch.settings.num_likelihood_samples(1):
                                 output, _ = model(test_enc.to(device), test_dec.to(device))
                         else:
