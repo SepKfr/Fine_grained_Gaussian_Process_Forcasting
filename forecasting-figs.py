@@ -177,7 +177,7 @@ for key in mses.keys():
     plt.axvline(x=total_steps - pred_len, color="black")
     plt.legend([r"${Y}^{*}$", "No:MSE={:.3f}".format(loss_tuple[-1])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(i, "No")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "No")), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(total_steps), tgt[key], color="gray")
