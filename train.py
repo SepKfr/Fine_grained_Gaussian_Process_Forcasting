@@ -251,7 +251,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [24, 48, 72]:
+            for pred_len in [24, 48, 72, 96]:
                 Train(raw_data, args, pred_len, seed)
 
 
