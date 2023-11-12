@@ -157,8 +157,8 @@ for j in range(total_b*batch_size):
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
     if gp_loss < best_loss:
-        if gp_loss < random_loss and gp_loss < pred_loss:
-            best_loss = gp_loss
+        best_loss = gp_loss
+        if best_loss < random_loss and best_loss < pred_loss:
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
             inds.append(j)
