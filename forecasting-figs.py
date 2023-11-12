@@ -140,9 +140,9 @@ def get_pred_tgt(denoise, gp, iso):
         return preds.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
 
-preds_gp, tgt = get_pred_tgt(True, True, "{}_gp".format(args.name))
-preds_random, _ = get_pred_tgt(True, False, "{}_random".format(args.name))
-preds, _ = get_pred_tgt(False, False, "{}".format(args.name))
+preds_gp, tgt = get_pred_tgt(True, True, False)
+preds_random, _ = get_pred_tgt(True, False, True)
+preds, _ = get_pred_tgt(False, False, False)
 
 
 diff_1 = 0
