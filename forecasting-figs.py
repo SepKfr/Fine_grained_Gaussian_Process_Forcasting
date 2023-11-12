@@ -141,7 +141,7 @@ def get_pred_tgt(denoise, gp, iso):
 
 
 preds_gp, tgt = get_pred_tgt(True, True, False)
-preds_random, _ = get_pred_tgt(True, False, True)
+preds_random, _= get_pred_tgt(True, False, True)
 preds, _ = get_pred_tgt(False, False, False)
 
 
@@ -168,7 +168,7 @@ inds.sort(reverse=True)
 
 n = min(5, len(inds))
 
-direc = os.path.join("prediction_plots_3", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.name))
+direc = os.path.join("prediction_plots_3", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
 for i in range(0, n):
