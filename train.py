@@ -145,26 +145,33 @@ with gpytorch.settings.num_likelihood_samples(1):
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
             val_loss = 1e10
+            mse_losses_train = []
+            mse_losses_valid = []
             for epoch in range(self.num_epochs):
 
                 total_loss = 0
+                total_loss_mse = 0
                 model.train()
 
                 for train_enc, train_dec, train_y in self.train:
 
-                    output_fore_den, loss = model(train_enc.to(self.device), train_dec.to(self.device),
+                    output_fore_den, loss, mse_loss_train = model(train_enc.to(self.device), train_dec.to(self.device),
                                                   train_y.to(self.device))
                     total_loss += loss.item()
+                    total_loss_mse += mse_loss_train.item()
+                    mse_losses_train.append(total_loss_mse)
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step_and_update_lr()
 
                 model.eval()
                 test_loss = 0
+                test_loss_mse=0
                 for valid_enc, valid_dec, valid_y in self.valid:
-                    output, loss = model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
+                    output, loss, mse_loss_val = model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
                     test_loss += loss.item()
-
+                    test_loss_mse += mse_loss_val.item()
+                    mse_losses_valid.append(test_loss_mse)
                 if epoch % 5 == 0:
                     print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
                     print("val loss: {:.4f}".format(test_loss))
@@ -176,6 +183,12 @@ with gpytorch.settings.num_likelihood_samples(1):
                         self.best_model = model
                         torch.save({'model_state_dict': self.best_model.state_dict()},
                                    os.path.join(self.model_path, "{}".format(self.model_name)))
+                path_t_losses = "losses_lists"
+                if not os.path.exists(path_t_losses):
+                    os.makedirs(path_t_losses)
+
+                np.save(os.path.join(path_t_losses, "{}_mse_losses_train.npy".format(self.model_name)), mse_losses_train)
+                np.save(os.path.join(path_t_losses, "{}_mse_losses_valid.npy".format(self.model_name)), mse_losses_valid)
 
             return val_loss
 
@@ -192,7 +205,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             j = 0
 
             for test_enc, test_dec, test_y in self.test:
-                output, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
                 predictions[j] = output.squeeze(-1).cpu().detach().numpy()
                 test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
                 j += 1
@@ -237,7 +250,7 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--iso", type=lambda x: str(x).lower() == "true", default="False")
-        parser.add_argument("--num_epochs", type=int, default=1)
+        parser.add_argument("--num_epochs", type=int, default=3)
 
         args = parser.parse_args()
 

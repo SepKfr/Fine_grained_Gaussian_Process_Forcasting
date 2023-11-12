@@ -69,6 +69,7 @@ class Forecast_denoising(nn.Module):
 
         mll_error = 0
         loss = 0
+        mse_loss = 0
 
         enc_inputs = self.enc_embedding(enc_inputs)
         dec_inputs = self.dec_embedding(dec_inputs)
@@ -98,5 +99,6 @@ class Forecast_denoising(nn.Module):
             final_outputs = forecasting_model_outputs
 
         if y_true is not None:
-            loss = nn.MSELoss()(y_true, final_outputs) + 0.001 * mll_error
-        return final_outputs, loss
+            mse_loss = nn.MSELoss()(y_true, final_outputs)
+            loss = mse_loss + 0.001 * mll_error
+        return final_outputs, loss, mse_loss
