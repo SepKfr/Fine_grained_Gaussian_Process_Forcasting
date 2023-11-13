@@ -104,7 +104,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         def define_model(self, config):
 
-            if self.model_name == "gaussian_calib":
+            if "gaussian_calib" in self.model_name:
                 model = DeepGPp(num_hidden_dims=config[4],
                                 src_input_size=config[0],
                                 seed=self.seed).to(self.device)
