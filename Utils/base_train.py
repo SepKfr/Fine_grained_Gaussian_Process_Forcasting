@@ -87,7 +87,7 @@ def sample_train_val_test(ddf, max_samples, time_steps, num_encoder_steps, pred_
         'inputs': inputs,
         'enc_inputs': enc_inputs,
         'dec_inputs': dec_inputs,
-        'outputs': outputs[:, -(time_steps - pred_len):, :],
+        'outputs': outputs[:, -pred_len:, :],
         'input_arima': outputs[:, :-pred_len, :],
         'active_entries': np.ones_like(outputs[:, num_encoder_steps:, :]),
         'time': time,
