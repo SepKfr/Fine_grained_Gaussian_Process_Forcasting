@@ -128,10 +128,10 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             if self.model_name == "gaussian_calib":
                 x = torch.cat([x_enc, x_dec], dim=1)
-                output = model(x)
+                output = model(x.to(self.device))
                 mll = DeepApproximateMLL(
                     VariationalELBO(model.likelihood, model, x_enc.shape[-1]))
-                loss = -mll(output, y.permute(2, 0, 1)).mean()
+                loss = -mll(output, y.to(self.device).permute(2, 0, 1)).mean()
             else:
                 output_fore_den, loss, mse_loss = model(x_enc.to(self.device), x_dec.to(self.device), y.to(self.device))
                 tot_loss_mse += mse_loss.item()
@@ -221,7 +221,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             if self.model_name == "gaussian_calib":
                 x = torch.cat([x_enc, x_dec], dim=1)
-                output = self.best_model.predict(x)
+                output = self.best_model.predict(x.to(self.device))
                 output = output.permute(1, 2, 0)
                 output = output[:, -self.pred_len:, :]
             else:
