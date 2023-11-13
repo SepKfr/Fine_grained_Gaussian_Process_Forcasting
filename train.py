@@ -58,7 +58,6 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.best_val = 1e10
             self.param_history = []
             self.exp_name = args.exp_name
-            self.model_name = args.model_name
             self.best_model = nn.Module()
             self.train, self.valid, self.test, self.n_batches = self.split_data()
             self.run_optuna(args)
@@ -126,7 +125,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         def run_one_epoch(self, model, x_enc, x_dec, y, tot_loss_mse, mse_losses):
 
-            if self.model_name == "gaussian_calib":
+            if "gaussian_calib" in self.model_name:
                 output = model(x_dec.to(self.device))
                 mll = DeepApproximateMLL(
                     VariationalELBO(model.likelihood, model, x_enc.shape[-1]))
@@ -218,7 +217,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         def predict(self, x_enc, x_dec):
 
-            if self.model_name == "gaussian_calib":
+            if "gaussian_calib" in self.model_name:
                 output = self.best_model.predict(x_dec.to(self.device))
                 output = output.permute(1, 2, 0)
             else:
