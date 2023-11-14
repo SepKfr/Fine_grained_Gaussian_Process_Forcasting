@@ -107,7 +107,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             if "gaussian_calib" in self.model_name:
                 model = DeepGPp(num_hidden_dims=config[4],
                                 src_input_size=config[0],
-                                seed=self.seed).to(self.device)
+                                seed=self.seed,
+                                n_layers=config[-1]).to(self.device)
             else:
                 model = Forecast_denoising(model_name=self.model_name,
                                            config=config,
@@ -155,7 +156,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             d_model = trial.suggest_categorical("d_model", [32])
             w_steps = trial.suggest_categorical("w_steps", [1000])
-            stack_size = trial.suggest_categorical("stack_size", [1])
+            stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
             n_heads = self.model_params['num_heads']
 
