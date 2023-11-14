@@ -15,8 +15,8 @@ class RNN(nn.Module):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        self.enc_lstm = nn.LSTM(hidden_size, hidden_size, n_layers, dropout=d_r)
-        self.dec_lstm = nn.LSTM(hidden_size, hidden_size, n_layers, dropout=d_r)
+        self.lstm = nn.LSTM(src_input_size, hidden_size, n_layers, dropout=d_r)
+        self.proj_back = nn.Linear(hidden_size, 1)
         self.n_layers = n_layers
         self.hidden_size = hidden_size
 
@@ -25,12 +25,12 @@ class RNN(nn.Module):
 
     def forward(self, x_en, x_de):
 
-        enc_outputs, _ = self.enc_lstm(x_en)
-        enc_outputs = enc_outputs.transpose(0, 1)
-        dec_outputs, _ = self.dec_lstm(x_de)
-        dec_outputs = enc_outputs.transpose(0, 1)
+        x = torch.cat([x_en, x_de], dim=1)
+        outputs, _ = self.lstm(x)
+        dec_outputs = outputs.transpose(0, 1)
+        dec_outputs = self.proj_back(dec_outputs[:, -self.pred_len:, :])
 
-        return enc_outputs, dec_outputs
+        return dec_outputs
 
 
 

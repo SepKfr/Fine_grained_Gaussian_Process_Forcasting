@@ -126,7 +126,11 @@ with gpytorch.settings.num_likelihood_samples(1):
         def run_one_epoch(self, model, x_enc, x_dec, y, tot_loss_mse, mse_losses):
 
             if "gaussian_calib" in self.model_name:
-                output = model(x_dec.to(self.device))
+
+                x = torch.cat([x_enc.to(self.device), x_dec.to(self.device)], dim=1)
+                output = model(x)
+                output = gpytorch.distributions.MultivariateNormal(mean=output.mean[:, :, -self.pred_len:],
+                                                                   covariance_matrix=output.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:])
                 mll = DeepApproximateMLL(
                     VariationalELBO(model.likelihood, model, x_enc.shape[-1]))
                 loss = -mll(output, y.to(self.device).permute(2, 0, 1)).mean()
@@ -190,7 +194,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
                 model.eval()
                 test_loss = 0
-                test_loss_mse=0
+                test_loss_mse = 0
                 for valid_enc, valid_dec, valid_y in self.valid:
                     loss, test_loss_mse, mse_losses_valid = self.run_one_epoch(model, valid_enc, valid_dec, valid_y,
                                                                                 test_loss_mse, mse_losses_valid)
@@ -218,8 +222,10 @@ with gpytorch.settings.num_likelihood_samples(1):
         def predict(self, x_enc, x_dec):
 
             if "gaussian_calib" in self.model_name:
-                output = self.best_model.predict(x_dec.to(self.device))
+                x = torch.cat([x_enc.to(self.device), x_dec.to(self.device)], dim=1)
+                output = self.best_model.predict(x)
                 output = output.permute(1, 2, 0)
+                output = output[:, -self.pred_len:, :]
             else:
                 output, _, _ = self.best_model(x_enc.to(self.device), x_dec.to(self.device))
             return output
