@@ -9,7 +9,6 @@ from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.means import ConstantMean, LinearMean
 from gpytorch.models.deep_gps import DeepGPLayer, DeepGP
 from gpytorch.variational import VariationalStrategy, MeanFieldVariationalDistribution
-from forecasting_models.LSTM import RNN
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
@@ -75,37 +74,25 @@ class ToyDeepGPHiddenLayer(DeepGPLayer):
 
 
 class DeepGPp(DeepGP):
-    def __init__(self, num_hidden_dims, src_input_size, n_layers, seed):
-
+    def __init__(self, num_hidden_dims, seed):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
-            output_dims=num_hidden_dims,
-            mean_type='linear',
-            seed=seed,
-        )
-        out_layer = ToyDeepGPHiddenLayer(
-            input_dims=num_hidden_dims,
             output_dims=None,
-            mean_type='constant',
+            mean_type='linear',
             seed=seed,
         )
 
         super().__init__()
 
         self.hidden_layer = hidden_layer
-        self.out_layer = out_layer
         self.likelihood = GaussianLikelihood()
-        self.rnn = RNN(n_layers=n_layers, src_input_size=src_input_size,
-                       hidden_size=num_hidden_dims, seed=seed)
 
     def forward(self, inputs):
-
-        output_rnn = self.rnn(inputs)
-        dist = self.out_layer(self.hidden_layer(output_rnn))
+        dist = self.hidden_layer(inputs)
         return dist
 
     def predict(self, x):
 
         preds = self.likelihood(self(x))
 
-        return preds.mean
+        return torch.cat(preds, dim=-1)
