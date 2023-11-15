@@ -128,7 +128,7 @@ def get_pred_tgt(denoise, gp, iso):
                         else:
                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
 
-                        predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                        predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         if i == 0:
                             test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         j += 1
