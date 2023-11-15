@@ -80,7 +80,7 @@ stack_size = [2, 1]
 def get_pred_tgt(denoise, gp, iso):
 
     predictions = torch.zeros((total_b, y.shape[0], pred_len))
-    test_y_tot = torch.zeros((total_b, y.shape[0], pred_len))
+    test_y_tot = torch.zeros((total_b, y.shape[0], y.shape[1]))
 
     for i, seed in enumerate([8220]):
         model_name = "{}_{}_{}_{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
@@ -134,7 +134,7 @@ def get_pred_tgt(denoise, gp, iso):
 
                         predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         if i == 0:
-                            test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
+                            test_y_tot[j] = test_y.squeeze(-1).cpu().detach()
                         j += 1
 
                 except RuntimeError as e:
