@@ -114,7 +114,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             d_model = trial.suggest_categorical("d_model", [32])
             w_steps = trial.suggest_categorical("w_steps", [1000])
-            stack_size = trial.suggest_categorical("stack_size", [4])
+            stack_size = trial.suggest_categorical("stack_size", [3, 4])
 
             n_heads = self.model_params['num_heads']
 
@@ -259,7 +259,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         random.seed(1234)
 
-        seeds = [random.randint(1000, 9999) for _ in range(1)]
+        seeds = [random.randint(1000, 9999) for _ in range(3)]
         for seed in seeds:
             np.random.seed(seed)
             random.seed(seed)
