@@ -67,7 +67,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
+predictions = np.zeros((total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -128,7 +128,7 @@ def get_pred_tgt(denoise, gp, iso):
                         else:
                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
 
-                        predictions[i, j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                        predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
                         if i == 0:
                             test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         j += 1
@@ -136,7 +136,6 @@ def get_pred_tgt(denoise, gp, iso):
                 except RuntimeError as e:
                     pass
 
-        preds = torch.from_numpy(np.mean(predictions, axis=0))
         return preds.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
 
