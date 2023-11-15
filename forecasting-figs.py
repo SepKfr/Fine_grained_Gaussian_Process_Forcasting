@@ -158,14 +158,11 @@ for j in range(total_b*batch_size):
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
-    if gp_loss < best_loss:
-        best_loss = gp_loss
-
-        if random_loss - gp_loss > diff_1 and pred_loss - gp_loss > diff_2:
-            diff_1 = random_loss - gp_loss
-            diff_2 = pred_loss - gp_loss
-            losses = [gp_loss, random_loss, pred_loss]
-            mses[j] = losses
+    if random_loss - gp_loss > diff_1 and pred_loss - gp_loss > diff_2:
+        diff_1 = random_loss - gp_loss
+        diff_2 = pred_loss - gp_loss
+        losses = [gp_loss, random_loss, pred_loss]
+        mses[j] = losses
 
 
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
