@@ -124,9 +124,9 @@ def get_pred_tgt(denoise, gp, iso):
                     for test_enc, test_dec, test_y in test:
                         if gp:
                             with gpytorch.settings.num_likelihood_samples(1):
-                                output, _ = model(test_enc.to(device), test_dec.to(device))
+                                output, _, _ = model(test_enc.to(device), test_dec.to(device))
                         else:
-                            output, _ = model(test_enc.to(device), test_dec.to(device))
+                            output, _, _ = model(test_enc.to(device), test_dec.to(device))
 
                         predictions[i, j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
                         if i == 0:
