@@ -136,7 +136,7 @@ def get_pred_tgt(denoise, gp, iso):
                 except RuntimeError as e:
                     pass
 
-        return preds.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
+        return predictions.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
 
 preds_gp, tgt = get_pred_tgt(True, True, False)
