@@ -176,7 +176,7 @@ for key in mses.keys():
     loss_tuple = mses.get(key)
 
     plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
-    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
+    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds[key], color="lime", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
     plt.legend(["X", "Y", "Autoformer:MSE={:.3f}".format(loss_tuple[-1])])
@@ -185,7 +185,7 @@ for key in mses.keys():
     plt.close()
 
     plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
-    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
+    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[key], color="orchid", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
     plt.legend(["X", "Y", "AutoDI:MSE={:.3f}".format(loss_tuple[1])])
@@ -194,7 +194,7 @@ for key in mses.keys():
     plt.close()
 
     plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
-    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
+    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_gp[key], color="darkblue", alpha=0.5)
     plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
     plt.legend(["X", "Y", "AutoGP:MSE={:.3f}".format(loss_tuple[0])])
