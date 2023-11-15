@@ -144,8 +144,6 @@ preds_gp, tgt = get_pred_tgt(True, True, False)
 preds_random, _= get_pred_tgt(True, False, True)
 preds, _ = get_pred_tgt(False, False, False)
 
-print(preds_gp)
-
 diff_1 = 0
 diff_2 = 0
 mses = dict()
@@ -159,11 +157,7 @@ for j in range(total_b*batch_size):
 
     if gp_loss < best_loss:
         best_loss = gp_loss
-        diff_1 = random_loss - best_loss
-        diff_2 = preds - best_loss
-        if (random_loss - best_loss) > diff_1 and (preds - best_loss) > diff_2:
-            diff_1 = random_loss - best_loss
-            diff_2 = preds - best_loss
+        if gp_loss < random_loss and gp_loss < pred_loss:
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
 
