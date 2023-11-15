@@ -79,7 +79,7 @@ stack_size = [2, 1]
 
 def get_pred_tgt(denoise, gp, iso):
 
-    for i, seed in enumerate([8220, 2914, 1122]):
+    for i, seed in enumerate([8220]):
         model_name = "{}_{}_{}_{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                     "_denoise" if denoise else "",
                                                     "_gp" if gp else "",
@@ -144,6 +144,7 @@ preds_gp, tgt = get_pred_tgt(True, True, False)
 preds_random, _= get_pred_tgt(True, False, True)
 preds, _ = get_pred_tgt(False, False, False)
 
+print(preds_gp)
 
 diff_1 = 0
 diff_2 = 0
