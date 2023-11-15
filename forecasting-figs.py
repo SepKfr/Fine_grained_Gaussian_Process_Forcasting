@@ -13,8 +13,8 @@ from Utils.base_train import batch_sampled_data
 from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
 
-plt.rc('font', size=22)
-plt.rc('axes', titlesize=22)
+plt.rc('font', size=18)
+plt.rc('axes', titlesize=18)
 plt.rcParams["figure.figsize"] = (12, 8)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
@@ -158,11 +158,9 @@ for j in range(total_b*batch_size):
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
 
-    if random_loss - gp_loss > diff_1 and pred_loss - gp_loss > diff_2:
+    if gp_loss < random_loss and gp_loss < pred_loss:
         if gp_loss < best_loss:
             best_loss = gp_loss
-            diff_1 = random_loss - gp_loss
-            diff_2 = pred_loss - gp_loss
             losses = [gp_loss, random_loss, pred_loss]
             mses[j] = losses
 
@@ -177,27 +175,30 @@ for key in mses.keys():
 
     loss_tuple = mses.get(key)
 
-    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
+    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds[key], color="lime", alpha=0.5)
-    plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend(["Y", "No:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
+    plt.legend(["X", "Y", "Autoformer:MSE={:.3f}".format(loss_tuple[-1])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "No")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "Autoformer")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
+    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_random[key], color="orchid", alpha=0.5)
-    plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend(["Y", "Iso:MSE={:.3f}".format(loss_tuple[1])])
+    plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
+    plt.legend(["X", "Y", "AutoDI:MSE={:.3f}".format(loss_tuple[1])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "iso")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDI")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(total_steps), tgt[key], color="gray")
+    plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
+    plt.plot(np.arange(total_steps), tgt[key][-pred_len:], color="gray")
     plt.plot(np.arange(total_steps - pred_len, total_steps), preds_gp[key], color="darkblue", alpha=0.5)
-    plt.axvline(x=total_steps - pred_len, color="black")
-    plt.legend(["Y", "GP:MSE={:.3f}".format(loss_tuple[0])])
+    plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
+    plt.legend(["X", "Y", "AutoGP:MSE={:.3f}".format(loss_tuple[0])])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "GP")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoGP")), dpi=1000)
     plt.close()
 
