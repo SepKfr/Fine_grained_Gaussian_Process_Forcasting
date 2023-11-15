@@ -58,6 +58,7 @@ _, _, test = batch_sampled_data(data, 0.8, max_samples, params['total_time_steps
 test_enc, test_dec, test_y = next(iter(test))
 total_b = len(list(iter(test)))
 total_steps = test_y.shape[1]
+y = test_y
 
 
 model_path = "models_{}_{}".format(args.exp_name, pred_len)
@@ -67,8 +68,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = torch.zeros((total_b, test_y.shape[0], pred_len))
-test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
+
 n_batches_test = test_enc.shape[0]
 
 
@@ -79,11 +79,15 @@ stack_size = [2, 1]
 
 def get_pred_tgt(denoise, gp, iso):
 
+    predictions = torch.zeros((total_b, y.shape[0], pred_len))
+    test_y_tot = torch.zeros((total_b, y.shape[0], pred_len))
+
     for i, seed in enumerate([8220]):
         model_name = "{}_{}_{}_{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                     "_denoise" if denoise else "",
                                                     "_gp" if gp else "",
                                                     "_iso" if iso else "")
+        print(model_name)
 
         for d in d_model:
             for layer in stack_size:
@@ -140,7 +144,7 @@ def get_pred_tgt(denoise, gp, iso):
 
 
 preds_gp, tgt = get_pred_tgt(True, True, False)
-preds_random, _= get_pred_tgt(True, False, True)
+preds_random, _ = get_pred_tgt(True, False, True)
 preds, _ = get_pred_tgt(False, False, False)
 
 diff_1 = 0
