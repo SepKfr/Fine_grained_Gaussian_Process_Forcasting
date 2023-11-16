@@ -13,8 +13,8 @@ from Utils.base_train import batch_sampled_data
 from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
 
-plt.rc('font', size=12)
-plt.rc('axes', titlesize=12)
+plt.rc('font', size=14)
+plt.rc('axes', titlesize=14)
 plt.rcParams["figure.figsize"] = (8, 6)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
