@@ -20,6 +20,7 @@ class denoise_model_2(nn.Module):
         self.deep_gp = DeepGPp(d, seed)
         self.proj_1 = nn.Linear(1, d)
         self.gp = gp
+        self.sigma = nn.Parameter(torch.randn(1))
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
@@ -56,8 +57,8 @@ class denoise_model_2(nn.Module):
             dec_noisy = dec_inputs
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.05)
-            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
+            enc_noisy = enc_inputs.add_(eps_enc * torch.clip(self.sigma, min=0, max=1))
+            dec_noisy = dec_inputs.add_(eps_dec * torch.clip(self.sigma, min=0, max=1))
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 

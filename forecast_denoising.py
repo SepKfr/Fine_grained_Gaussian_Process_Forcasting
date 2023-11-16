@@ -28,6 +28,7 @@ class Forecast_denoising(nn.Module):
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
         self.gp = gp
+        self.lam = nn.Parameter(torch.randn(1))
 
         if "LSTM" in model_name:
 
@@ -100,5 +101,5 @@ class Forecast_denoising(nn.Module):
 
         if y_true is not None:
             mse_loss = nn.MSELoss()(y_true, final_outputs)
-            loss = mse_loss + 0.001 * mll_error
+            loss = mse_loss + torch.clip(self.lam, min=0, max=0.01) * mll_error
         return final_outputs, loss, mse_loss
