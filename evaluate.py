@@ -186,6 +186,8 @@ for j in range(args.pred_len):
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
 
+mse_loss = results[0].mean().item() / normaliser
+mae_loss = results[1].mean().item() / normaliser
 std_mse = results[0].std() / np.sqrt(pred_len)
 std_mae = results[1].std() / np.sqrt(pred_len)
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
