@@ -114,7 +114,7 @@ for i, seed in enumerate([8220, 2914, 1122]):
                 model.to(device)
 
                 checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
-                                                     "{}_{}".format(model_name, seed)), map_location=device)
+                                                     "{}".format(model_name)), map_location=device)
 
                 state_dict = checkpoint['model_state_dict']
 
@@ -186,13 +186,8 @@ for j in range(args.pred_len):
     results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
     results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
 
-
-df = pd.DataFrame(results.detach().cpu().numpy())
-if not os.path.exists("predictions"):
-    os.makedirs("predictions")
-
-df.to_csv(os.path.join("predictions", "{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len)))
-
+std_mse = results[0].std() / np.sqrt(3)
+std_mae = results[1].std() / np.sqrt(3)
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                 "_denoise" if denoising else "",
                                                 "_gp" if gp else "",
@@ -202,7 +197,8 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_input_corrupt" if input_corrupt else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
+                       'MSE_std': f"{std_mse:.4f}", 'MAE_std': f"{std_mae: .4f}"}}
 
 df = pd.DataFrame.from_dict(errors, orient='index')
 
