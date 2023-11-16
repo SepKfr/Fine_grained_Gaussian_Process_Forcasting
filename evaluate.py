@@ -146,10 +146,12 @@ for i in range(3):
         mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
 
 
+normaliser = test_y_tot.abs().mean()
+
 mse_mean = mse_std_mean.mean(dim=0)
-m_mse_men = torch.mean(mse_mean).item()
+m_mse_men = torch.mean(mse_mean).item() / normaliser
 mae_mean = mae_std_mean.mean(dim=0)
-m_mae_men = torch.mean(mae_mean).item()
+m_mae_men = torch.mean(mae_mean).item() / normaliser
 mse_std = torch.mean(mse_mean.std(dim=0)).item() / np.sqrt(pred_len)
 mae_std = torch.mean(mae_mean.std(dim=0)).item() / np.sqrt(pred_len)
 
