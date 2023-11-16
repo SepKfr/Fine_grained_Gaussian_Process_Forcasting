@@ -54,7 +54,7 @@ class ProbAttention(nn.Module):
             contex = V.cumsum(dim=-2)
         return contex
 
-    def _update_context(self, context_in, V, scores, index, L_Q, attn_mask=None):
+    def _update_context(self, context_in, V, scores, index, L_Q):
         B, H, L_V, D = V.shape
 
         attn = torch.softmax(scores, dim=-1)  # nn.Softmax(dim=-1)(scores)
@@ -69,7 +69,7 @@ class ProbAttention(nn.Module):
         else:
             return (context_in, None)
 
-    def forward(self, queries, keys, values, attn_mask):
+    def forward(self, queries, keys, values):
 
         B, H, L_Q, D = queries.shape
         _, _, L_K, _ = keys.shape
@@ -89,6 +89,6 @@ class ProbAttention(nn.Module):
         # get the context
         context = self._get_initial_context(values, L_Q)
         # update the context with selected top_k queries
-        context, attn = self._update_context(context, values, scores_top, index, L_Q, attn_mask)
+        context, attn = self._update_context(context, values, scores_top, index, L_Q)
 
         return context, attn
