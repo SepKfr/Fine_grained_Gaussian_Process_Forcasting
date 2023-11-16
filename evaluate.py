@@ -70,7 +70,7 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [4]
+stack_size = [3, 4]
 
 for i, seed in enumerate([8220, 2914, 1122]):
 
