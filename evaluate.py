@@ -13,16 +13,16 @@ from forecast_denoising import Forecast_denoising
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
 parser.add_argument("--attn_type", type=str, default='autoformer')
-parser.add_argument("--model_name", type=str, default='autoformer')
+parser.add_argument("--name", type=str, default='autoformer')
 parser.add_argument("--exp_name", type=str, default='autoformer')
 parser.add_argument("--cuda", type=str, default="cuda:0")
 parser.add_argument("--pred_len", type=int, default=24)
-parser.add_argument("--denoising", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--gp", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--no-noise", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--residual", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--iso", type=lambda x: str(x).lower() == 'true', default="False")
-parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == 'true', default="False")
+parser.add_argument("--dae", type=str, default="False")
+parser.add_argument("--gp", type=str, default="False")
+parser.add_argument("--no_noise", type=str, default="False")
+parser.add_argument("--residual", type=str, default="False")
+parser.add_argument("--iso", type=str, default="False")
+parser.add_argument("--input_corrupt", type=str, default="False")
 
 args = parser.parse_args()
 
@@ -70,17 +70,24 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [3, 4]
+stack_size = [2, 1]
+denoising = True if args.dae == "True" else False
+gp = True if args.gp == "True" else False
+no_noise = True if args.no_noise == "True" else False
+residual = True if args.residual == "True" else False
+iso = True if args.iso == "True" else False
+input_corrupt = True if args.input_corrupt == "True" else False
+
 
 for i, seed in enumerate([8220, 2914, 1122]):
 
     model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
-                                                "_denoise" if args.denoising else "",
-                                                "_gp" if args.gp else "",
-                                                "_predictions" if args.no_noise else "",
-                                                "_iso" if args.iso else "",
-                                                "_residual" if args.residual else "",
-                                                "_input_corrupt_training" if args.input_corrupt_training else "")
+                                                "_denoise" if denoising else "",
+                                                "_gp" if gp else "",
+                                                "_predictions" if no_noise else "",
+                                                "_iso" if iso else "",
+                                                "_residual" if residual else "",
+                                                "_input_corrupt" if input_corrupt else "")
 
     for d in d_model:
         for layer in stack_size:
@@ -93,21 +100,22 @@ for i, seed in enumerate([8220, 2914, 1122]):
 
                 config = src_input_size, tgt_input_size, d, n_heads, d_k, layer
 
-                model = Forecast_denoising(model_name=model_name,
+                model = Forecast_denoising(model_name=args.name,
                                            config=config,
-                                           gp=args.gp,
-                                           denoise=args.denoising,
+                                           gp=gp,
+                                           denoise=denoising,
                                            device=device,
                                            seed=seed,
                                            pred_len=pred_len,
                                            attn_type=args.attn_type,
-                                           no_noise=args.no_noise,
-                                           residual=args.residual,
-                                           input_corrupt=args.input_corrupt_training).to(device)
+                                           no_noise=no_noise,
+                                           residual=residual,
+                                           input_corrupt=input_corrupt).to(device)
                 model.to(device)
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
-                                                     "{}".format(model_name)), map_location=device)
+                print("Successful...")
+
+                checkpoint = torch.load(os.path.join("models_{}".format(model_name)), map_location=device)
 
                 state_dict = checkpoint['model_state_dict']
 
@@ -115,15 +123,13 @@ for i, seed in enumerate([8220, 2914, 1122]):
 
                 model.eval()
 
-                print("Successful...")
-
                 j = 0
                 for test_enc, test_dec, test_y in test:
-                    if args.gp:
+                    if gp:
                         with gpytorch.settings.num_likelihood_samples(1):
-                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                             output, _ = model(test_enc.to(device), test_dec.to(device))
                     else:
-                        output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                        output, _ = model(test_enc.to(device), test_dec.to(device))
 
                     predictions[i, j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
                     if i == 0:
@@ -134,38 +140,68 @@ for i, seed in enumerate([8220, 2914, 1122]):
                 pass
 
 
-mse_std_mean = torch.zeros(3, pred_len)
-mae_std_mean = torch.zeros(3, pred_len)
+mse_std_mean = torch.zeros(3)
+mae_std_mean = torch.zeros(3)
+
+predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 
 predictions = torch.from_numpy(predictions)
 
-
 for i in range(3):
-    for j in range(args.pred_len):
-        mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-        mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
-
+    mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
+    mae_std_mean[i] = mae(predictions[i, :], test_y_tot)
 
 normaliser = test_y_tot.abs().mean()
 
-mse_mean = mse_std_mean.mean(dim=0)
-m_mse_men = torch.mean(mse_mean).item() / normaliser
-mae_mean = mae_std_mean.mean(dim=0)
-m_mae_men = torch.mean(mae_mean).item() / normaliser
-mse_std = torch.mean(mse_mean.std(dim=0)).item() / np.sqrt(pred_len)
-mae_std = torch.mean(mae_mean.std(dim=0)).item() / np.sqrt(pred_len)
+mse_std = mse_std_mean.std(dim=0) / np.sqrt(3)
+mae_std = mae_std_mean.std(dim=0) / np.sqrt(3)
+m_mse_men = torch.mean(mse_std_mean).item() / normaliser
+m_mae_men = torch.mean(mae_std_mean).item() / normaliser
+
+
+# for i in range(3):
+#     for j in range(args.pred_len):
+#         mse_std_mean[i, j] = mse(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+#         mae_std_mean[i, j] = mae(predictions[i, :, :, j], test_y_tot[:, :, j]).item()
+
+
+
+# mse_mean = mse_std_mean.mean(dim=0)
+# m_mse_men = torch.mean(mse_mean).item() / normaliser
+# mae_mean = mae_std_mean.mean(dim=0)
+# m_mae_men = torch.mean(mae_mean).item() / normaliser
+# mse_std = torch.mean(mse_std.std(dim=0)).item() / np.sqrt(pred_len)
+# mae_std = torch.mean(mae_std.std(dim=0)).item() / np.sqrt(pred_len)
+
+results = torch.zeros(2, args.pred_len)
+
+
+mse_loss = mse(predictions_mean, test_y_tot).item() / normaliser
+mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
+
+
+for j in range(args.pred_len):
+
+    results[0, j] = mse(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
+    results[1, j] = mae(predictions_mean[:, :, j], test_y_tot[:, :, j]).item()
+
+
+df = pd.DataFrame(results.detach().cpu().numpy())
+if not os.path.exists("predictions"):
+    os.makedirs("predictions")
+
+df.to_csv(os.path.join("predictions", "{}_{}_{}.csv".format(args.exp_name, args.name, args.pred_len)))
 
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
-                                                "_denoise" if args.denoising else "",
-                                                "_gp" if args.gp else "",
-                                                "_predictions" if args.no_noise else "",
-                                                "_iso" if args.iso else "",
-                                                "_residual" if args.residual else "",
-                                                "_input_corrupt_training" if args.input_corrupt_training else "")
+                                                "_denoise" if denoising else "",
+                                                "_gp" if gp else "",
+                                                "_predictions" if no_noise else "",
+                                                "_iso" if iso else "",
+                                                "_residual" if residual else "",
+                                                "_input_corrupt" if input_corrupt else "")
 
-error_path = "End_Long_horizon_Previous_set_up_Final_errors_v2_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{m_mse_men:.3f}", 'MAE': f"{m_mae_men: .3f}",
-                       'MSE_std': f"{mse_std:.4f}", 'MAE_std': f"{mae_std: .4f}"}}
+error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
+errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
 
 df = pd.DataFrame.from_dict(errors, orient='index')
 
