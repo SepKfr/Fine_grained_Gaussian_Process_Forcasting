@@ -146,7 +146,7 @@ mae_std_mean = torch.zeros(3)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
-predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
+predictions_mean = torch.mean(predictions, dim=0)
 
 for i in range(3):
     mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
