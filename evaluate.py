@@ -70,7 +70,7 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [1, 2, 3, 4]
+stack_size = [3, 4]
 denoising = True if args.denoising == "True" else False
 gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
