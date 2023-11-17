@@ -146,16 +146,19 @@ mae_std_mean = torch.zeros(3)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
+predictions_mean = torch.from_numpy(np.mean(predictions, axis=0))
 
 for i in range(3):
-    mse_std_mean[i] = mse(predictions[i, :], test_y_tot) / normaliser
-    mae_std_mean[i] = mae(predictions[i, :], test_y_tot) / normaliser
+    mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
+    mae_std_mean[i] = mae(predictions[i, :], test_y_tot)
 
 
+mse_loss = mse(predictions_mean, test_y_tot).item() / normaliser
+mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
 mse_std = mse_std_mean.std(dim=0) / np.sqrt(pred_len)
 mae_std = mae_std_mean.std(dim=0) / np.sqrt(pred_len)
-m_mse_men = torch.mean(mse_std_mean).item()
-m_mae_men = torch.mean(mae_std_mean).item()
+# m_mse_men = torch.mean(mse_std_mean).item()
+# m_mae_men = torch.mean(mae_std_mean).item()
 
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                 "_denoise" if denoising else "",
@@ -166,7 +169,7 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_input_corrupt" if input_corrupt else "")
 
 error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{m_mse_men:.3f}", 'MAE': f"{m_mae_men: .3f}",
+errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
                        'MSE_std': f"{mse_std:.4f}", 'MAE_std': f"{mae_std: .4f}"}}
 
 df = pd.DataFrame.from_dict(errors, orient='index')
