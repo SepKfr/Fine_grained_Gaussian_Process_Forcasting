@@ -153,8 +153,8 @@ with gpytorch.settings.num_likelihood_samples(1):
         torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1)))).item()
     mae_loss = torch.mean(torch.abs(mu - test_y_tot.squeeze(-1))).item()
 
-    mse_std = torch.mean((torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1)))).std(dim=0)) / np.sqrt(pred_len)
-    mae_std = torch.mean((torch.mean(torch.abs(mu - test_y_tot.squeeze(-1)))).std(dim=0)) / np.sqrt(pred_len)
+    mse_std = torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1))).std().mean().item() / np.sqrt(pred_len)
+    mae_std = torch.mean(torch.abs(mu - test_y_tot.squeeze(-1))).std().mean().item() / np.sqrt(pred_len)
 
     # m_mse_men = torch.mean(mse_std_mean).item()
     # m_mae_men = torch.mean(mae_std_mean).item()
