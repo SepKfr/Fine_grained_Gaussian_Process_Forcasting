@@ -147,6 +147,7 @@ with gpytorch.settings.num_likelihood_samples(1):
     mu = torch.mean(predictions, dim=0)
     mse = torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1)))
     mae = torch.abs(mu - test_y_tot.squeeze(-1))
+    print(mse.shape)
     mse_loss = torch.mean(mse).item()
     mae_loss = torch.mean(mae).item()
 
