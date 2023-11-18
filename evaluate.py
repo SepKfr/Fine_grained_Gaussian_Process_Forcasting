@@ -143,18 +143,15 @@ with gpytorch.settings.num_likelihood_samples(1):
                 except RuntimeError as e:
                     pass
 
-    mse_std_mean = torch.zeros(3, pred_len)
-    mae_std_mean = torch.zeros(3, pred_len)
-    #
     normaliser = test_y_tot.abs().mean()
     mu = torch.mean(predictions, dim=0)
-    print(mu.shape)
-    mse_loss = torch.mean(
-        torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1)))).item()
-    mae_loss = torch.mean(torch.abs(mu - test_y_tot.squeeze(-1))).item()
+    mse = torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1))) / normaliser
+    mae = torch.abs(mu - test_y_tot.squeeze(-1)) / normaliser
+    mse_loss = torch.mean(mse).item()
+    mae_loss = torch.mean(mae).item()
 
-    mse_std = torch.mul((mu - test_y_tot.squeeze(-1)), (mu - test_y_tot.squeeze(-1))).std().mean().item() / np.sqrt(pred_len)
-    mae_std = torch.mean(torch.abs(mu - test_y_tot.squeeze(-1))).std().mean().item() / np.sqrt(pred_len)
+    mse_std = torch.mean(mse.std(dim=-1)) / np.sqrt(pred_len)
+    mae_std = torch.mean(mse.std(dim=-1)) / np.sqrt(pred_len)
 
     # m_mse_men = torch.mean(mse_std_mean).item()
     # m_mae_men = torch.mean(mae_std_mean).item()
