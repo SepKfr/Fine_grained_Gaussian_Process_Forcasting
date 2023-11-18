@@ -150,8 +150,8 @@ predictions_mean = torch.mean(predictions, dim=0)
 
 for i in range(3):
     for j in range(pred_len):
-        mse_std_mean[i, j] = mse(predictions[i, j], test_y_tot[j]) / normaliser
-        mae_std_mean[i, j] = mae(predictions[i, j], test_y_tot[j]) / normaliser
+        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
+        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
 
 
 mse_loss = mse_std_mean.mean(dim=0)
