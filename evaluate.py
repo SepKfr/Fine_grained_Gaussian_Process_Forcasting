@@ -150,6 +150,7 @@ with gpytorch.settings.num_likelihood_samples(1):
     mse_loss = torch.mean(mse).item()
     mae_loss = torch.mean(mae).item()
 
+    print(mse.std())
     mse_std = torch.mean(mse.std()) / np.sqrt(pred_len)
     mae_std = torch.mean(mse.std()) / np.sqrt(pred_len)
 
