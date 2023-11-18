@@ -141,22 +141,26 @@ for i, seed in enumerate([8220, 2914, 1122]):
                 pass
 
 
-mse_std_mean = torch.zeros(3)
-mae_std_mean = torch.zeros(3)
+mse_std_mean = torch.zeros(3, pred_len)
+mae_std_mean = torch.zeros(3, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
 predictions_mean = torch.mean(predictions, dim=0)
 
 for i in range(3):
-    mse_std_mean[i] = mse(predictions[i, :], test_y_tot)
-    mae_std_mean[i] = mae(predictions[i, :], test_y_tot)
+    for j in range(pred_len):
+        mse_std_mean[i, j] = mse(predictions[i, j], test_y_tot[j]) / normaliser
+        mae_std_mean[i, j] = mae(predictions[i, j], test_y_tot[j]) / normaliser
 
 
-mse_loss = mse(predictions_mean, test_y_tot).item() / normaliser
-mae_loss = mae(predictions_mean, test_y_tot).item() / normaliser
-mse_std = mse_std_mean.std(dim=0) / np.sqrt(pred_len)
-mae_std = mae_std_mean.std(dim=0) / np.sqrt(pred_len)
+mse_loss = mse_std_mean.mean(dim=0)
+mae_loss = mae_std_mean.mean(dim=0)
+mse_std = mse_loss.std(dim=0) / np.sqrt(pred_len)
+mae_std = mae_loss.std(dim=0) / np.sqrt(pred_len)
+
+mse_loss = mse_loss.mean(dim=0)
+mae_loss = mae_loss.mean(dim=0)
 # m_mse_men = torch.mean(mse_std_mean).item()
 # m_mae_men = torch.mean(mae_std_mean).item()
 
