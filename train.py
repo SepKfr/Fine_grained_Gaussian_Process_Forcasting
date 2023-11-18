@@ -1,4 +1,6 @@
 import gpytorch
+from gpytorch.mlls import DeepApproximateMLL, VariationalELBO
+
 from forecast_denoising import Forecast_denoising
 from torch.optim import Adam
 import torch.nn as nn
@@ -14,6 +16,7 @@ from optuna.trial import TrialState
 from data_loader import ExperimentConfig
 from Utils.base_train import batch_sampled_data
 from modules.opt_model import NoamOpt
+from denoising_model.DeepGP import DeepGPp
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -52,7 +55,6 @@ with gpytorch.settings.num_likelihood_samples(1):
                                                               "_iso" if self.iso else "",
                                                               "_residual" if self.residual else "",
                                                               "_input_corrupt" if self.input_corrupt else "")
-            self.likelihood = gpytorch.likelihoods.GaussianLikelihood()
             self.best_val = 1e10
             self.param_history = []
             self.exp_name = args.exp_name
@@ -100,6 +102,45 @@ with gpytorch.settings.num_likelihood_samples(1):
             for key, value in trial.params.items():
                 print("    {}: {}".format(key, value))
 
+        def define_model(self, config):
+
+            if "gaussian_calib" in self.model_name:
+                model = DeepGPp(num_hidden_dims=config[4],
+                                src_input_size=config[0],
+                                seed=self.seed).to(self.device)
+            else:
+                model = Forecast_denoising(model_name=self.model_name,
+                                           config=config,
+                                           gp=self.gp,
+                                           denoise=self.denoising,
+                                           device=self.device,
+                                           seed=self.seed,
+                                           pred_len=self.pred_len,
+                                           attn_type=self.attn_type,
+                                           no_noise=self.no_noise,
+                                           residual=self.residual,
+                                           input_corrupt=self.input_corrupt).to(self.device)
+
+            return model
+
+        def run_one_epoch(self, model, x_enc, x_dec, y, tot_loss_mse, mse_losses):
+
+            if "gaussian_calib" in self.model_name:
+
+                x = torch.cat([x_enc.to(self.device), x_dec.to(self.device)], dim=1)
+                output = model(x)
+                output = gpytorch.distributions.MultivariateNormal(mean=output.mean[:, :, -self.pred_len:],
+                                                                   covariance_matrix=output.covariance_matrix[:, :, -self.pred_len:, -self.pred_len:])
+                mll = DeepApproximateMLL(
+                    VariationalELBO(model.likelihood, model, x_enc.shape[-1]))
+                loss = -mll(output, y.to(self.device).permute(2, 0, 1)).mean()
+            else:
+                output_fore_den, loss, mse_loss = model(x_enc.to(self.device), x_dec.to(self.device), y.to(self.device))
+                tot_loss_mse += mse_loss.item()
+                mse_losses.append(tot_loss_mse)
+
+            return loss, tot_loss_mse, mse_losses
+
         def objective(self, trial):
 
             train_enc, train_dec, train_y = next(iter(self.train))
@@ -114,7 +155,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             d_model = trial.suggest_categorical("d_model", [32])
             w_steps = trial.suggest_categorical("w_steps", [1000])
-            stack_size = trial.suggest_categorical("stack_size", [1, 2])
+            stack_size = trial.suggest_categorical("stack_size", [1])
 
             n_heads = self.model_params['num_heads']
 
@@ -130,17 +171,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             train_enc, train_dec, _ = next(iter(self.train))
 
-            model = Forecast_denoising(model_name=self.model_name,
-                                       config=config,
-                                       gp=self.gp,
-                                       denoise=self.denoising,
-                                       device=self.device,
-                                       seed=self.seed,
-                                       pred_len=self.pred_len,
-                                       attn_type=self.attn_type,
-                                       no_noise=self.no_noise,
-                                       residual=self.residual,
-                                       input_corrupt=self.input_corrupt).to(self.device)
+            model = self.define_model(config)
 
             optimizer = NoamOpt(Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9), 2, d_model, w_steps)
 
@@ -155,23 +186,19 @@ with gpytorch.settings.num_likelihood_samples(1):
 
                 for train_enc, train_dec, train_y in self.train:
 
-                    output_fore_den, loss, mse_loss_train = model(train_enc.to(self.device), train_dec.to(self.device),
-                                                  train_y.to(self.device))
+                    loss, total_loss_mse, mse_losses_train = self.run_one_epoch(model, train_enc, train_dec, train_y, total_loss_mse, mse_losses_train)
                     total_loss += loss.item()
-                    total_loss_mse += mse_loss_train.item()
-                    mse_losses_train.append(total_loss_mse)
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step_and_update_lr()
 
                 model.eval()
                 test_loss = 0
-                test_loss_mse=0
+                test_loss_mse = 0
                 for valid_enc, valid_dec, valid_y in self.valid:
-                    output, loss, mse_loss_val = model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
+                    loss, test_loss_mse, mse_losses_valid = self.run_one_epoch(model, valid_enc, valid_dec, valid_y,
+                                                                                test_loss_mse, mse_losses_valid)
                     test_loss += loss.item()
-                    test_loss_mse += mse_loss_val.item()
-                    mse_losses_valid.append(test_loss_mse)
                 if epoch % 5 == 0:
                     print("Train epoch: {}, loss: {:.4f}".format(epoch, total_loss))
                     print("val loss: {:.4f}".format(test_loss))
@@ -192,6 +219,17 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             return val_loss
 
+        def predict(self, x_enc, x_dec):
+
+            if "gaussian_calib" in self.model_name:
+                x = torch.cat([x_enc.to(self.device), x_dec.to(self.device)], dim=1)
+                output = self.best_model.predict(x)
+                output = output.permute(1, 2, 0)
+                output = output[:, -self.pred_len:, :]
+            else:
+                output, _, _ = self.best_model(x_enc.to(self.device), x_dec.to(self.device))
+            return output
+
         def evaluate(self):
 
             self.best_model.eval()
@@ -205,7 +243,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             j = 0
 
             for test_enc, test_dec, test_y in self.test:
-                output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
+                output = self.predict(test_enc, test_dec)
                 predictions[j] = output.squeeze(-1).cpu().detach().numpy()
                 test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
                 j += 1
@@ -239,7 +277,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         parser = argparse.ArgumentParser(description="preprocess argument parser")
         parser.add_argument("--attn_type", type=str, default='autoformer')
-        parser.add_argument("--model_name", type=str, default="autoformer")
+        parser.add_argument("--model_name", type=str, default="gaussian_calib")
         parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
@@ -264,7 +302,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [96]:
+            for pred_len in [24, 48, 72, 96]:
                 Train(raw_data, args, pred_len, seed)
 
 
