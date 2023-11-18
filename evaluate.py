@@ -64,7 +64,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
+predictions = torch.zeros((3, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -134,7 +134,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
                         x = torch.cat([test_enc.to(device), test_dec.to(device)], dim=1)
                         output = model(x)
-                        predictions[i, j] = output.mean[:, :, -pred_len:],
+                        predictions[i, j] = output.mean[:, :, -pred_len:].cpu().detach()
 
                         if i == 0:
                             test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
@@ -147,7 +147,6 @@ with gpytorch.settings.num_likelihood_samples(1):
     mae_std_mean = torch.zeros(3, pred_len)
     #
     normaliser = test_y_tot.abs().mean()
-    predictions = torch.from_numpy(predictions)
     mu = torch.mean(predictions, dim=0)
     print(mu.shape)
     mse_loss = torch.mean(
