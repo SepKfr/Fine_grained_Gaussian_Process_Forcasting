@@ -64,7 +64,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = torch.zeros((3, total_b, test_y.shape[0], pred_len))
+predictions = torch.zeros((1, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -80,7 +80,7 @@ iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt_training == "True" else False
 
 with gpytorch.settings.num_likelihood_samples(1):
-    for i, seed in enumerate([8220, 2914, 1122]):
+    for i, seed in enumerate([8220]):
 
         model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                     "_denoise" if denoising else "",
