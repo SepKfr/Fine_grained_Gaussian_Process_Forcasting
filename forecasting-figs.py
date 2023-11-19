@@ -147,26 +147,8 @@ preds_gp, tgt = get_pred_tgt(True, True, False)
 preds_random, _ = get_pred_tgt(True, False, True)
 preds, _ = get_pred_tgt(False, False, False)
 
-diff_1 = 0
-diff_2 = 0
 mses = dict()
-best_loss = 1e10
 
-for j in range(total_b*batch_size):
-
-    gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
-    random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
-    pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
-
-    if gp_loss < random_loss and gp_loss < pred_loss:
-        if gp_loss < best_loss:
-            best_loss = gp_loss
-            losses = [gp_loss, random_loss, pred_loss]
-            mses[j] = losses
-
-
-mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
-print(len(mses))
 
 direc = os.path.join("prediction_plots_5", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
