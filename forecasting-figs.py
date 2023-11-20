@@ -115,7 +115,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                     model.to(device)
 
                     checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
-                                                         "{}".format(model_name)), map_location=device)
+                                                         "{}".format(model_name)))
 
                     state_dict = checkpoint['model_state_dict']
 
