@@ -166,7 +166,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
                 model.eval()
                 test_loss = 0
-                test_loss_mse=0
+                test_loss_mse = 0
                 for valid_enc, valid_dec, valid_y in self.valid:
                     output, loss, mse_loss_val = model(valid_enc.to(self.device), valid_dec.to(self.device), valid_y.to(self.device))
                     test_loss += loss.item()
