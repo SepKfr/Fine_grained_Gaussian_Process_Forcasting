@@ -56,8 +56,8 @@ class denoise_model_2(nn.Module):
             dec_noisy = dec_inputs
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.01)
-            dec_noisy = dec_inputs.add_(eps_dec * 0.01)
+            enc_noisy = enc_inputs.add_(eps_enc * 0.05)
+            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
