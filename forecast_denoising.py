@@ -28,6 +28,8 @@ class Forecast_denoising(nn.Module):
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
         self.gp = gp
+        if (gp and "traffic" in model_name) or no_noise:
+            self.lam = nn.Parameter(torch.randn(1))
 
         if "LSTM" in model_name:
 
@@ -54,7 +56,8 @@ class Forecast_denoising(nn.Module):
                                                  )
 
         self.d = d_model
-        self.de_model = denoise_model_2(self.forecasting_model, gp,
+        self.de_model = denoise_model_2(self.forecasting_model,
+                                        model_name, gp,
                                         d_model, device, seed,
                                         n_noise=no_noise,
                                         residual=residual)
