@@ -20,7 +20,6 @@ class denoise_model_2(nn.Module):
         self.deep_gp = DeepGPp(d, seed)
         self.proj_1 = nn.Linear(1, d)
         self.gp = gp
-        self.sigma = nn.Parameter(torch.randn(1))
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
