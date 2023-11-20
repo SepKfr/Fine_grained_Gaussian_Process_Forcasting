@@ -74,7 +74,7 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [2, 1]
+stack_size = [1, 2, 3, 4]
 
 
 def get_pred_tgt(denoise, gp, iso, no_noise):
