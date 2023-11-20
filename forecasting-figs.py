@@ -89,7 +89,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                                                     "_iso" if iso else "",
                                                     "_predictions" if no_noise else "")
         print(model_name)
-        sucess = False
+        sucess = True
         for d in d_model:
             for layer in stack_size:
                 try:
@@ -124,7 +124,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                     model.eval()
 
                     print("Successful...")
-                    sucess = True
+                    sucess = False
 
                     j = 0
                     for test_enc, test_dec, test_y in test:
