@@ -161,7 +161,7 @@ for j in range(total_b*batch_size):
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
     pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
 
-    if gp_loss < random_loss and gp_loss < pred_loss and gp_loss < pred_dwc_loss:
+    if gp_loss < pred_dwc_loss:
         if gp_loss < best_loss:
             best_loss = gp_loss
             losses = [gp_loss, random_loss, pred_loss, pred_dwc_loss]
@@ -171,7 +171,7 @@ for j in range(total_b*batch_size):
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 print(len(mses))
 
-direc = os.path.join("prediction_plots_6", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
+direc = os.path.join("prediction_plots_7", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
 for key in mses.keys():
