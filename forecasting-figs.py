@@ -146,8 +146,8 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
 
 preds_gp, tgt = get_pred_tgt(True, True, False, False)
 preds_random, _ = get_pred_tgt(True, False, True, False)
-preds_dwc, _ = get_pred_tgt(True, False, False, True)
 preds, _ = get_pred_tgt(False, False, False, False)
+preds_dwc, _ = get_pred_tgt(True, False, False, True)
 
 
 diff_1 = 0
