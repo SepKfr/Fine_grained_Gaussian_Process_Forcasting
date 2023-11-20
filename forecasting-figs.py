@@ -74,7 +74,7 @@ n_batches_test = test_enc.shape[0]
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [1, 2, 3, 4]
+stack_size = [1, 2]
 
 
 def get_pred_tgt(denoise, gp, iso, no_noise):
@@ -89,7 +89,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                                                     "_iso" if iso else "",
                                                     "_predictions" if no_noise else "")
         print(model_name)
-
+        sucess = False
         for d in d_model:
             for layer in stack_size:
                 try:
@@ -124,6 +124,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                     model.eval()
 
                     print("Successful...")
+                    sucess = True
 
                     j = 0
                     for test_enc, test_dec, test_y in test:
@@ -139,7 +140,8 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                         j += 1
 
                 except RuntimeError as e:
-                    pass
+                    if not sucess:
+                        print(e)
 
         return predictions.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
