@@ -89,7 +89,6 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                                                     "_iso" if iso else "",
                                                     "_predictions" if no_noise else "")
         print(model_name)
-        sucess = True
         for d in d_model:
             for layer in stack_size:
                 try:
@@ -132,6 +131,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                                 output, _, _ = model(test_enc.to(device), test_dec.to(device))
                         else:
                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                            print(output)
 
                         predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         if i == 0:
@@ -172,7 +172,7 @@ for j in range(total_b*batch_size):
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 print(len(mses))
 
-direc = os.path.join("prediction_plots_5", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
+direc = os.path.join("prediction_plots_6", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
 for key in mses.keys():
@@ -209,7 +209,7 @@ for key in mses.keys():
     plt.close()
 
     plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
-    plt.plot(np.arange(pred_len), preds_gp[key], color="lightblue")
+    plt.plot(np.arange(pred_len), preds_dwc[key], color="lightblue")
     plt.legend(["Y", "AutoDWC:MSE={:.3f}".format(loss_tuple[-2])])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDWC")), dpi=1000)
