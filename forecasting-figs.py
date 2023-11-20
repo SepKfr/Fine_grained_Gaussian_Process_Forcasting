@@ -157,6 +157,7 @@ best_loss = 1e10
 for j in range(total_b*batch_size):
 
     gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
+    print(preds_random)
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
     pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
