@@ -131,7 +131,6 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                                 output, _, _ = model(test_enc.to(device), test_dec.to(device))
                         else:
                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
-                            print(output)
 
                         predictions[j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach()
                         if i == 0:
@@ -179,29 +178,29 @@ for key in mses.keys():
 
     loss_tuple = mses.get(key)
 
-    plt.plot(np.arange(total_steps - pred_len), tgt[key][:-pred_len], color="black")
+    plt.plot(np.arange(total_steps - pred_len), tgt[key], color="black")
     plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
-    plt.plot(np.arange(total_steps - pred_len, total_steps), tgt[key][-pred_len:], color="gray")
+    plt.plot(np.arange(total_steps - pred_len, total_steps), tgt[key], color="gray")
     plt.legend(["X", "Y"])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "ground-truth")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
+    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds[key], color="lime")
     plt.legend(["Y", "Autoformer:MSE={:.3f}".format(loss_tuple[-2])])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "Autoformer")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
+    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_random[key], color="orchid")
     plt.legend(["Y", "AutoDI:MSE={:.3f}".format(loss_tuple[1])])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDI")), dpi=1000)
     plt.close()
 
-    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
+    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_gp[key], color="darkblue")
     plt.legend(["Y", "AutoGP:MSE={:.3f}".format(loss_tuple[0])])
     plt.tight_layout()
