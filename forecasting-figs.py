@@ -171,7 +171,7 @@ for j in range(total_b*batch_size):
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 print(len(mses))
 
-direc = os.path.join("prediction_plots_7", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
+direc = os.path.join("prediction_plots_8", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
 for key in mses.keys():
