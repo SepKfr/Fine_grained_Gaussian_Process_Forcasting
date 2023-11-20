@@ -139,7 +139,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                         j += 1
 
                 except RuntimeError as e:
-                    print(e)
+                    pass
 
         return predictions.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
