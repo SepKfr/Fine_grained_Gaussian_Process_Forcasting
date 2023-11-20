@@ -201,7 +201,7 @@ for key in mses.keys():
 
     plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_dwc[key], color="lightblue")
-    plt.legend(["Y", "AutoDWC:MSE={:.3f}".format(loss_tuple[-2])])
+    plt.legend(["Y", "AutoDWC:MSE={:.3f}".format(loss_tuple[-1])])
     plt.tight_layout()
     plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDWC")), dpi=1000)
     plt.close()
