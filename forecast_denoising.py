@@ -28,6 +28,7 @@ class Forecast_denoising(nn.Module):
         self.pred_len = pred_len
         self.input_corrupt = input_corrupt
         self.gp = gp
+        self.lam = nn.Parameter(torch.randn(1))
 
         if "LSTM" in model_name:
 
