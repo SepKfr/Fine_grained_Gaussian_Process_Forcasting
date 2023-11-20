@@ -157,7 +157,6 @@ best_loss = 1e10
 for j in range(total_b*batch_size):
 
     gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
-    print(preds_random)
     random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
     pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
     pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
@@ -178,14 +177,6 @@ if not os.path.exists(direc):
 for key in mses.keys():
 
     loss_tuple = mses.get(key)
-
-    plt.plot(np.arange(total_steps - pred_len), tgt[key], color="black")
-    plt.axvline(x=total_steps - pred_len, color="black", linestyle='--')
-    plt.plot(np.arange(total_steps - pred_len, total_steps), tgt[key], color="gray")
-    plt.legend(["X", "Y"])
-    plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "ground-truth")), dpi=1000)
-    plt.close()
 
     plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds[key], color="lime")
