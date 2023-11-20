@@ -124,7 +124,6 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                     model.eval()
 
                     print("Successful...")
-                    sucess = False
 
                     j = 0
                     for test_enc, test_dec, test_y in test:
@@ -140,8 +139,7 @@ def get_pred_tgt(denoise, gp, iso, no_noise):
                         j += 1
 
                 except RuntimeError as e:
-                    if not sucess:
-                        print(e)
+                    print(e)
 
         return predictions.reshape(total_b*batch_size, -1), test_y_tot.reshape(total_b*batch_size, -1)
 
