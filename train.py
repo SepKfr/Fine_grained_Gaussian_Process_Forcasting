@@ -112,7 +112,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [32])
+            d_model = trial.suggest_categorical("d_model", [16])
             w_steps = trial.suggest_categorical("w_steps", [1000])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
@@ -238,8 +238,8 @@ with gpytorch.settings.num_likelihood_samples(1):
     def main():
 
         parser = argparse.ArgumentParser(description="preprocess argument parser")
-        parser.add_argument("--attn_type", type=str, default='autoformer')
-        parser.add_argument("--model_name", type=str, default="autoformer")
+        parser.add_argument("--attn_type", type=str, default='fedformer')
+        parser.add_argument("--model_name", type=str, default="fedformer")
         parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
@@ -264,7 +264,7 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [72]:
+            for pred_len in [96]:
                 Train(raw_data, args, pred_len, seed)
 
 

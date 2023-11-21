@@ -9,6 +9,8 @@ from forecasting_models.ConvAttn import ConvAttn
 from forecasting_models.BasicAttn import BasicAttn
 from forecasting_models.Informer import ProbAttention
 from forecasting_models.Autoformer import AutoCorrelation
+from layers.AutoCorrelation import AutoCorrelationLayer
+from layers.FourierCorrelation import FourierBlock
 
 
 class MultiHeadAttention(nn.Module):
@@ -58,6 +60,17 @@ class MultiHeadAttention(nn.Module):
             context, attn = AutoCorrelation(seed=self.seed)(q_s.transpose(1, 2),
                                                             k_s.transpose(1, 2),
                                                             v_s.transpose(1, 2))
+
+        elif self.attn_type == "fedformer":
+
+            encoder_self_att = FourierBlock(in_channels=self.d_model,
+                                            out_channels=self.d_model,
+                                            seq_len=96,
+                                            modes=32,
+                                            mode_select_method='random')
+            context, attn = AutoCorrelationLayer(encoder_self_att, self.d_model, self.n_heads)\
+                                (Q, K, V, attn_mask=None)
+
 
         # CNN-trans forecasting model
 
