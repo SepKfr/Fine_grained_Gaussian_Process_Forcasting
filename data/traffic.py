@@ -155,8 +155,8 @@ class TrafficFormatter(GenericDataFormatter):
 
         decoder_steps = self.pred_len
         fixed_params = {
-            'total_time_steps': 96 + decoder_steps + self.pred_len,
-            'num_encoder_steps': 96,
+            'total_time_steps': 192 + decoder_steps + self.pred_len,
+            'num_encoder_steps': 192,
             'num_decoder_steps': decoder_steps,
             'num_epochs': 50,
             'early_stopping_patience': 5,
@@ -170,7 +170,7 @@ class TrafficFormatter(GenericDataFormatter):
 
         model_params = {
             'hidden_layer_size': [8],
-            'minibatch_size': [256],
+            'minibatch_size': [512],
             'num_heads': 8,
             'stack_size': [1],
             'context_lengths': [1, 3, 6, 9]
