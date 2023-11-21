@@ -67,8 +67,9 @@ class MultiHeadAttention(nn.Module):
                                             out_channels=self.d_model,
                                             seq_len=96,
                                             modes=32,
-                                            mode_select_method='random')
-            context, attn = AutoCorrelationLayer(encoder_self_att, self.d_model, self.n_heads)\
+                                            mode_select_method='random',
+                                            device=self.device)
+            context, attn = AutoCorrelationLayer(encoder_self_att, self.d_model, self.n_heads, self.device)\
                                 (Q, K, V, attn_mask=None)
 
 
