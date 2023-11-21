@@ -154,20 +154,6 @@ diff_2 = 0
 mses = dict()
 best_loss = 1e10
 
-for j in range(total_b*batch_size):
-
-    gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
-    random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
-    pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
-    pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
-
-    if gp_loss < random_loss and gp_loss < pred_loss and gp_loss < pred_dwc_loss:
-        if gp_loss < best_loss:
-            best_loss = gp_loss
-            losses = [gp_loss, random_loss, pred_loss, pred_dwc_loss]
-            mses[j] = losses
-
-
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 print(len(mses))
 
