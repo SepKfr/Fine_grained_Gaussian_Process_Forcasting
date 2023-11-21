@@ -84,7 +84,7 @@ class SolarFormatter(ElectricityFormatter):
         """
         if num_train == -1:
 
-            return 32000, 3840
+            return 31744, 4096
 
         else:
-            return num_train, 3840
+            return num_train, 4096
