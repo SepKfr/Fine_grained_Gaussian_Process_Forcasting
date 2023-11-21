@@ -112,7 +112,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [16])
+            d_model = trial.suggest_categorical("d_model", [32])
             w_steps = trial.suggest_categorical("w_steps", [1000])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
@@ -244,8 +244,8 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
-        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")

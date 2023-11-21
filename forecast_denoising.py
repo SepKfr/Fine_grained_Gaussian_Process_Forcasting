@@ -102,5 +102,8 @@ class Forecast_denoising(nn.Module):
 
         if y_true is not None:
             mse_loss = nn.MSELoss()(y_true, final_outputs)
-            loss = mse_loss + torch.clip(self.lam, min=0, max=0.01) * mll_error
+            if self.training:
+                loss = mse_loss + torch.clip(self.lam, min=0, max=0.01) * mll_error
+            else:
+                loss = mse_loss
         return final_outputs, loss, mse_loss
