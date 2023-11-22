@@ -148,7 +148,7 @@ normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
 
 
-for i in range(3):
+for i in range(2):
     for j in range(pred_len):
         mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :])
         mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :])
