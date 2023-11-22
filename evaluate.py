@@ -157,8 +157,8 @@ for i in range(1):
 
 mse_loss = mse_std_mean.mean(dim=0)
 mae_loss = mae_std_mean.mean(dim=0)
-mse_std = mse_std_mean.mean(dim=-1).std() / np.sqrt(pred_len)
-mae_std = mae_loss.mean(dim=-1).std() / np.sqrt(pred_len)
+mse_std = torch.std(mse_std_mean.mean(dim=-1)) / np.sqrt(pred_len)
+mae_std = torch.std(mae_loss.mean(dim=-1)) / np.sqrt(pred_len)
 
 mse_loss = mse_loss.mean()
 mae_loss = mae_loss.mean()
