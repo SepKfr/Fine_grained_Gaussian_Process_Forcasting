@@ -64,7 +64,7 @@ class SolarFormatter(ElectricityFormatter):
 
         decoder_steps = self.pred_len
         fixed_params = {
-            'total_time_steps': 129 + decoder_steps + self.pred_len,
+            'total_time_steps': 192 + decoder_steps + self.pred_len,
             'num_encoder_steps': 192,
             'num_decoder_steps': decoder_steps,
             'num_epochs': 50,
