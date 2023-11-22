@@ -66,7 +66,7 @@ class MultiHeadAttention(nn.Module):
             encoder_self_att = FourierBlock(in_channels=self.d_model,
                                             out_channels=self.d_model,
                                             seq_len=96,
-                                            modes=32,
+                                            modes=8,
                                             mode_select_method='random',
                                             device=self.device)
             context, attn = AutoCorrelationLayer(encoder_self_att, self.d_model, self.n_heads, self.device)\
