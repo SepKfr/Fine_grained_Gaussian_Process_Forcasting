@@ -12,11 +12,11 @@ from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
-parser.add_argument("--attn_type", type=str, default='fedformer')
-parser.add_argument("--model_name", type=str, default='fedformer')
-parser.add_argument("--exp_name", type=str, default='traffic')
+parser.add_argument("--attn_type", type=str, default='autoformer')
+parser.add_argument("--model_name", type=str, default='autoformer')
+parser.add_argument("--exp_name", type=str, default='autoformer')
 parser.add_argument("--cuda", type=str, default="cuda:0")
-parser.add_argument("--pred_len", type=int, default=96)
+parser.add_argument("--pred_len", type=int, default=24)
 parser.add_argument("--denoising", type=str, default="False")
 parser.add_argument("--gp", type=str, default="False")
 parser.add_argument("--no-noise", type=str, default="False")
@@ -146,14 +146,21 @@ mae_std_mean = torch.zeros(3, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
-predictions_mean = torch.mean(predictions, dim=0)
 
 
-mse_loss = mse(predictions_mean, test_y_tot).item()
-mae_loss = mse(predictions_mean, test_y_tot).item()
-mse_std = predictions_mean.std().item() / np.sqrt(pred_len)
-mae_std = predictions_mean.std().item() / np.sqrt(pred_len)
+for i in range(3):
+    for j in range(pred_len):
+        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :])
+        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :])
 
+
+mse_loss = mse_std_mean.mean(dim=0)
+mae_loss = mae_std_mean.mean(dim=0)
+mse_std = mse_loss.std(dim=0) / np.sqrt(pred_len)
+mae_std = mae_loss.std(dim=0) / np.sqrt(pred_len)
+
+mse_loss = mse_loss.mean(dim=0)
+mae_loss = mae_loss.mean(dim=0)
 # m_mse_men = torch.mean(mse_std_mean).item()
 # m_mae_men = torch.mean(mae_std_mean).item()
 
