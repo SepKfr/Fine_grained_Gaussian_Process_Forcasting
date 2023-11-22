@@ -63,7 +63,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((1, total_b, test_y.shape[0], pred_len))
+predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -79,7 +79,7 @@ iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
-for i, seed in enumerate([8220]):
+for i, seed in enumerate([8220, 2914, 1122]):
 
     model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                 "_denoise" if denoising else "",
@@ -141,29 +141,26 @@ for i, seed in enumerate([8220]):
                 pass
 
 
-mse_std_mean = torch.zeros(1, pred_len)
-mae_std_mean = torch.zeros(1, pred_len)
+mse_std_mean = torch.zeros(3, pred_len)
+mae_std_mean = torch.zeros(3, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
-print(normaliser)
+predictions_mean = torch.mean(predictions, dim=0)
 
-
-for i in range(1):
+for i in range(3):
     for j in range(pred_len):
-        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :])
-        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :])
+        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
+        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
 
 
 mse_loss = mse_std_mean.mean(dim=0)
 mae_loss = mae_std_mean.mean(dim=0)
-print(mse_loss)
-print(mae_loss)
-mse_std = torch.std(mse_std_mean.mean(dim=-1)) / np.sqrt(pred_len)
-mae_std = torch.std(mae_loss.mean(dim=-1)) / np.sqrt(pred_len)
+mse_std = mse_loss.std(dim=0) / np.sqrt(pred_len)
+mae_std = mae_loss.std(dim=0) / np.sqrt(pred_len)
 
-mse_loss = mse_loss.mean()
-mae_loss = mae_loss.mean()
+mse_loss = mse_loss.mean(dim=0)
+mae_loss = mae_loss.mean(dim=0)
 # m_mse_men = torch.mean(mse_std_mean).item()
 # m_mae_men = torch.mean(mae_std_mean).item()
 
