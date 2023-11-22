@@ -63,7 +63,7 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((2, total_b, test_y.shape[0], pred_len))
+predictions = np.zeros((1, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
@@ -79,7 +79,7 @@ iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
-for i, seed in enumerate([8220, 1122]):
+for i, seed in enumerate([8220]):
 
     model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
                                                 "_denoise" if denoising else "",
@@ -141,15 +141,15 @@ for i, seed in enumerate([8220, 1122]):
                 pass
 
 
-mse_std_mean = torch.zeros(2, pred_len)
-mae_std_mean = torch.zeros(2, pred_len)
+mse_std_mean = torch.zeros(1, pred_len)
+mae_std_mean = torch.zeros(1, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
 print(normaliser)
 
 
-for i in range(2):
+for i in range(1):
     for j in range(pred_len):
         mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :])
         mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :])
