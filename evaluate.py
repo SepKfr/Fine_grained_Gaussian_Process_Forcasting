@@ -146,6 +146,7 @@ mae_std_mean = torch.zeros(2, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
+print(normaliser)
 
 
 for i in range(2):
