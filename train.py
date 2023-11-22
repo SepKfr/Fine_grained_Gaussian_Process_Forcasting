@@ -260,7 +260,6 @@ with gpytorch.settings.num_likelihood_samples(1):
         random.seed(1234)
 
         seeds = [random.randint(1000, 9999) for _ in range(3)]
-        seeds = seeds[1:]
         for seed in seeds:
             np.random.seed(seed)
             random.seed(seed)
