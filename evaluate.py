@@ -156,11 +156,11 @@ for i in range(3):
 
 mse_loss = mse_std_mean.mean(dim=0)
 mae_loss = mae_std_mean.mean(dim=0)
-mse_std = mse_loss.std(dim=0) / np.sqrt(pred_len)
-mae_std = mae_loss.std(dim=0) / np.sqrt(pred_len)
+mse_std = mse_loss.std() / np.sqrt(pred_len)
+mae_std = mae_loss.std() / np.sqrt(pred_len)
 
-mse_loss = mse_loss.mean(dim=0)
-mae_loss = mae_loss.mean(dim=0)
+mse_loss = mse_loss.mean()
+mae_loss = mae_loss.mean()
 # m_mse_men = torch.mean(mse_std_mean).item()
 # m_mae_men = torch.mean(mae_std_mean).item()
 
