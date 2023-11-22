@@ -244,8 +244,8 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
-        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
@@ -260,7 +260,6 @@ with gpytorch.settings.num_likelihood_samples(1):
         random.seed(1234)
 
         seeds = [random.randint(1000, 9999) for _ in range(3)]
-        seeds = seeds[0:1]
         for seed in seeds:
             np.random.seed(seed)
             random.seed(seed)
