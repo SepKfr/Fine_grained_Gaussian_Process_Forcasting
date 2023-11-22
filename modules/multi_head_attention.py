@@ -40,6 +40,7 @@ class MultiHeadAttention(nn.Module):
     def forward(self, Q, K, V):
 
         batch_size = Q.shape[0]
+        seq_len = Q.shape[1]
         q_s = self.WQ(Q).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
         k_s = self.WK(K).view(batch_size, -1, self.n_heads, self.d_k).transpose(1, 2)
         v_s = self.WV(V).view(batch_size, -1, self.n_heads, self.d_v).transpose(1, 2)
@@ -65,7 +66,7 @@ class MultiHeadAttention(nn.Module):
 
             encoder_self_att = FourierBlock(in_channels=self.d_model,
                                             out_channels=self.d_model,
-                                            seq_len=96,
+                                            seq_len=seq_len,
                                             modes=8,
                                             mode_select_method='random',
                                             device=self.device)
