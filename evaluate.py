@@ -151,8 +151,8 @@ predictions_mean = torch.mean(predictions, dim=0)
 
 mse_loss = mse(predictions_mean, test_y_tot).item()
 mae_loss = mse(predictions_mean, test_y_tot).item()
-mse_std = predictions_mean.std(dim=0).item() / np.sqrt(pred_len)
-mae_std = predictions_mean.std(dim=0).item() / np.sqrt(pred_len)
+mse_std = predictions_mean.std().item() / np.sqrt(pred_len)
+mae_std = predictions_mean.std().item() / np.sqrt(pred_len)
 
 # m_mse_men = torch.mean(mse_std_mean).item()
 # m_mae_men = torch.mean(mae_std_mean).item()
