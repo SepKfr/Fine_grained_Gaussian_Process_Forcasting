@@ -18,7 +18,10 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.deep_gp = DeepGPp(d, seed)
+        self.proj_1 = nn.Linear(1, d)
         self.gp = gp
+        if (gp and "traffic" in model_name) or n_noise:
+            self.sigma = nn.Parameter(torch.randn(1))
 
         self.residual = residual
         self.norm = nn.LayerNorm(d)
@@ -33,7 +36,7 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = torch.cat([dist.sample().permute(1, 2, 0) for _ in range(self.d)], dim=-1)
+        eps_gp = self.proj_1(dist.sample().permute(1, 2, 0))
         x_noisy = x + eps_gp
 
         return x_noisy, dist
@@ -55,8 +58,8 @@ class denoise_model_2(nn.Module):
             dec_noisy = dec_inputs
 
         else:
-            enc_noisy = enc_inputs.add_(eps_enc * 0.05)
-            dec_noisy = dec_inputs.add_(eps_dec * 0.05)
+            enc_noisy = enc_inputs.add_(eps_enc * torch.clip(self.sigma, min=0, max=1))
+            dec_noisy = dec_inputs.add_(eps_dec * torch.clip(self.sigma, min=0, max=1))
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
