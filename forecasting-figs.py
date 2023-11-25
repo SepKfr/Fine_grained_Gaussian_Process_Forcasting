@@ -13,8 +13,8 @@ from Utils.base_train import batch_sampled_data
 from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
 
-plt.rc('font', size=12)
-plt.rc('axes', titlesize=12)
+plt.rc('font', size=14)
+plt.rc('axes', titlesize=14)
 plt.rcParams["figure.figsize"] = (8, 6)
 
 parser = argparse.ArgumentParser(description="preprocess argument parser")
@@ -154,6 +154,20 @@ diff_2 = 0
 mses = dict()
 best_loss = 1e10
 
+for j in range(total_b*batch_size):
+
+    gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
+    random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
+    pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
+    pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
+
+    if gp_loss < random_loss and gp_loss < pred_loss and gp_loss < pred_dwc_loss:
+        if gp_loss < best_loss:
+            best_loss = gp_loss
+            losses = [gp_loss, random_loss, pred_loss, pred_dwc_loss]
+            mses[j] = losses
+
+
 mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
 print(len(mses))
 
@@ -166,29 +180,29 @@ for key in mses.keys():
 
     plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds[key], color="lime")
-    plt.legend(["Y", "Autoformer:MSE={:.3f}".format(loss_tuple[-2])])
+    plt.legend(["Y", "Autoformer"])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "Autoformer")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "Autoformer", loss_tuple[-2])), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_random[key], color="orchid")
-    plt.legend(["Y", "AutoDI:MSE={:.3f}".format(loss_tuple[1])])
+    plt.legend(["Y", "AutoDI"])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDI")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDI", loss_tuple[1])), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_gp[key], color="darkblue")
-    plt.legend(["Y", "AutoGP:MSE={:.3f}".format(loss_tuple[0])])
+    plt.legend(["Y", "AutoGP"])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoGP")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoGP", loss_tuple[0])), dpi=1000)
     plt.close()
 
     plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
     plt.plot(np.arange(pred_len), preds_dwc[key], color="lightblue")
-    plt.legend(["Y", "AutoDWC:MSE={:.3f}".format(loss_tuple[-1])])
+    plt.legend(["Y", "AutoDWC"])
     plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}.pdf".format(key, "AutoDWC")), dpi=1000)
+    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDWC", loss_tuple[-1])), dpi=1000)
     plt.close()
 
