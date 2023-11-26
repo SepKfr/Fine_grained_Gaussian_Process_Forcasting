@@ -50,7 +50,7 @@ data = formatter.transform_data(raw_data)
 train_max, valid_max = formatter.get_num_samples_for_calibration(num_train=batch_size)
 max_samples = (train_max, valid_max)
 
-_, _, test = batch_sampled_data(data, 0.1, max_samples, params['total_time_steps'],
+_, _, test = batch_sampled_data(data, 0.8, max_samples, params['total_time_steps'],
                                         params['num_encoder_steps'], pred_len,
                                         params["column_definition"],
                                         batch_size)
@@ -154,55 +154,46 @@ diff_2 = 0
 mses = dict()
 best_loss = 1e10
 
-for j in range(total_b*batch_size):
+j = 823
 
-    gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
-    random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
-    pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
-    pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
-
-    if gp_loss < random_loss and gp_loss < pred_loss and gp_loss < pred_dwc_loss:
-        if gp_loss < best_loss:
-            best_loss = gp_loss
-            losses = [gp_loss, random_loss, pred_loss, pred_dwc_loss]
-            mses[j] = losses
+gp_loss = mse(preds_gp[j], tgt[j, -pred_len:]).item()
+random_loss = mse(preds_random[j], tgt[j, -pred_len:]).item()
+pred_loss = mse(preds[j], tgt[j, -pred_len:]).item()
+pred_dwc_loss = mse(preds_dwc[j], tgt[j, -pred_len:]).item()
 
 
-mses = dict(sorted(mses.items(), key=lambda item: item[1][0]))
-print(len(mses))
-
-direc = os.path.join("prediction_plots_8", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
+direc = os.path.join("prediction_plots_solar", "{}_{}".format(args.exp_name, pred_len), "{}".format(args.model_name))
 if not os.path.exists(direc):
     os.makedirs(direc)
-for key in mses.keys():
 
-    loss_tuple = mses.get(key)
 
-    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
-    plt.plot(np.arange(pred_len), preds[key], color="lime")
-    plt.legend(["Y", "Autoformer"])
-    plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "Autoformer", loss_tuple[-2])), dpi=1000)
-    plt.close()
+key = j
 
-    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
-    plt.plot(np.arange(pred_len), preds_random[key], color="orchid")
-    plt.legend(["Y", "AutoDI"])
-    plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDI", loss_tuple[1])), dpi=1000)
-    plt.close()
+plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
+plt.plot(np.arange(pred_len), preds[key], color="lime")
+plt.legend(["Ground-truth", "Forecast"])
+plt.tight_layout()
+plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "Autoformer", pred_loss)), dpi=1000)
+plt.close()
 
-    plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
-    plt.plot(np.arange(pred_len), preds_gp[key], color="darkblue")
-    plt.legend(["Y", "AutoGP"])
-    plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoGP", loss_tuple[0])), dpi=1000)
-    plt.close()
+plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
+plt.plot(np.arange(pred_len), preds_random[key], color="orchid")
+plt.legend(["Ground-truth", "Forecast"])
+plt.tight_layout()
+plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDI", random_loss)), dpi=1000)
+plt.close()
 
-    plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
-    plt.plot(np.arange(pred_len), preds_dwc[key], color="lightblue")
-    plt.legend(["Y", "AutoDWC"])
-    plt.tight_layout()
-    plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDWC", loss_tuple[-1])), dpi=1000)
-    plt.close()
+plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
+plt.plot(np.arange(pred_len), preds_gp[key], color="darkblue")
+plt.legend(["Ground-truth", "Forecast"])
+plt.tight_layout()
+plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoGP", gp_loss)), dpi=1000)
+plt.close()
+
+plt.plot(np.arange(pred_len), tgt[key][-pred_len:], color="gray", alpha=0.5)
+plt.plot(np.arange(pred_len), preds_dwc[key], color="lightblue")
+plt.legend(["Ground-truth", "Forecast"])
+plt.tight_layout()
+plt.savefig(os.path.join(direc, "{}_{}_MSE={:.3f}.pdf".format(key, "AutoDWC", pred_dwc_loss)), dpi=1000)
+plt.close()
 
