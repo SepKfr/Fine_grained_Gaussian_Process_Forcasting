@@ -23,7 +23,8 @@ class denoise_model_2(nn.Module):
         self.sigma = nn.Parameter(torch.randn(1))
 
         self.residual = residual
-        self.norm = nn.LayerNorm(d)
+        self.norm_1 = nn.LayerNorm(d)
+        self.norm_2 = nn.LayerNorm(d)
 
         self.d = d
         self.device = device
@@ -35,8 +36,8 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = self.proj_1(dist.sample().permute(1, 2, 0))
-        x_noisy = x + eps_gp
+        eps_gp = torch.cat([dist.sample().permute(1, 2, 0) for i in range(self.d)], dim=-1)
+        x_noisy = self.norm_1(x + eps_gp)
 
         return x_noisy, dist
 
@@ -62,6 +63,6 @@ class denoise_model_2(nn.Module):
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        dec_output = dec_inputs + dec_rec
+        dec_output = self.norm_2(dec_inputs + dec_rec)
 
         return dec_output, dist

@@ -81,7 +81,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             study = optuna.create_study(study_name=args.model_name,
                                         direction="minimize")
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=2)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -112,7 +112,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [32])
+            d_model = trial.suggest_categorical("d_model", [16, 32])
             w_steps = trial.suggest_categorical("w_steps", [1000])
             stack_size = trial.suggest_categorical("stack_size", [1, 2])
 
