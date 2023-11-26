@@ -170,6 +170,10 @@ if not os.path.exists(direc):
 key = j
 
 plt.plot(np.arange(pred_len), tgt[key], color="gray", alpha=0.5)
+plt.tight_layout()
+plt.savefig(os.path.join(direc, "GT"), dpi=1000)
+plt.close()
+
 plt.plot(np.arange(pred_len), preds[key], color="lime")
 plt.legend(["Ground-truth", "Forecast"])
 plt.tight_layout()
