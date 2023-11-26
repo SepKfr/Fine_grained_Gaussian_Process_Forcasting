@@ -126,7 +126,7 @@ def batch_sampled_data(data, train_percent, max_samples, time_steps,
 
     train = data[:train_len]
     valid = data[train_len:-valid_len]
-    test = data[-valid_len:]
+    test = data
 
     train_max, valid_max = max_samples
 
