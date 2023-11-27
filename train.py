@@ -81,7 +81,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             study = optuna.create_study(study_name=args.model_name,
                                         direction="minimize")
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=4)
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=2)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
@@ -244,8 +244,8 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=50)
-        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
-        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
