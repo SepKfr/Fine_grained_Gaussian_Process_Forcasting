@@ -14,7 +14,7 @@ class ATA(nn.Module):
         np.random.seed(seed)
 
         self.d_k = d_k
-        self.filter_length = [3, 9]
+        self.filter_length = [3, 7, 9]
 
         self.conv_list_k = nn.ModuleList([
             nn.Sequential(nn.Conv1d(
