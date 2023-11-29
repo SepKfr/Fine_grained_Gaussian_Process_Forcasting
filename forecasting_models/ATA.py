@@ -14,7 +14,7 @@ class ATA(nn.Module):
         np.random.seed(seed)
 
         self.d_k = d_k
-        self.filter_length = [3, 7, 9]
+        self.filter_length = [3, 9]
 
         self.conv_list_k = nn.ModuleList([
             nn.Sequential(nn.Conv1d(
@@ -31,10 +31,6 @@ class ATA(nn.Module):
                           nn.ReLU())
             for f in self.filter_length]).to(device)
 
-        self.proj_back_q = nn.Linear(d_k*len(self.filter_length), self.d_k, device=device)
-        self.proj_back_k = nn.Linear(d_k*len(self.filter_length), self.d_k, device=device)
-
-        self.factor = 1
 
     def forward(self, Q, K, V):
 
@@ -52,11 +48,9 @@ class ATA(nn.Module):
         Q_p = torch.cat(Q_l, dim=0).reshape(b, h, l * len(self.filter_length), -1)
         K_p = torch.cat(K_l, dim=0).reshape(b, h, l_k * len(self.filter_length), -1)
 
-        Q_proj = Q_p.reshape(b, h, l, -1)
-        Q, _ = torch.topk(Q_proj, dim=-1, k=1)
+        Q, _ = torch.topk(Q_p, dim=-2, k=l)
 
-        K_proj = K_p.reshape(b, h, l_k, -1)
-        K, _ = torch.topk(K_proj, dim=-1, k=1)
+        K, _ = torch.topk(K_p, dim=-2, k=l_k)
 
         scores = torch.einsum('bhqd,bhkd->bhqk', Q, K) / np.sqrt(self.d_k)
 
