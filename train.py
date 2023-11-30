@@ -81,7 +81,7 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             study = optuna.create_study(study_name=args.model_name,
                                         direction="minimize")
-            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=2)
+            study.optimize(self.objective, n_trials=args.n_trials, n_jobs=1)
 
             pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
             complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
