@@ -59,7 +59,7 @@ class DeepGPp(DeepGP):
         hidden_layer = ToyDeepGPHiddenLayer(
             input_dims=num_hidden_dims,
             output_dims=None,
-            mean_type='linear',
+            mean_type='constant',
             seed=seed,
         )
 
