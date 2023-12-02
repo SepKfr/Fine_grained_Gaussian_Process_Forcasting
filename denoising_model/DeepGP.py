@@ -12,7 +12,7 @@ from gpytorch.variational import VariationalStrategy, CholeskyVariationalDistrib
 
 
 class ToyDeepGPHiddenLayer(DeepGPLayer):
-    def __init__(self, input_dims, output_dims, seed, num_inducing=256, mean_type='constant'):
+    def __init__(self, input_dims, output_dims, seed, num_inducing=128, mean_type='constant'):
 
         np.random.seed(seed)
         random.seed(seed)
