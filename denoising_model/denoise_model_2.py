@@ -36,8 +36,8 @@ class denoise_model_2(nn.Module):
         b, s, _ = x.shape
 
         dist = self.deep_gp(x)
-        eps_gp = torch.cat([dist.sample().permute(1, 2, 0) for i in range(self.d)], dim=-1)
-        x_noisy = self.norm_1(x + eps_gp)
+        eps_gp = dist.sample().permute(1, 2, 0)
+        x_noisy = x + self.proj_1(eps_gp)
 
         return x_noisy, dist
 
@@ -63,6 +63,6 @@ class denoise_model_2(nn.Module):
 
         enc_rec, dec_rec = self.denoising_model(enc_noisy, dec_noisy)
 
-        dec_output = self.norm_2(dec_inputs + dec_rec)
+        dec_output = dec_inputs + dec_rec
 
         return dec_output, dist
