@@ -141,13 +141,16 @@ for i, seed in enumerate([8220, 2914, 1122]):
                 pass
 
 
-mse_loss = torch.cat([torch.nn.MSELoss()(predictions[i], test_y_tot) for i in range(3)], dim=0)
-mae_loss = torch.cat([torch.nn.L1Loss()(predictions[i], test_y_tot) for i in range(3)], dim=0)
+mse_loss = [torch.nn.MSELoss()(predictions[i], test_y_tot).item() for i in range(3)]
+mae_loss = [torch.nn.L1Loss()(predictions[i], test_y_tot).item() for i in range(3)]
 
-mse_loss = torch.mean(mse_loss)
-mse_std = torch.std(mse_loss) / np.sqrt(3)
-mae_loss = torch.mean(mae_loss)
-mae_std = torch.std(mae_loss) / np.sqrt(3)
+mse_loss = np.array(mse_loss)
+mae_loss = np.array(mae_loss)
+
+mse_loss = np.mean(mse_loss)
+mse_std = np.std(mse_loss) / np.sqrt(3)
+mae_loss = np.mean(mae_loss)
+mae_std = np.std(mae_loss) / np.sqrt(3)
 
 model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
                                                 "_denoise" if denoising else "",
