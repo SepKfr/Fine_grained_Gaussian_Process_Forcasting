@@ -1,4 +1,4 @@
-# Corruption-resilient Forecasting Models
+# Coarse and Fine-grained Forecasting Via Gaussian Process Blurring Effect
 
 This repository contains the code and repoducibility instructions of our ```Coarse and Fine Grained Forecassting Via Gaussian Process Blurring Effect``` paper submitted to TMLR.
 
