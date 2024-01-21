@@ -1,17 +1,10 @@
 # Corruption-resilient Forecasting Models
 
-This repository contains the code and repoducibility instructions of our ```Corruption-resilient Forecasting Models``` paper submitted to ICLR 2024.
+This repository contains the code and repoducibility instructions of our ```Coarse and Fine Grained Forecassting Via Gaussian Process Blurring Effect``` paper submitted to TMLR.
 
 ## Abstract 
 
-Time series forecasting is challenging due to complex temporal dependencies and unobserved external factors, which can lead to incorrect predictions by even the best forecasting models. Using more training data is one way to improve the accuracy, but this source is often limited. In contrast, we are building on successful denoising approaches for image generation. When a time series is corrupted by the common isotropic Gaussian noise, it yields unnaturally behaving time series. To avoid generating unnaturally behaving time series that do not represent the true error mode in modern forecasting models, we propose to employ Gaussian Processes to generate smoothly-correlated corrupted time series. However, instead of directly corrupting the training data, we propose a joint forecast-corrupt-denoise model to encourage the forecasting model to focus on accurately predicting coarse-grained behavior, while the denoising model focuses on capturing fine-grained behavior. All three parts are interacting via a corruption model which enforces the model to be resilient.
-Our extensive experiments demonstrate that our proposed corruption-resilient forecasting approach is able to improve the forecasting accuracy of several state-of-the-art forecasting models as well as several other denoising approaches. 
-
-## Supplementary Explanations on How We Obtain the Final Predictions
-
-## Supplementary of Main Results
-
-Please refer to [Supplementary_Results](https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/Supplementary_Results.pdf) for supplementary of main results. 
+Time series forecasting is a challenging task due to the existence of complex and dynamic temporal dependencies, leading to inaccurate predictions even by the most advanced models. While increasing training data is a common approach to enhance accuracy, it is often a limitted source. In contrast, we are building on successful denoising approaches for image generation by proposing an end-to-end forecast-blur-denoise framework. By training the parameters of the blur model for best end-to-end performance, we advocate for a clear division of tasks between the forecasting and denoising models. This encourages the forecasting model to learn the coarse-grained behavior, while the denoising model is filling in the blurred fine-grained details.
 
 ## Requirements
 
@@ -45,9 +38,7 @@ cuda:str         which GPU
 
 # one example with traffic dataset and Autoformer forecasting model when apply corruption and denoising with our proposed GP model 
 
-python train.py --exp_name solar --model_name autoformer_corrupt_denoise_gp --attn_type autofromer --denoising True --gp True --seed 4293 --cuda cuda:0
+python train.py --exp_name solar --model_name AutoDG--attn_type autofromer --denoising True --gp True --seed 4293 --cuda cuda:0
 ```
-
-The notebook file [example_run.ipynb](https://github.com/SepKfr/Corruption-resilient-Forecasting-Models/blob/master/example_run.ipynb) is an example of how to load data as well as training and evaluating three different corruption models 1. GP: our Gaussian-Process-based corruption model 2. Iso: isotropic Gaussian corruptio 3. no: no corruption (only forecasting).
 
 ## 
