@@ -82,7 +82,7 @@ input_corrupt = True if args.input_corrupt_training == "True" else False
 for i, seed in enumerate([7631, 9873]):
 
     try:
-        model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
+        model_name = "{}_{}{}{}{}{}{}".format(args.model_name, seed,
                                                     "_denoise" if denoising else "",
                                                     "_gp" if gp else "",
                                                     "_predictions" if no_noise else "",
