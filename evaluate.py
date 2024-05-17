@@ -81,17 +81,17 @@ input_corrupt = True if args.input_corrupt_training == "True" else False
 
 for i, seed in enumerate([5249, 7631, 9873]):
 
-    model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
-                                                "_denoise" if denoising else "",
-                                                "_gp" if gp else "",
-                                                "_predictions" if no_noise else "",
-                                                "_iso" if iso else "",
-                                                "_residual" if residual else "",
-                                                "_input_corrupt" if input_corrupt else "")
+    try:
+        model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
+                                                    "_denoise" if denoising else "",
+                                                    "_gp" if gp else "",
+                                                    "_predictions" if no_noise else "",
+                                                    "_iso" if iso else "",
+                                                    "_residual" if residual else "",
+                                                    "_input_corrupt" if input_corrupt else "")
 
-    for d in d_model:
-        for layer in stack_size:
-            try:
+        for d in d_model:
+            for layer in stack_size:
                 np.random.seed(seed)
                 random.seed(seed)
                 torch.manual_seed(seed)
@@ -137,8 +137,8 @@ for i, seed in enumerate([5249, 7631, 9873]):
                         test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
                     j += 1
 
-            except RuntimeError as e:
-                pass
+    except RuntimeError as e:
+        pass
 
 
 mse_std_mean = torch.zeros(3, pred_len)
@@ -172,7 +172,7 @@ model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_le
                                                 "_residual" if residual else "",
                                                 "_input_corrupt" if input_corrupt else "")
 
-error_path = "End_Long_horizon_Previous_set_up_Final_errors_{}.csv".format(args.exp_name)
+error_path = "new_errors_{}.csv".format(args.exp_name)
 errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
                        'MSE_std': f"{mse_std:.4f}", 'MAE_std': f"{mae_std: .4f}"}}
 
