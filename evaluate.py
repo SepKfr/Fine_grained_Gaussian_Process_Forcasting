@@ -79,7 +79,7 @@ iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
-for i, seed in enumerate([5249, 7631, 9873]):
+for i, seed in enumerate([7631, 9873]):
 
     try:
         model_name = "{}_{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len, seed,
