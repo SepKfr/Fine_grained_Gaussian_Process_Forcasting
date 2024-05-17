@@ -39,6 +39,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.seed = seed
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
+            if not os.path.exists(self.model_path):
+                os.makedirs(self.model_path)
             self.model_params = self.formatter.get_default_model_params()
             self.batch_size = self.model_params['minibatch_size'][0]
             self.attn_type = args.attn_type
