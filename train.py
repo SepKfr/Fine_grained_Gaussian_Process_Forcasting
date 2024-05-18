@@ -252,7 +252,7 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--iso", type=lambda x: str(x).lower() == "true", default="False")
-        parser.add_argument("--num_epochs", type=int, default=3)
+        parser.add_argument("--num_epochs", type=int, default=50)
 
         args = parser.parse_args()
 
