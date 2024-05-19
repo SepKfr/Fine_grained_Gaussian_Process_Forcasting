@@ -135,7 +135,7 @@ class WatershedFormatter(DataFormatter):
         """
         if num_train == -1:
 
-            return 2560, 512
+            return 32000, 3840
 
         else:
-            return num_train, 512
+            return num_train, 3840
