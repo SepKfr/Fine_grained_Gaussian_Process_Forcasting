@@ -188,7 +188,7 @@ class TrafficFormatter(GenericDataFormatter):
         """
         if num_train == -1:
 
-            return 31744, 4096
+            return 2560, 512
 
         else:
-            return num_train, 4096
+            return num_train, 512

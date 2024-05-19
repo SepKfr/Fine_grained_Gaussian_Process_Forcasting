@@ -212,30 +212,35 @@ with gpytorch.settings.num_likelihood_samples(1):
                 test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
                 j += 1
 
-            predictions = torch.from_numpy(predictions.reshape(-1, 1))
-            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-            normaliser = test_y.abs().mean()
+            tensor_path = f"{self.exp_name}"
+            if not os.path.exists(tensor_path):
+                os.makedirs(tensor_path)
+                torch.save({"predictions": predictions, "test_y": test_y},
+                           os.path.join(tensor_path, f"{self.model_name}.pt"))
 
-            test_loss = F.mse_loss(predictions, test_y).item() / normaliser
-            mse_loss = test_loss
+            test_loss = nn.MSELoss(reduction="none")(predictions, test_y)
+            mse_loss = torch.mean(test_loss)
+            mse_loss_std = torch.std(test_loss)
 
-            mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
-            mae_loss = mae_loss
+            mae_loss = nn.L1Loss(reduction="none")(predictions, test_y)
+            mae_loss = torch.mean(mae_loss)
+            mae_loss_std = torch.std(test_loss)
 
-            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+            errors = {self.model_name: {'MSE': f"{mse_loss:.3f} {mse_loss_std:.4f}",
+                                        'MAE': f"{mae_loss: .3f} {mae_loss_std:.4f}"}}
             print(errors)
 
-            error_path = "Long_horizon_Previous_set_up_Final_errors_{}.csv".format(self.exp_name)
+            error_path = "reported_errors_{}.csv".format(self.exp_name)
 
             df = pd.DataFrame.from_dict(errors, orient='index')
 
             if os.path.exists(error_path):
-
                 df_old = pd.read_csv(error_path)
                 df_new = pd.concat([df_old, df], axis=0)
                 df_new.to_csv(error_path)
             else:
                 df.to_csv(error_path)
+
 
     def main():
 
@@ -245,7 +250,7 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
-        parser.add_argument("--n_trials", type=int, default=50)
+        parser.add_argument("--n_trials", type=int, default=5)
         parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
