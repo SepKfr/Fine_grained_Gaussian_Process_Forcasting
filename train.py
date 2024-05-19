@@ -218,13 +218,15 @@ with gpytorch.settings.num_likelihood_samples(1):
                 torch.save({"predictions": predictions, "test_y": test_y_tot},
                            os.path.join(tensor_path, f"{self.model_name}.pt"))
 
+            normaliser = test_y_tot.numpy().abs().mean()
+
             test_loss = nn.MSELoss(reduction="none")(predictions, test_y_tot)
-            mse_loss = torch.mean(test_loss)
-            mse_loss_std = torch.std(test_loss)
+            mse_loss = torch.mean(test_loss) / normaliser
+            mse_loss_std = torch.std(test_loss) / normaliser
 
             mae_loss = nn.L1Loss(reduction="none")(predictions, test_y_tot)
-            mae_loss = torch.mean(mae_loss)
-            mae_loss_std = torch.std(test_loss)
+            mae_loss = torch.mean(mae_loss) / normaliser
+            mae_loss_std = torch.std(test_loss) / normaliser
 
             errors = {self.model_name: {'MSE': f"{mse_loss:.3f} {mse_loss_std:.4f}",
                                         'MAE': f"{mae_loss: .3f} {mae_loss_std:.4f}"}}
