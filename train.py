@@ -218,7 +218,7 @@ with gpytorch.settings.num_likelihood_samples(1):
                 torch.save({"predictions": predictions, "test_y": test_y_tot},
                            os.path.join(tensor_path, f"{self.model_name}.pt"))
 
-            normaliser = test_y_tot.numpy().reshape(-1).abs().mean()
+            normaliser = torch.mean(torch.abs(test_y_tot)).item()
 
             test_loss = nn.MSELoss(reduction="none")(predictions, test_y_tot)
             mse_loss = torch.mean(test_loss) / normaliser
