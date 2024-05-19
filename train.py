@@ -201,15 +201,15 @@ with gpytorch.settings.num_likelihood_samples(1):
             _, _, test_y = next(iter(self.test))
             total_b = len(list(iter(self.test)))
 
-            predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-            test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
+            predictions = torch.zeros(total_b, test_y.shape[0], self.pred_len)
+            test_y_tot = torch.zeros(total_b, test_y.shape[0], self.pred_len)
 
             j = 0
 
             for test_enc, test_dec, test_y in self.test:
                 output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-                predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-                test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                predictions[j] = output.squeeze(-1).cpu().detach()
+                test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach()
                 j += 1
 
             tensor_path = f"{self.exp_name}"
