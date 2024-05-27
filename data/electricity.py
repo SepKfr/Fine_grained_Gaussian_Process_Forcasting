@@ -246,9 +246,10 @@ class ElectricityFormatter(GenericDataFormatter):
         Returns:
           Tuple of (training samples, validation samples)
         """
+
         if num_train == -1:
 
-            return 31744, 4096
+            return 32000, 3840
 
         else:
-            return num_train, 4096
+            return num_train, 3840

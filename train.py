@@ -39,6 +39,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             self.seed = seed
             self.device = torch.device(args.cuda if torch.cuda.is_available() else "cpu")
             self.model_path = "models_{}_{}".format(args.exp_name, pred_len)
+            if not os.path.exists(self.model_path):
+                os.makedirs(self.model_path)
             self.model_params = self.formatter.get_default_model_params()
             self.batch_size = self.model_params['minibatch_size'][0]
             self.attn_type = args.attn_type
@@ -112,9 +114,9 @@ with gpytorch.settings.num_likelihood_samples(1):
 
             # hyperparameters
 
-            d_model = trial.suggest_categorical("d_model", [32])
-            w_steps = trial.suggest_categorical("w_steps", [1000])
-            stack_size = trial.suggest_categorical("stack_size", [1, 2])
+            d_model = trial.suggest_categorical("d_model", [32, 16])
+            w_steps = trial.suggest_categorical("w_steps", [4000])
+            stack_size = trial.suggest_categorical("stack_size", [1, 3])
 
             n_heads = self.model_params['num_heads']
 
@@ -199,41 +201,48 @@ with gpytorch.settings.num_likelihood_samples(1):
             _, _, test_y = next(iter(self.test))
             total_b = len(list(iter(self.test)))
 
-            predictions = np.zeros((total_b, test_y.shape[0], self.pred_len))
-            test_y_tot = np.zeros((total_b, test_y.shape[0], self.pred_len))
+            predictions = torch.zeros(total_b, test_y.shape[0], self.pred_len)
+            test_y_tot = torch.zeros(total_b, test_y.shape[0], self.pred_len)
 
             j = 0
 
             for test_enc, test_dec, test_y in self.test:
                 output, _, _ = self.best_model(test_enc.to(self.device), test_dec.to(self.device))
-                predictions[j] = output.squeeze(-1).cpu().detach().numpy()
-                test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                predictions[j] = output.squeeze(-1).cpu().detach()
+                test_y_tot[j] = test_y[:, -self.pred_len:, :].squeeze(-1).cpu().detach()
                 j += 1
 
-            predictions = torch.from_numpy(predictions.reshape(-1, 1))
-            test_y = torch.from_numpy(test_y_tot.reshape(-1, 1))
-            normaliser = test_y.abs().mean()
+            tensor_path = f"{self.exp_name}"
+            if not os.path.exists(tensor_path):
+                os.makedirs(tensor_path)
+                torch.save({"predictions": predictions, "test_y": test_y_tot},
+                           os.path.join(tensor_path, f"{self.model_name}.pt"))
 
-            test_loss = F.mse_loss(predictions, test_y).item() / normaliser
-            mse_loss = test_loss
+            normaliser = torch.mean(torch.abs(test_y_tot)).item()
 
-            mae_loss = F.l1_loss(predictions, test_y).item() / normaliser
-            mae_loss = mae_loss
+            test_loss = nn.MSELoss(reduction="none")(predictions, test_y_tot)
+            mse_loss = torch.mean(test_loss) / normaliser
+            mse_loss_std = torch.std(test_loss) / normaliser
 
-            errors = {self.model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}"}}
+            mae_loss = nn.L1Loss(reduction="none")(predictions, test_y_tot)
+            mae_loss = torch.mean(mae_loss) / normaliser
+            mae_loss_std = torch.std(test_loss) / normaliser
+
+            errors = {self.model_name: {'MSE': f"{mse_loss:.3f} {mse_loss_std:.4f}",
+                                        'MAE': f"{mae_loss: .3f} {mae_loss_std:.4f}"}}
             print(errors)
 
-            error_path = "Long_horizon_Previous_set_up_Final_errors_{}.csv".format(self.exp_name)
+            error_path = "reported_errors_{}.csv".format(self.exp_name)
 
             df = pd.DataFrame.from_dict(errors, orient='index')
 
             if os.path.exists(error_path):
-
                 df_old = pd.read_csv(error_path)
                 df_new = pd.concat([df_old, df], axis=0)
                 df_new.to_csv(error_path)
             else:
                 df.to_csv(error_path)
+
 
     def main():
 
@@ -243,14 +252,14 @@ with gpytorch.settings.num_likelihood_samples(1):
         parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
-        parser.add_argument("--n_trials", type=int, default=50)
+        parser.add_argument("--n_trials", type=int, default=5)
         parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--iso", type=lambda x: str(x).lower() == "true", default="False")
-        parser.add_argument("--num_epochs", type=int, default=3)
+        parser.add_argument("--num_epochs", type=int, default=50)
 
         args = parser.parse_args()
 
@@ -259,12 +268,12 @@ with gpytorch.settings.num_likelihood_samples(1):
 
         random.seed(1234)
 
-        seeds = [random.randint(1000, 9999) for _ in range(3)]
+        seeds = [random.randint(1000, 9999) for _ in range(1)]
         for seed in seeds:
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [96]:
+            for pred_len in [24, 48, 72, 96]:
                 Train(raw_data, args, pred_len, seed)
 
 

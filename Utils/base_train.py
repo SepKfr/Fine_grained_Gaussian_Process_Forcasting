@@ -146,9 +146,9 @@ def batch_sampled_data(data, train_percent, max_samples, time_steps,
                               torch.FloatTensor(sample_test['dec_inputs']),
                               torch.FloatTensor(sample_test['outputs']))
 
-    train_data = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
-    valid_data = torch.utils.data.DataLoader(valid_data, batch_size=batch_size)
-    test_data = torch.utils.data.DataLoader(test_data, batch_size=batch_size)
+    train_data = torch.utils.data.DataLoader(train_data, batch_size=batch_size, drop_last=True)
+    valid_data = torch.utils.data.DataLoader(valid_data, batch_size=batch_size, drop_last=True)
+    test_data = torch.utils.data.DataLoader(test_data, batch_size=batch_size, drop_last=True)
 
     return train_data, valid_data, test_data
 
