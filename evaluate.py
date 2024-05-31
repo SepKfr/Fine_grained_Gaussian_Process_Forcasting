@@ -166,7 +166,7 @@ mse_loss_acat = mse_std_mean[1]
 bar_width = 0.4
 
 # Positions of the bars on the x-axis
-r1 = np.arange(len(pred_len))
+r1 = np.arange(pred_len)
 r2 = [x + bar_width for x in r1]
 
 # Plot the data
@@ -180,7 +180,7 @@ plt.xlabel('Time Step')
 plt.ylabel('Value')
 
 # Add xticks on the middle of the group bars
-plt.xticks([r + bar_width/2 for r in range(len(pred_len))], pred_len)
+plt.xticks([r + bar_width/2 for r in range(pred_len)], r1)
 
 # Add legend
 plt.legend()
