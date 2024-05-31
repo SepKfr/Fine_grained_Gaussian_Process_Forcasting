@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import os
 
+from matplotlib import pyplot as plt
+
 from Utils.base_train import batch_sampled_data
 from data_loader import ExperimentConfig
 from forecast_denoising import Forecast_denoising
@@ -63,14 +65,14 @@ model_params = formatter.get_default_model_params()
 src_input_size = test_enc.shape[2]
 tgt_input_size = test_dec.shape[2]
 
-predictions = np.zeros((3, total_b, test_y.shape[0], pred_len))
+predictions = np.zeros((2, total_b, test_y.shape[0], pred_len))
 test_y_tot = torch.zeros((total_b, test_y.shape[0], pred_len))
 n_batches_test = test_enc.shape[0]
 
 
 mse = nn.MSELoss()
 mae = nn.L1Loss()
-stack_size = [1, 2]
+stack_size = [1, 3]
 denoising = True if args.denoising == "True" else False
 gp = True if args.gp == "True" else False
 no_noise = True if args.no_noise == "True" else False
@@ -79,109 +81,108 @@ iso = True if args.iso == "True" else False
 input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
-for i, seed in enumerate([7631, 9873]):
+for seed in [8220]:
+    for i, m_n in enumerate(["basic, ACAT"]):
+        try:
+            model_name = "{}_{}{}{}{}{}{}".format(m_n, seed,
+                                                        "_denoise" if denoising else "",
+                                                        "_gp" if gp else "",
+                                                        "_predictions" if no_noise else "",
+                                                        "_iso" if iso else "",
+                                                        "_residual" if residual else "",
+                                                        "_input_corrupt" if input_corrupt else "")
 
-    try:
-        model_name = "{}_{}{}{}{}{}{}".format(args.model_name, seed,
-                                                    "_denoise" if denoising else "",
-                                                    "_gp" if gp else "",
-                                                    "_predictions" if no_noise else "",
-                                                    "_iso" if iso else "",
-                                                    "_residual" if residual else "",
-                                                    "_input_corrupt" if input_corrupt else "")
+            for d in d_model:
 
-        for d in d_model:
-            for layer in stack_size:
-                np.random.seed(seed)
-                random.seed(seed)
-                torch.manual_seed(seed)
+                for layer in stack_size:
 
-                d_k = int(d / n_heads)
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    torch.manual_seed(seed)
 
-                config = src_input_size, tgt_input_size, d, n_heads, d_k, layer
+                    d_k = int(d / n_heads)
 
-                model = Forecast_denoising(model_name=model_name,
-                                           config=config,
-                                           gp=gp,
-                                           denoise=denoising,
-                                           device=device,
-                                           seed=seed,
-                                           pred_len=pred_len,
-                                           attn_type=args.attn_type,
-                                           no_noise=no_noise,
-                                           residual=residual,
-                                           input_corrupt=input_corrupt).to(device)
-                model.to(device)
+                    config = src_input_size, tgt_input_size, d, n_heads, d_k, layer
 
-                checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
-                                                     "{}".format(model_name)), map_location=device)
+                    model = Forecast_denoising(model_name=model_name,
+                                               config=config,
+                                               gp=gp,
+                                               denoise=denoising,
+                                               device=device,
+                                               seed=seed,
+                                               pred_len=pred_len,
+                                               attn_type=args.attn_type,
+                                               no_noise=no_noise,
+                                               residual=residual,
+                                               input_corrupt=input_corrupt).to(device)
+                    model.to(device)
 
-                state_dict = checkpoint['model_state_dict']
+                    checkpoint = torch.load(os.path.join("models_{}_{}".format(args.exp_name, pred_len),
+                                                         "{}".format(model_name)), map_location=device)
 
-                model.load_state_dict(state_dict)
+                    state_dict = checkpoint['model_state_dict']
 
-                model.eval()
+                    model.load_state_dict(state_dict)
 
-                print("Successful...")
+                    model.eval()
 
-                j = 0
-                for test_enc, test_dec, test_y in test:
-                    if gp:
-                        with gpytorch.settings.num_likelihood_samples(1):
-                             output, _, _ = model(test_enc.to(device), test_dec.to(device))
-                    else:
-                        output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                    print("Successful...")
 
-                    predictions[i, j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
-                    if i == 0:
-                        test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
-                    j += 1
+                    j = 0
+                    for test_enc, test_dec, test_y in test:
+                        if gp:
+                            with gpytorch.settings.num_likelihood_samples(1):
+                                 output, _, _ = model(test_enc.to(device), test_dec.to(device))
+                        else:
+                            output, _, _ = model(test_enc.to(device), test_dec.to(device))
 
-    except RuntimeError as e:
-        pass
+                        predictions[i, j] = output[:, -pred_len:, :].squeeze(-1).cpu().detach().numpy()
+                        if i == 0:
+                            test_y_tot[j] = test_y[:, -pred_len:, :].squeeze(-1).cpu().detach()
+                        j += 1
+
+        except RuntimeError as e:
+            pass
 
 
-mse_std_mean = torch.zeros(3, pred_len)
-mae_std_mean = torch.zeros(3, pred_len)
+mse_std_mean = torch.zeros(2, pred_len)
+mae_std_mean = torch.zeros(2, pred_len)
 
 normaliser = test_y_tot.abs().mean()
 predictions = torch.from_numpy(predictions)
 predictions_mean = torch.mean(predictions, dim=0)
 
-for i in range(3):
+for i in range(2):
+
     for j in range(pred_len):
-        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
-        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :]) / normaliser
+
+        mse_std_mean[i, j] = mse(predictions[i, :, j, :], test_y_tot[:, j, :])
+        mae_std_mean[i, j] = mae(predictions[i, :, j, :], test_y_tot[:, j, :])
 
 
-mse_loss = mse_std_mean.mean(dim=0)
-mae_loss = mae_std_mean.mean(dim=0)
-mse_std = mse_loss.std(dim=0) / np.sqrt(pred_len)
-mae_std = mae_loss.std(dim=0) / np.sqrt(pred_len)
+mae_loss_basic = mae_std_mean[0]
+mse_loss_acat = mse_std_mean[1]
 
-mse_loss = mse_loss.mean(dim=0)
-mae_loss = mae_loss.mean(dim=0)
-# m_mse_men = torch.mean(mse_std_mean).item()
-# m_mae_men = torch.mean(mae_std_mean).item()
+bar_width = 0.4
 
-model_name = "{}_{}_{}{}{}{}{}{}".format(args.model_name, args.exp_name, pred_len,
-                                                "_denoise" if denoising else "",
-                                                "_gp" if gp else "",
-                                                "_predictions" if no_noise else "",
-                                                "_iso" if iso else "",
-                                                "_residual" if residual else "",
-                                                "_input_corrupt" if input_corrupt else "")
+# Positions of the bars on the x-axis
+r1 = np.arange(len(pred_len))
+r2 = [x + bar_width for x in r1]
 
-error_path = "new_errors_{}.csv".format(args.exp_name)
-errors = {model_name: {'MSE': f"{mse_loss:.3f}", 'MAE': f"{mae_loss: .3f}",
-                       'MSE_std': f"{mse_std:.4f}", 'MAE_std': f"{mae_std: .4f}"}}
+# Plot the data
+plt.figure(figsize=(12, 6))
+plt.bar(r1, mae_loss_basic, color='blue', width=bar_width, edgecolor='grey', label='Basic Attention')
+plt.bar(r2, mse_loss_acat, color='red', width=bar_width, edgecolor='grey', label='ACAT')
 
-df = pd.DataFrame.from_dict(errors, orient='index')
+# Add title and labels
+plt.title('MSE Loss')
+plt.xlabel('Time Step')
+plt.ylabel('Value')
 
-if os.path.exists(error_path):
+# Add xticks on the middle of the group bars
+plt.xticks([r + bar_width/2 for r in range(len(pred_len))], pred_len)
 
-    df_old = pd.read_csv(error_path)
-    df_new = pd.concat([df_old, df], axis=0)
-    df_new.to_csv(error_path)
-else:
-    df.to_csv(error_path)
+# Add legend
+plt.legend()
+plt.tight_layout()
+plt.savefig("basic_vs_ATA.png", dpi=300)
