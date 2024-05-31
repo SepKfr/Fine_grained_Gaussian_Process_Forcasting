@@ -82,7 +82,7 @@ input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
 for seed in [8220]:
-    for i, m_n in enumerate(["basic, ACAT"]):
+    for i, m_n in enumerate(["basic", "ACAT"]):
         try:
             model_name = "{}_{}{}{}{}{}{}".format(m_n, seed,
                                                         "_denoise" if denoising else "",
