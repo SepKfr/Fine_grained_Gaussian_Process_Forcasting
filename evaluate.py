@@ -185,4 +185,4 @@ plt.xticks([r + bar_width/2 for r in range(len(pred_len))], pred_len)
 # Add legend
 plt.legend()
 plt.tight_layout()
-plt.savefig("basic_vs_ATA.png", dpi=300)
+plt.savefig("{}_basic_vs_ATA.png".format(args.exp_name), dpi=300)
