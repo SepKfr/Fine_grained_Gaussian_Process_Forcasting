@@ -17,7 +17,7 @@ from modules.opt_model import NoamOpt
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(1):
+with gpytorch.settings.num_likelihood_samples(16):
     class Train:
         def __init__(self, data, args, pred_len, seed):
 
