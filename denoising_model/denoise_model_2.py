@@ -32,11 +32,11 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        dist = self.deep_gp(x)
-        eps_gp = torch.cat([dist.sample().permute(1, 2, 0) for _ in range(self.d)], dim=-1)
+        eps_gp = self.deep_gp.predict(x)
+        print(eps_gp.shape)
         x_noisy = x + eps_gp
 
-        return x_noisy, dist
+        return x_noisy
 
     def forward(self, enc_inputs, dec_inputs):
 
@@ -46,8 +46,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
 
-            enc_noisy, dist_enc = self.add_gp_noise(enc_inputs)
-            dec_noisy, dist = self.add_gp_noise(dec_inputs)
+            enc_noisy = self.add_gp_noise(enc_inputs)
+            dec_noisy = self.add_gp_noise(dec_inputs)
 
         elif self.n_noise:
 
@@ -62,4 +62,4 @@ class denoise_model_2(nn.Module):
 
         dec_output = dec_inputs + dec_rec
 
-        return dec_output, dist
+        return dec_output

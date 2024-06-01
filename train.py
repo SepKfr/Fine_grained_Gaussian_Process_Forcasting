@@ -247,14 +247,13 @@ with gpytorch.settings.num_likelihood_samples(1):
     def main():
 
         parser = argparse.ArgumentParser(description="preprocess argument parser")
-        parser.add_argument("--attn_type", type=str, default='fedformer')
-        parser.add_argument("--model_name", type=str, default="fedformer")
+        parser.add_argument("--attn_type", type=str, default='ATA')
         parser.add_argument("--exp_name", type=str, default='exchange')
         parser.add_argument("--cuda", type=str, default="cuda:0")
         parser.add_argument("--seed", type=int, default=1234)
         parser.add_argument("--n_trials", type=int, default=5)
-        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="False")
-        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="False")
+        parser.add_argument("--denoising", type=lambda x: str(x).lower() == "true", default="True")
+        parser.add_argument("--gp", type=lambda x: str(x).lower() == "true", default="True")
         parser.add_argument("--residual", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--no-noise", type=lambda x: str(x).lower() == "true", default="False")
         parser.add_argument("--input_corrupt_training", type=lambda x: str(x).lower() == "true", default="False")
@@ -273,9 +272,8 @@ with gpytorch.settings.num_likelihood_samples(1):
             np.random.seed(seed)
             random.seed(seed)
             torch.manual_seed(seed)
-            for pred_len in [24, 48, 72, 96]:
+            for pred_len in [96]:
                 Train(raw_data, args, pred_len, seed)
-
 
     if __name__ == '__main__':
         main()
