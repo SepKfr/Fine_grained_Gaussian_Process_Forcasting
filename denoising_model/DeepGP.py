@@ -95,4 +95,4 @@ class DeepGPp(DeepGP):
 
         preds = self.likelihood(self(x))
 
-        return preds
+        return preds.mean
