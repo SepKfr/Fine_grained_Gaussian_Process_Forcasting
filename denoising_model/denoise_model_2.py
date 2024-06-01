@@ -18,7 +18,7 @@ class denoise_model_2(nn.Module):
         self.denoising_model = model
 
         self.deep_gp = DeepGPp(d, seed)
-        self.proj_up = nn.Linear(16, d)
+        self.proj_up = nn.Linear(1, d)
         self.gp = gp
 
         self.residual = residual
@@ -33,11 +33,11 @@ class denoise_model_2(nn.Module):
 
         b, s, _ = x.shape
 
-        eps_gp = self.deep_gp.predict(x)
+        eps_gp, dist = self.deep_gp.predict(x)
         eps_gp = self.proj_up(eps_gp.permute(1, 2, 0))
         x_noisy = x + eps_gp
 
-        return x_noisy
+        return x_noisy, dist
 
     def forward(self, enc_inputs, dec_inputs):
 
@@ -47,8 +47,8 @@ class denoise_model_2(nn.Module):
 
         if self.gp:
 
-            enc_noisy = self.add_gp_noise(enc_inputs)
-            dec_noisy = self.add_gp_noise(dec_inputs)
+            enc_noisy, _ = self.add_gp_noise(enc_inputs)
+            dec_noisy, dist = self.add_gp_noise(dec_inputs)
 
         elif self.n_noise:
 
@@ -63,4 +63,4 @@ class denoise_model_2(nn.Module):
 
         dec_output = dec_inputs + dec_rec
 
-        return dec_output
+        return dec_output, dist

@@ -81,8 +81,13 @@ class Forecast_denoising(nn.Module):
 
         if self.denoise or (self.input_corrupt and self.training):
 
-            de_model_outputs = self.de_model(enc_outputs.clone(), dec_outputs.clone())
+            de_model_outputs, dist = self.de_model(enc_outputs.clone(), dec_outputs.clone())
             final_outputs = self.final_projection(de_model_outputs[:, -self.pred_len:, :])
+
+            if self.gp and self.training:
+                mll = DeepApproximateMLL(
+                    VariationalELBO(self.de_model.deep_gp.likelihood, self.de_model.deep_gp, self.d))
+                mll_error = -mll(dist, y_true.permute(2, 0, 1)).mean()
 
             if self.residual:
 

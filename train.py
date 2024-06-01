@@ -17,7 +17,7 @@ from modules.opt_model import NoamOpt
 
 torch.autograd.set_detect_anomaly(True)
 
-with gpytorch.settings.num_likelihood_samples(16):
+with gpytorch.settings.num_likelihood_samples(1):
     class Train:
         def __init__(self, data, args, pred_len, seed):
 
@@ -221,12 +221,12 @@ with gpytorch.settings.num_likelihood_samples(16):
             normaliser = torch.mean(torch.abs(test_y_tot)).item()
 
             test_loss = nn.MSELoss(reduction="none")(predictions, test_y_tot)
-            mse_loss = torch.mean(test_loss) / normaliser
-            mse_loss_std = torch.std(test_loss) / normaliser
+            mse_loss = torch.mean(test_loss)
+            mse_loss_std = torch.std(test_loss)
 
             mae_loss = nn.L1Loss(reduction="none")(predictions, test_y_tot)
-            mae_loss = torch.mean(mae_loss) / normaliser
-            mae_loss_std = torch.std(test_loss) / normaliser
+            mae_loss = torch.mean(mae_loss)
+            mae_loss_std = torch.std(test_loss)
 
             errors = {self.model_name: {'MSE': f"{mse_loss:.3f} {mse_loss_std:.4f}",
                                         'MAE': f"{mae_loss: .3f} {mae_loss_std:.4f}"}}
@@ -268,7 +268,7 @@ with gpytorch.settings.num_likelihood_samples(16):
 
         random.seed(1234)
 
-        seeds = [random.randint(1000, 9999) for _ in range(1)]
+        seeds = [random.randint(1000, 9999) for _ in range(3)]
         for seed in seeds:
             np.random.seed(seed)
             random.seed(seed)
