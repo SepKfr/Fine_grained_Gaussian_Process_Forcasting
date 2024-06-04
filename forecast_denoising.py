@@ -51,8 +51,7 @@ class Forecast_denoising(nn.Module):
                                                  n_layers=stack_size, src_pad_index=0,
                                                  tgt_pad_index=0, device=device,
                                                  attn_type=attn_type,
-                                                 seed=seed,
-                                                 )
+                                                 seed=seed)
 
         self.d = d_model
         self.de_model = denoise_model_2(self.forecasting_model,
