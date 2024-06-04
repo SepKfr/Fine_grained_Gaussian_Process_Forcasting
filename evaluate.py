@@ -122,8 +122,6 @@ for seed in [8220]:
 
                     state_dict = checkpoint['model_state_dict']
 
-
-
                     model.load_state_dict(state_dict)
 
                     model.eval()
