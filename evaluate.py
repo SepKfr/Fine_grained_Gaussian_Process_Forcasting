@@ -142,7 +142,7 @@ for seed in [8220]:
                         j += 1
 
         except RuntimeError as e:
-            pass
+            print(e)
 
 
 mse_std_mean = torch.zeros(2, pred_len)
