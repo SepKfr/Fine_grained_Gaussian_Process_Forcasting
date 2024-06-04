@@ -82,7 +82,7 @@ input_corrupt = True if args.input_corrupt_training == "True" else False
 
 
 for seed in [8220]:
-    for i, m_n in enumerate(["basic", "ACAT"]):
+    for i, m_n in enumerate(["basic", "ATA"]):
         try:
             model_name = "{}_{}_{}_{}{}{}{}{}{}".format(m_n, args.exp_name, pred_len, seed,
                                                         "_denoise" if denoising else "",
@@ -121,6 +121,8 @@ for seed in [8220]:
                                                          "{}".format(model_name)), map_location=device)
 
                     state_dict = checkpoint['model_state_dict']
+
+
 
                     model.load_state_dict(state_dict)
 
@@ -172,7 +174,7 @@ r2 = [x + bar_width for x in r1]
 # Plot the data
 plt.figure(figsize=(12, 6))
 plt.bar(r1, mae_loss_basic, color='blue', width=bar_width, edgecolor='grey', label='Basic Attention')
-plt.bar(r2, mse_loss_acat, color='red', width=bar_width, edgecolor='grey', label='ACAT')
+plt.bar(r2, mse_loss_acat, color='red', width=bar_width, edgecolor='grey', label='ATA')
 
 # Add title and labels
 plt.title('MSE Loss')
